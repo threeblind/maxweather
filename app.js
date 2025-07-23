@@ -21,19 +21,23 @@ async function fetchMaxTemperature(prefCode, stationCode) {
     const url = `https://weather.yahoo.co.jp/weather/amedas/${prefCode}/${stationCode}.html`;
     
     // CORS制限を回避するため、プロキシサービスを使用
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    // allorigins.winが不安定なため、thingproxy.freeboard.ioに変更
+    const proxyUrl = `https://thingproxy.freeboard.io/fetch/${url}`;
     
     try {
         const response = await fetch(proxyUrl);
-        const data = await response.json();
-        
-        if (!data.contents) {
+        if (!response.ok) {
+            throw new Error(`プロキシサーバーからの応答が異常です (HTTP ${response.status})`);
+        }
+        const html = await response.text();
+
+        if (!html) {
             throw new Error('データの取得に失敗しました');
         }
         
         // HTMLを解析
         const parser = new DOMParser();
-        const doc = parser.parseFromString(data.contents, 'text/html');
+        const doc = parser.parseFromString(html, 'text/html');
         
         // recordHighクラスのli要素を探す
         const recordHighLi = doc.querySelector('li.recordHigh');
@@ -127,7 +131,7 @@ function saveToSearchHistory(locationName) {
     // 新しい地点を先頭に追加
     history.unshift(locationName);
     // 履歴を最新8件に保つ
-    history = history.slice(0, 18);
+    history = history.slice(0, 8);
     // localStorageに保存
     localStorage.setItem('searchHistory', JSON.stringify(history));
     // 表示を更新
@@ -158,10 +162,126 @@ function loadSearchHistory() {
     }
 }
 
+// --- ランキング表示機能 ---
+
+// Yahoo!天気からランキングデータを取得
+async function fetchRankingData() {
+    const url = 'https://weather.yahoo.co.jp/weather/amedas/ranking/?rank=high_temp';
+    // CORS制限を回避するため、プロキシサービスを使用
+    // allorigins.winが不安定なため、thingproxy.freeboard.ioに変更
+    const proxyUrl = `https://thingproxy.freeboard.io/fetch/${url}`;
+    let response;
+    try {
+        response = await fetch(proxyUrl);
+    } catch (error) {
+        console.error('ランキング取得ネットワークエラー:', error);
+        throw new Error('ネットワークエラー、またはプロキシサーバーに接続できませんでした。');
+    }
+
+    if (!response.ok) {
+        throw new Error(`プロキシサーバーからの応答が異常です (HTTP ${response.status})`);
+    }
+
+    const html = await response.text();
+    if (!html) {
+        throw new Error('プロキシ経由でのランキングデータ取得に失敗しました。');
+    }
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // タイトルと更新時刻を取得
+    const title = doc.querySelector('.yjw_title_h2 .yjM')?.textContent.trim() || '全国最高気温ランキング';
+    const updateTime = doc.querySelector('.yjw_title_h2 .yjSt')?.textContent.trim() || '';
+
+    const rows = doc.querySelectorAll('.yjw_table tbody tr');
+    if (rows.length < 2) { // ヘッダ行＋データ行が最低でも必要
+        throw new Error('ランキングテーブルが見つかりません');
+    }
+
+    // ヘッダー行を解析
+    const headerCells = rows[0].querySelectorAll('td');
+    const headers = Array.from(headerCells).map(cell => cell.textContent.trim());
+
+    const rankingList = [];
+    // 最初の行(ヘッダ)をスキップ
+    for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i].querySelectorAll('td');
+        if (cells.length < 4) continue;
+        
+        const locationLink = cells[1]?.querySelector('a');
+        const rank = cells[0]?.textContent.trim();
+        const location = locationLink?.textContent.trim().replace(/\s+/g, ' ');
+        const locationUrl = locationLink?.href;
+        const temperature = cells[2]?.textContent.trim();
+        const time = cells[3]?.textContent.trim();
+
+        if (rank && location && locationUrl && temperature && time) {
+            rankingList.push({ rank, location, locationUrl, temperature, time });
+        }
+    }
+    return { title, updateTime, headers, rankingList };
+}
+
+// 取得したランキングデータをテーブルに表示
+function displayRanking({ title, updateTime, headers, rankingList }) {
+    // タイトルと更新時刻を更新
+    const rankingTitleH3 = document.querySelector('.ranking-container h3');
+    const rankingUpdateTimeP = document.getElementById('rankingUpdateTime');
+    if (rankingTitleH3) rankingTitleH3.textContent = title;
+    if (rankingUpdateTimeP) rankingUpdateTimeP.textContent = updateTime;
+
+    // ヘッダーを動的に生成
+    const rankingHead = document.getElementById('rankingHead');
+    if (rankingHead) {
+        rankingHead.innerHTML = ''; // Clear previous content
+        const headerRow = document.createElement('tr');
+        if (headers && headers.length > 0) {
+            headers.forEach(headerText => {
+                const th = document.createElement('th');
+                th.textContent = headerText;
+                headerRow.appendChild(th);
+            });
+        }
+        rankingHead.appendChild(headerRow);
+    }
+
+    const rankingBody = document.getElementById('rankingBody');
+    rankingBody.innerHTML = ''; // Clear previous content
+
+    rankingList.forEach(item => {
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+            <td>${item.rank}</td>
+            <td class="location"><a href="${item.locationUrl}" target="_blank" rel="noopener noreferrer">${item.location}</a></td>
+            <td>${item.temperature}</td>
+            <td>${item.time}</td>
+        `;
+        rankingBody.appendChild(row);
+    });
+}
+
+// ランキングの読み込みと表示を実行
+async function loadRanking() {
+    const rankingStatus = document.getElementById('rankingStatus');
+    rankingStatus.textContent = 'ランキングを読み込み中...';
+    rankingStatus.style.display = 'block';
+    try {
+        const rankingInfo = await fetchRankingData();
+        displayRanking(rankingInfo);
+        rankingStatus.style.display = 'none'; // 成功したらメッセージを隠す
+    } catch (error) {
+        rankingStatus.textContent = `ランキングの読み込みに失敗しました: ${error.message}`;
+        rankingStatus.className = 'result error';
+    }
+}
+
 // Enterキーで検索
 document.addEventListener('DOMContentLoaded', function() {
     loadStationsData();
     loadSearchHistory();
+    loadRanking();
     
     document.getElementById('locationInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
