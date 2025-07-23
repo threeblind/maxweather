@@ -128,6 +128,27 @@
         #rankingTable td.location a:hover {
             text-decoration: underline;
         }
+
+        /* --- レスポンシブ対応 --- */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .search-box {
+                flex-direction: column;
+            }
+            .ranking-container {
+                /* テーブルがはみ出した場合に横スクロールを可能にする */
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch; /* iOSでのスクロールを滑らかに */
+            }
+        }
     </style>
 </head>
 <body>
