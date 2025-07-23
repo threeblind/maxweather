@@ -99,6 +99,7 @@ async function searchTemperature() {
         // 気温を取得
         const tempInfo = await fetchMaxTemperature(station.pref_code, station.code);
         showResult(`${locationName}の最高気温は ${tempInfo} です`, 'success');
+        saveToSearchHistory(locationName);
         
     } catch (error) {
         showResult(`エラーが発生しました: ${error.message}`, 'error');
@@ -118,9 +119,49 @@ function searchLocation(locationName) {
     searchTemperature();
 }
 
+// 検索履歴をlocalStorageに保存する
+function saveToSearchHistory(locationName) {
+    let history = JSON.parse(localStorage.getItem('searchHistory')) || [];
+    // 既存の履歴から同じ地点を削除（先頭に移動するため）
+    history = history.filter(item => item !== locationName);
+    // 新しい地点を先頭に追加
+    history.unshift(locationName);
+    // 履歴を最新8件に保つ
+    history = history.slice(0, 5);
+    // localStorageに保存
+    localStorage.setItem('searchHistory', JSON.stringify(history));
+    // 表示を更新
+    loadSearchHistory();
+}
+
+// 検索履歴を読み込んで表示する
+function loadSearchHistory() {
+    const history = JSON.parse(localStorage.getItem('searchHistory')) || [];
+    const suggestionListDiv = document.querySelector('.suggestion-list');
+    const suggestionsDiv = document.querySelector('.suggestions');
+
+    if (!suggestionListDiv || !suggestionsDiv) return;
+
+    suggestionListDiv.innerHTML = ''; // 現在のリストをクリア
+
+    if (history.length === 0) {
+        suggestionsDiv.style.display = 'none'; // 履歴がなければセクションごと非表示
+    } else {
+        suggestionsDiv.style.display = 'block';
+        history.forEach(locationName => {
+            const span = document.createElement('span');
+            span.className = 'suggestion';
+            span.textContent = locationName;
+            span.onclick = () => searchLocation(locationName);
+            suggestionListDiv.appendChild(span);
+        });
+    }
+}
+
 // Enterキーで検索
 document.addEventListener('DOMContentLoaded', function() {
     loadStationsData();
+    loadSearchHistory();
     
     document.getElementById('locationInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
