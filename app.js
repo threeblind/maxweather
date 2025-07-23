@@ -21,7 +21,7 @@ async function fetchMaxTemperature(prefCode, stationCode) {
     const url = `https://weather.yahoo.co.jp/weather/amedas/${prefCode}/${stationCode}.html`;
     
     // CORS制限を回避するため、プロキシサービスを使用
-    const proxyUrl = `https://cors-proxy.fringe.zone/${url}`;
+    const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${url}`;
     
     try {
         const response = await fetch(proxyUrl);
@@ -167,7 +167,7 @@ function loadSearchHistory() {
 async function fetchRankingData() {
     const url = 'https://weather.yahoo.co.jp/weather/amedas/ranking/?rank=high_temp';
     // CORS制限を回避するため、プロキシサービスを使用
-    const proxyUrl = `https://cors-proxy.fringe.zone/${url}`;
+    const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${url}`;
     let response;
     try {
         response = await fetch(proxyUrl);
