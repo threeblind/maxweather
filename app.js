@@ -1,5 +1,8 @@
 let stationsData = [];
 
+// CORS制限を回避するためのプロキシサーバーURLのテンプレート
+const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
+
 // アメダス観測所データを読み込み
 async function loadStationsData() {
     try {
@@ -19,17 +22,15 @@ function findStationByName(name) {
 // 気温データを取得（CORS制限のため、プロキシサーバーを使用）
 async function fetchMaxTemperature(prefCode, stationCode) {
     const url = `https://weather.yahoo.co.jp/weather/amedas/${prefCode}/${stationCode}.html`;
-    
-    // CORS制限を回避するため、プロキシサービスを使用
-    // allorigins.winが不安定なため、thingproxy.freeboard.ioに変更
-    const proxyUrl = `https://thingproxy.freeboard.io/fetch/${url}`;
+    const proxyUrl = PROXY_URL_TEMPLATE.replace('%URL%', encodeURIComponent(url));
     
     try {
         const response = await fetch(proxyUrl);
         if (!response.ok) {
             throw new Error(`プロキシサーバーからの応答が異常です (HTTP ${response.status})`);
         }
-        const html = await response.text();
+        const data = await response.json();
+        const html = data.contents;
 
         if (!html) {
             throw new Error('データの取得に失敗しました');
@@ -167,9 +168,7 @@ function loadSearchHistory() {
 // Yahoo!天気からランキングデータを取得
 async function fetchRankingData() {
     const url = 'https://weather.yahoo.co.jp/weather/amedas/ranking/?rank=high_temp';
-    // CORS制限を回避するため、プロキシサービスを使用
-    // allorigins.winが不安定なため、thingproxy.freeboard.ioに変更
-    const proxyUrl = `https://thingproxy.freeboard.io/fetch/${url}`;
+    const proxyUrl = PROXY_URL_TEMPLATE.replace('%URL%', encodeURIComponent(url));
     let response;
     try {
         response = await fetch(proxyUrl);
@@ -182,7 +181,8 @@ async function fetchRankingData() {
         throw new Error(`プロキシサーバーからの応答が異常です (HTTP ${response.status})`);
     }
 
-    const html = await response.text();
+    const data = await response.json();
+    const html = data.contents;
     if (!html) {
         throw new Error('プロキシ経由でのランキングデータ取得に失敗しました。');
     }
