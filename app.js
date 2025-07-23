@@ -127,7 +127,7 @@ function saveToSearchHistory(locationName) {
     // 新しい地点を先頭に追加
     history.unshift(locationName);
     // 履歴を最新8件に保つ
-    history = history.slice(0, 5);
+    history = history.slice(0, 8);
     // localStorageに保存
     localStorage.setItem('searchHistory', JSON.stringify(history));
     // 表示を更新
