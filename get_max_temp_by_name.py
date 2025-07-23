@@ -26,25 +26,23 @@ def get_max_temp(pref_code, station_code):
 
     soup = BeautifulSoup(res.content, "html.parser")
     
-    # mainDataクラスのp要素を探す
-    main_data = soup.find("p", class_="mainData")
-    if not main_data:
+    # <li class="recordHigh"> (最高気温) を探す
+    record_high_li = soup.find("li", class_="recordHigh")
+    if not record_high_li:
         return None
     
-    # span要素から温度を取得
-    temp_span = main_data.find("span")
-    if not temp_span:
+    # <dt>が「最高」であることを確認
+    dt = record_high_li.find("dt")
+    if not dt or dt.get_text(strip=True) != "最高":
         return None
-    
-    temp_text = temp_span.get_text(strip=True)
-    
-    # 数値部分のみを抽出（℃を除去）
-    try:
-        temp_value = temp_text.replace('℃', '').strip()
-        temp = float(temp_value)
-        return temp
-    except ValueError:
+
+    # <dd>からテキストを取得
+    dd = record_high_li.find("dd")
+    if not dd:
         return None
+
+    # dd要素内のテキストをスペース区切りで結合して返す (例: '34.3 ℃ (12:45)')
+    return dd.get_text(separator=' ', strip=True)
 
 def main():
     if len(sys.argv) < 2:
@@ -59,12 +57,11 @@ def main():
         print(f"[ERROR] 地点名が見つかりません: {name}")
         return
 
-    temp = get_max_temp(station["pref_code"], station["code"])
-    if temp is not None:
-        print(f"{name}の最高気温は {temp:.1f}℃ です")
+    temp_info = get_max_temp(station["pref_code"], station["code"])
+    if temp_info is not None:
+        print(f"{name}の最高気温は {temp_info} です")
     else:
         print(f"{name}の最高気温を取得できませんでした")
 
 if __name__ == "__main__":
     main()
-

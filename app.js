@@ -17,7 +17,7 @@ function findStationByName(name) {
 }
 
 // 気温データを取得（CORS制限のため、プロキシサーバーを使用）
-async function fetchTemperature(prefCode, stationCode) {
+async function fetchMaxTemperature(prefCode, stationCode) {
     const url = `https://weather.yahoo.co.jp/weather/amedas/${prefCode}/${stationCode}.html`;
     
     // CORS制限を回避するため、プロキシサービスを使用
@@ -35,29 +35,41 @@ async function fetchTemperature(prefCode, stationCode) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(data.contents, 'text/html');
         
-        // mainDataクラスの要素を探す
-        const mainData = doc.querySelector('p.mainData');
-        if (!mainData) {
-            throw new Error('気温データが見つかりません');
+        // recordHighクラスのli要素を探す
+        const recordHighLi = doc.querySelector('li.recordHigh');
+        if (!recordHighLi) {
+            throw new Error('最高気温データが見つかりません');
         }
         
-        // span要素から温度を取得
-        const tempSpan = mainData.querySelector('span');
-        if (!tempSpan) {
-            throw new Error('温度情報の解析に失敗しました');
+        // dtが「最高」であることを確認
+        const dt = recordHighLi.querySelector('dt');
+        if (!dt || dt.textContent.trim() !== '最高') {
+            throw new Error('最高気温のラベルが見つかりません');
         }
         
-        const tempText = tempSpan.textContent.trim();
-        const tempValue = tempText.replace('℃', '').trim();
-        const temperature = parseFloat(tempValue);
-        
-        if (isNaN(temperature)) {
-            throw new Error('温度の変換に失敗しました');
+        // dd要素から温度情報を取得
+        const dd = recordHighLi.querySelector('dd');
+        if (!dd) {
+            throw new Error('最高気温情報の解析に失敗しました');
         }
         
-        return temperature;
+        // dd要素から各パーツを個別に取得して、より確実に情報を組み立てる
+        const tempValue = dd.firstChild?.textContent?.trim();
+        const tempUnit = dd.querySelector('.tempUnit')?.textContent;
+        const recordTime = dd.querySelector('.recordTime')?.textContent;
+
+        if (!tempValue) {
+            throw new Error('最高気温の値が見つかりませんでした。');
+        }
+
+        // 取得したパーツを結合。単位や時刻がない場合も考慮する。
+        const parts = [tempValue];
+        if (tempUnit) parts.push(tempUnit);
+        if (recordTime) parts.push(recordTime);
+        const tempInfo = parts.join(' ');
+        return tempInfo;
     } catch (error) {
-        console.error('気温取得エラー:', error);
+        console.error('最高気温取得エラー:', error);
         throw error;
     }
 }
@@ -85,8 +97,8 @@ async function searchTemperature() {
         }
         
         // 気温を取得
-        const temperature = await fetchTemperature(station.pref_code, station.code);
-        showResult(`${locationName}の現在気温は ${temperature.toFixed(1)}℃ です`, 'success');
+        const tempInfo = await fetchMaxTemperature(station.pref_code, station.code);
+        showResult(`${locationName}の最高気温は ${tempInfo} です`, 'success');
         
     } catch (error) {
         showResult(`エラーが発生しました: ${error.message}`, 'error');
