@@ -25,7 +25,7 @@ async function fetchMaxTemperature(prefCode, stationCode) {
     const proxyUrl = PROXY_URL_TEMPLATE.replace('%URL%', encodeURIComponent(url));
     
     try {
-        const response = await fetch(proxyUrl);
+        const response = await fetch(proxyUrl, { cache: 'no-store' });
         if (!response.ok) {
             throw new Error(`プロキシサーバーからの応答が異常です (HTTP ${response.status})`);
         }
@@ -171,7 +171,7 @@ async function fetchRankingData() {
     const proxyUrl = PROXY_URL_TEMPLATE.replace('%URL%', encodeURIComponent(url));
     let response;
     try {
-        response = await fetch(proxyUrl);
+        response = await fetch(proxyUrl, { cache: 'no-store' });
     } catch (error) {
         console.error('ランキング取得ネットワークエラー:', error);
         throw new Error('ネットワークエラー、またはプロキシサーバーに接続できませんでした。');
