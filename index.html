@@ -93,41 +93,6 @@
         .suggestion:hover {
             background-color: #dee2e6;
         }
-        .ranking-container {
-            margin-top: 40px;
-        }
-        .ranking-update-time {
-            font-size: 14px;
-            color: #666;
-            text-align: right;
-            margin-top: -10px;
-            margin-bottom: 10px;
-        }
-        #rankingTable {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        #rankingTable th, #rankingTable td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        #rankingTable th {
-            background-color: #f2f2f2;
-        }
-        #rankingTable td.location {
-            text-align: left;
-            white-space: nowrap;
-        }
-        #rankingTable td.location a {
-            color: #007bff;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        #rankingTable td.location a:hover {
-            text-decoration: underline;
-        }
     </style>
 </head>
 <body>
@@ -144,22 +109,6 @@
             <div class="suggestion-list">
                 <!-- 検索履歴は app.js によって動的に生成されます -->
             </div>
-        </div>
-
-        <div class="ranking-container">
-            <div id="rankingTitleContainer">
-                <h3>全国最高気温ランキング</h3>
-                <p id="rankingUpdateTime" class="ranking-update-time"></p>
-            </div>
-            <table id="rankingTable">
-                <thead id="rankingHead">
-                    <!-- ランキングヘッダーは app.js によって動的に生成されます -->
-                </thead>
-                <tbody id="rankingBody">
-                    <!-- ランキングは app.js によって動的に生成されます -->
-                </tbody>
-            </table>
-            <div id="rankingStatus" class="result loading" style="display: none;"></div>
         </div>
     </div>
 
