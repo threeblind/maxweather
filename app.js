@@ -324,8 +324,8 @@ const createLegRankingHeader = () => {
     rankingHead.innerHTML = `
         <tr>
             <th>順位</th>
-            <th>大学名</th>
             <th>走者</th>
+            <th>大学名</th>
             <th>総距離</th>
         </tr>
     `;
@@ -347,8 +347,8 @@ const createPrizeTable = (records) => {
     thead.innerHTML = `
         <tr>
             <th style="width: 15%; text-align: center; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">順位</th>
-            <th style="text-align: left; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">大学名</th>
             <th style="text-align: left; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">走者</th>
+            <th style="text-align: left; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">大学名</th>
             <th style="width: 25%; text-align: center; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">平均距離</th>
         </tr>
     `;
@@ -358,8 +358,8 @@ const createPrizeTable = (records) => {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${index + 1}</td>
-            <td style="text-align: left; padding: 6px; border: 1px solid #ddd;">${record.teamName}</td>
             <td class="runner-name" style="text-align: left; padding: 6px; border: 1px solid #ddd;" onclick="showPlayerRecords('${record.runnerName}')">${record.runnerName}</td>
+            <td style="text-align: left; padding: 6px; border: 1px solid #ddd;">${record.teamName}</td>
             <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${record.averageDistance.toFixed(1)} km</td>
         `;
         tbody.appendChild(row);
@@ -420,8 +420,8 @@ const updateLegRankingAndPrize = (realtimeData, individualData) => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${index + 1}</td>
-                <td class="team-name">${record.teamName}</td>
                 <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${record.runnerName}</td>
+                <td class="team-name">${record.teamName}</td>
                 <td>${record.totalDistance.toFixed(1)} km</td>
             `;
             legRankingBody.appendChild(row);
