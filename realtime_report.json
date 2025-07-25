@@ -1,5 +1,5 @@
 {
-  "updateTime": "2025/07/26 06:15",
+  "updateTime": "2025/07/26 06:25",
   "raceDay": 4,
   "teams": [
     {
@@ -29,6 +29,19 @@
       "error": null
     },
     {
+      "id": 15,
+      "name": "福島大学",
+      "currentLeg": 2,
+      "runner": "2石川",
+      "todayDistance": 23.4,
+      "todayRank": 17,
+      "totalDistance": 140.3,
+      "overallRank": 3,
+      "previousRank": 1,
+      "nextRunner": "3高田",
+      "error": null
+    },
+    {
       "id": 14,
       "name": "立命館大学",
       "currentLeg": 2,
@@ -36,22 +49,9 @@
       "todayDistance": 27.7,
       "todayRank": 8,
       "totalDistance": 140.0,
-      "overallRank": 3,
+      "overallRank": 4,
       "previousRank": 4,
       "nextRunner": "3京田辺",
-      "error": null
-    },
-    {
-      "id": 15,
-      "name": "福島大学",
-      "currentLeg": 2,
-      "runner": "2石川",
-      "todayDistance": 23.1,
-      "todayRank": 18,
-      "totalDistance": 140.0,
-      "overallRank": 3,
-      "previousRank": 1,
-      "nextRunner": "3高田",
       "error": null
     },
     {
@@ -73,7 +73,7 @@
       "currentLeg": 2,
       "runner": "2新潟",
       "todayDistance": 26.9,
-      "todayRank": 11,
+      "todayRank": 12,
       "totalDistance": 139.7,
       "overallRank": 5,
       "previousRank": 2,
@@ -150,12 +150,25 @@
       "name": "名古屋大学",
       "currentLeg": 2,
       "runner": "2美濃",
-      "todayDistance": 25.9,
+      "todayDistance": 26.0,
       "todayRank": 14,
-      "totalDistance": 134.9,
+      "totalDistance": 135.0,
       "overallRank": 12,
       "previousRank": 9,
       "nextRunner": "3大垣",
+      "error": null
+    },
+    {
+      "id": 12,
+      "name": "四国大学",
+      "currentLeg": 2,
+      "runner": "2大三島",
+      "todayDistance": 27.0,
+      "todayRank": 11,
+      "totalDistance": 132.3,
+      "overallRank": 13,
+      "previousRank": 15,
+      "nextRunner": "3御荘",
       "error": null
     },
     {
@@ -179,22 +192,9 @@
       "todayDistance": 24.0,
       "todayRank": 15,
       "totalDistance": 132.1,
-      "overallRank": 14,
+      "overallRank": 15,
       "previousRank": 12,
       "nextRunner": "3岡山",
-      "error": null
-    },
-    {
-      "id": 12,
-      "name": "四国大学",
-      "currentLeg": 2,
-      "runner": "2大三島",
-      "todayDistance": 26.7,
-      "todayRank": 12,
-      "totalDistance": 132.0,
-      "overallRank": 15,
-      "previousRank": 15,
-      "nextRunner": "3御荘",
       "error": null
     },
     {
@@ -203,7 +203,7 @@
       "currentLeg": 2,
       "runner": "2五條",
       "todayDistance": 23.3,
-      "todayRank": 17,
+      "todayRank": 18,
       "totalDistance": 127.7,
       "overallRank": 16,
       "previousRank": 16,
