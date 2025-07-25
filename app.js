@@ -460,36 +460,42 @@ const updateLegRankingAndPrize = (realtimeData, individualData) => {
 
     if (raceCurrentLeg && raceCurrentLeg > 1) {
         const previousLeg = raceCurrentLeg - 1;
-        const previousLegPerformances = [];
 
-        for (const runnerName in individualData) {
-            const runnerData = individualData[runnerName];
-            // 特定の区間の記録をすべて抽出
-            const recordsForLeg = runnerData.records.filter(r => r.leg === previousLeg);
+        // 全チームが前区間を走り終えたかチェック
+        const allTeamsFinishedPreviousLeg = realtimeData.teams.every(team => team.currentLeg > previousLeg);
 
-            if (recordsForLeg.length > 0) {
-                const totalDistance = recordsForLeg.reduce((sum, r) => sum + r.distance, 0);
-                const averageDistance = totalDistance / recordsForLeg.length;
+        if (allTeamsFinishedPreviousLeg) {
+            const previousLegPerformances = [];
 
-                previousLegPerformances.push({
-                    runnerName,
-                    teamName: teamsMap.get(runnerData.teamId) || 'N/A',
-                    averageDistance: averageDistance
-                });
+            for (const runnerName in individualData) {
+                const runnerData = individualData[runnerName];
+                // 特定の区間の記録をすべて抽出
+                const recordsForLeg = runnerData.records.filter(r => r.leg === previousLeg);
+
+                if (recordsForLeg.length > 0) {
+                    const totalDistance = recordsForLeg.reduce((sum, r) => sum + r.distance, 0);
+                    const averageDistance = totalDistance / recordsForLeg.length;
+
+                    previousLegPerformances.push({
+                        runnerName,
+                        teamName: teamsMap.get(runnerData.teamId) || 'N/A',
+                        averageDistance: averageDistance
+                    });
+                }
             }
-        }
 
-        if (previousLegPerformances.length > 0) {
-            // 平均距離でソートし、上位3名を取得
-            previousLegPerformances.sort((a, b) => b.averageDistance - a.averageDistance);
-            const top3 = previousLegPerformances.slice(0, 3);
+            if (previousLegPerformances.length > 0) {
+                // 平均距離でソートし、上位3名を取得
+                previousLegPerformances.sort((a, b) => b.averageDistance - a.averageDistance);
+                const top3 = previousLegPerformances.slice(0, 3);
 
-            const title = document.createElement('h4');
-            title.textContent = `${previousLeg}区 区間賞`;
-            legPrizeWinnerDiv.appendChild(title);
+                const title = document.createElement('h4');
+                title.textContent = `${previousLeg}区 区間賞`;
+                legPrizeWinnerDiv.appendChild(title);
 
-            legPrizeWinnerDiv.appendChild(createPrizeTable(top3));
-            legPrizeWinnerDiv.style.display = 'block';
+                legPrizeWinnerDiv.appendChild(createPrizeTable(top3));
+                legPrizeWinnerDiv.style.display = 'block';
+            }
         }
     }
 };
