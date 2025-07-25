@@ -332,6 +332,45 @@ const createLegRankingHeader = () => {
 };
 
 /**
+ * 区間賞用のトップ3テーブルを生成するヘルパー関数
+ * @param {Array} records - 表示する記録の配列
+ * @returns {HTMLTableElement} - 生成されたテーブル要素
+ */
+const createPrizeTable = (records) => {
+    const table = document.createElement('table');
+    // インラインスタイルで簡易的にデザインを調整
+    table.style.width = '100%';
+    table.style.marginTop = '10px';
+    table.style.borderCollapse = 'collapse';
+
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+        <tr>
+            <th style="width: 15%; text-align: center; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">順位</th>
+            <th style="text-align: left; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">大学名</th>
+            <th style="text-align: left; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">走者</th>
+            <th style="width: 25%; text-align: center; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">平均距離</th>
+        </tr>
+    `;
+
+    const tbody = document.createElement('tbody');
+    records.forEach((record, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${index + 1}</td>
+            <td style="text-align: left; padding: 6px; border: 1px solid #ddd;">${record.teamName}</td>
+            <td class="runner-name" style="text-align: left; padding: 6px; border: 1px solid #ddd;" onclick="showPlayerRecords('${record.runnerName}')">${record.runnerName}</td>
+            <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${record.averageDistance.toFixed(1)} km</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    return table;
+};
+
+/**
  * 取得した個人記録データで個人総合順位と前日の区間賞を更新します。
  * @param {object} realtimeData - realtime_report.json のデータ
  * @param {object} individualData - individual_results.json のデータ
@@ -393,8 +432,44 @@ const updateLegRankingAndPrize = (realtimeData, individualData) => {
         legRankingStatus.style.display = 'block';
     }
 
-    // --- ② 前区間の区間賞 --- (今回は対応しないため非表示)
-    legPrizeWinnerDiv.style.display = 'none';
+    // --- ② 前区間の区間賞 ---
+    legPrizeWinnerDiv.innerHTML = ''; // 以前の内容をクリア
+    legPrizeWinnerDiv.style.display = 'none'; // Hide by default
+
+    if (currentLeg && currentLeg > 1) {
+        const previousLeg = currentLeg - 1;
+        const previousLegPerformances = [];
+
+        for (const runnerName in individualData) {
+            const runnerData = individualData[runnerName];
+            // 特定の区間の記録をすべて抽出
+            const recordsForLeg = runnerData.records.filter(r => r.leg === previousLeg);
+
+            if (recordsForLeg.length > 0) {
+                const totalDistance = recordsForLeg.reduce((sum, r) => sum + r.distance, 0);
+                const averageDistance = totalDistance / recordsForLeg.length;
+
+                previousLegPerformances.push({
+                    runnerName,
+                    teamName: teamsMap.get(runnerData.teamId) || 'N/A',
+                    averageDistance: averageDistance
+                });
+            }
+        }
+
+        if (previousLegPerformances.length > 0) {
+            // 平均距離でソートし、上位3名を取得
+            previousLegPerformances.sort((a, b) => b.averageDistance - a.averageDistance);
+            const top3 = previousLegPerformances.slice(0, 3);
+
+            const title = document.createElement('h4');
+            title.textContent = `${previousLeg}区 区間賞`;
+            legPrizeWinnerDiv.appendChild(title);
+
+            legPrizeWinnerDiv.appendChild(createPrizeTable(top3));
+            legPrizeWinnerDiv.style.display = 'block';
+        }
+    }
 };
 
 /**
