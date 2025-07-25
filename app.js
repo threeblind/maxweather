@@ -1,4 +1,5 @@
 let stationsData = [];
+let allIndividualData = {}; // 選手個人の全記録を保持するグローバル変数
 
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
@@ -315,6 +316,88 @@ const createEkidenHeader = () => {
 };
 
 /**
+ * 区間記録用のテーブルヘッダーを生成します。
+ */
+const createLegRankingHeader = () => {
+    const rankingHead = document.getElementById('legRankingHead');
+    if (!rankingHead) return;
+    rankingHead.innerHTML = `
+        <tr>
+            <th>順位</th>
+            <th>大学名</th>
+            <th>走者</th>
+            <th>総距離</th>
+        </tr>
+    `;
+};
+
+/**
+ * 取得した個人記録データで個人総合順位と前日の区間賞を更新します。
+ * @param {object} realtimeData - realtime_report.json のデータ
+ * @param {object} individualData - individual_results.json のデータ
+ */
+const updateLegRankingAndPrize = (realtimeData, individualData) => {
+    const { raceDay } = realtimeData;
+    const teamsMap = new Map(realtimeData.teams.map(t => [t.id, t.name]));
+
+    const legRankingBody = document.getElementById('legRankingBody');
+    const legPrizeWinnerDiv = document.getElementById('legPrizeWinner');
+    const legRankingTitle = document.getElementById('legRankingTitle');
+    const legRankingStatus = document.getElementById('legRankingStatus');
+
+    if (!legRankingBody || !legPrizeWinnerDiv || !legRankingTitle || !legRankingStatus) return;
+
+    // --- ① 個人総合記録 (総距離ベース) ---
+    const allRunners = [];
+    let currentLeg = null;
+    for (const runnerName in individualData) {
+        const runnerData = individualData[runnerName];
+        // 選手が一度でも走っていれば（＝総距離が0より大きければ）ランキング対象
+        if (runnerData.totalDistance > 0) {
+            allRunners.push({
+                runnerName,
+                teamName: teamsMap.get(runnerData.teamId) || 'N/A',
+                totalDistance: runnerData.totalDistance
+            });
+        }
+        // 現在の区間番号を取得する
+        if (!currentLeg) {
+            const todayRecord = runnerData.records.find(r => r.day === raceDay);
+            if (todayRecord) {
+                currentLeg = todayRecord.leg;
+            }
+        }
+    }
+
+    // 総距離でソート
+    allRunners.sort((a, b) => b.totalDistance - a.totalDistance);
+
+    // テーブルタイトルと描画
+    legRankingTitle.textContent = currentLeg ? `${currentLeg}区個人区間記録` : `個人総合記録`;
+    legRankingBody.innerHTML = '';
+    if (allRunners.length > 0) {
+        legRankingStatus.style.display = 'none';
+        allRunners.forEach((record, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td class="team-name">${record.teamName}</td>
+                <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${record.runnerName}</td>
+                <td>${record.totalDistance.toFixed(1)} km</td>
+            `;
+            legRankingBody.appendChild(row);
+        });
+    } else {
+        legRankingStatus.textContent = '個人記録はまだありません。';
+        legRankingStatus.className = 'result loading';
+        legRankingStatus.style.display = 'block';
+    }
+
+    // --- ② 前区間の区間賞 --- (今回は対応しないため非表示)
+    legPrizeWinnerDiv.style.display = 'none';
+};
+
+/**
  * 取得した駅伝データで順位表を更新します。
  * @param {object} data - realtime_report.json から取得したデータ
  */
@@ -403,27 +486,88 @@ const fetchEkidenData = async () => {
     }
 
     try {
-        // キャッシュを無効にするためのクエリパラメータを追加
-        const response = await fetch(`realtime_report.json?_=${new Date().getTime()}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Promise.allで両方のファイルを並行して取得（キャッシュ無効化）
+        const [realtimeRes, individualRes] = await Promise.all([
+            fetch(`realtime_report.json?_=${new Date().getTime()}`),
+            fetch(`individual_results.json?_=${new Date().getTime()}`)
+        ]);
+
+        if (!realtimeRes.ok || !individualRes.ok) {
+            throw new Error(`HTTP error! status: ${realtimeRes.status} or ${individualRes.status}`);
         }
-        const data = await response.json();
+
+        const realtimeData = await realtimeRes.json();
+        const individualData = await individualRes.json();
+        allIndividualData = individualData; // データをグローバル変数に保存
 
         // タイトルと更新日時を更新
-        titleContainer.querySelector('h3').textContent = `高温大学駅伝 ${data.raceDay}日目 総合順位`;
-        updateTimeEl.textContent = `(更新: ${data.updateTime})`;
+        titleContainer.querySelector('h3').textContent = `高温大学駅伝 ${realtimeData.raceDay}日目 総合順位`;
+        updateTimeEl.textContent = `(更新: ${realtimeData.updateTime})`;
 
-        updateEkidenRankingTable(data);
+        updateEkidenRankingTable(realtimeData);
+        updateLegRankingAndPrize(realtimeData, individualData);
 
     } catch (error) {
         console.error('Error fetching ekiden data:', error);
-        statusEl.textContent = '駅伝ランキングデータの取得に失敗しました。';
+        statusEl.textContent = '駅伝関連データの取得に失敗しました。';
         statusEl.className = 'result error';
         statusEl.style.display = 'block';
         bodyEl.innerHTML = '';
     }
 };
+
+// --- ポップアップ（モーダル）機能 ---
+
+/**
+ * 選手名がクリックされたときに、その選手の全記録をポップアップで表示します。
+ * @param {string} runnerName - 表示する選手名
+ */
+function showPlayerRecords(runnerName) {
+    const runnerData = allIndividualData[runnerName];
+    if (!runnerData || !runnerData.records) return;
+
+    const modal = document.getElementById('playerRecordsModal');
+    const modalTitle = document.getElementById('modalPlayerName');
+    const modalBody = document.getElementById('modalRecordsBody');
+
+    if (!modal || !modalTitle || !modalBody) return;
+
+    modalTitle.textContent = `${runnerName} の全記録`;
+    modalBody.innerHTML = ''; // 以前の記録をクリア
+
+    if (runnerData.records.length === 0) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 3;
+        cell.textContent = '記録がありません。';
+        row.appendChild(cell);
+        modalBody.appendChild(row);
+    } else {
+        // 日付でソートして表示
+        const sortedRecords = [...runnerData.records].sort((a, b) => a.day - b.day);
+        sortedRecords.forEach(record => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${record.day}日目</td>
+                <td>${record.leg}区</td>
+                <td>${record.distance.toFixed(1)} km</td>
+            `;
+            modalBody.appendChild(row);
+        });
+    }
+
+    modal.style.display = 'block';
+}
+
+/**
+ * 選手の記録ポップアップを閉じます。
+ */
+function closePlayerRecordsModal() {
+    const modal = document.getElementById('playerRecordsModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
 
 // --- 初期化処理 ---
 
@@ -441,7 +585,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 駅伝機能の初期化
     createEkidenHeader();
+    createLegRankingHeader();
     fetchEkidenData();
     // 30秒ごとにデータを自動更新
     setInterval(fetchEkidenData, 30000);
+
+    // モーダルを閉じるイベントリスナーを設定
+    const modal = document.getElementById('playerRecordsModal');
+    const closeButton = document.querySelector('.close-button');
+    if (modal && closeButton) {
+        closeButton.onclick = closePlayerRecordsModal;
+        // モーダルの外側をクリックしたときも閉じる
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                closePlayerRecordsModal();
+            }
+        };
+    }
 });

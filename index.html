@@ -160,6 +160,83 @@
         #ekidenRankingTable td.rank-change .rank-stay {
             color: #6c757d; /* グレー */
         }
+        /* 区間賞・区間ランキング用スタイル */
+        .leg-ranking-container {
+            margin-bottom: 40px;
+        }
+        #legRankingTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        #legRankingTable th, #legRankingTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        #legRankingTable th {
+            background-color: #f2f2f2;
+        }
+        #legRankingTable td.team-name {
+            text-align: left;
+            font-weight: bold;
+        }
+        #legPrizeWinner {
+            background-color: #fffbe6;
+            border: 1px solid #ffe58f;
+            border-radius: 5px;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        #legPrizeWinner h4 {
+            margin: 0 0 5px 0;
+            color: #d46b08;
+        }
+        #legPrizeWinner p {
+            margin: 0;
+            font-size: 1.1em;
+        }
+        #legRankingTable td.runner-name {
+            cursor: pointer;
+            color: #007bff;
+        }
+        #legRankingTable td.runner-name:hover {
+            text-decoration: underline;
+        }
+        /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 2147483647; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover, .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
 
         /* --- レスポンシブ対応 --- */
         @media (max-width: 768px) {
@@ -190,9 +267,11 @@
             /* スマホ表示でテーブルの文字と余白を小さくする */
             #rankingTable,
             #ekidenRankingTable {
+            #legRankingTable {
                 font-size: 14px;
             }
             #rankingTable th, #rankingTable td,
+            #ekidenRankingTable th, #ekidenRankingTable td,
             #ekidenRankingTable th, #ekidenRankingTable td {
                 padding: 6px;
             }
@@ -217,6 +296,41 @@
                 </tbody>
             </table>
             <div id="ekidenRankingStatus" class="result loading" style="display: none;"></div>
+        </div>
+
+        <div class="leg-ranking-container">
+            <h3 id="legRankingTitle">個人区間記録</h3>
+            <div id="legPrizeWinner">
+                <!-- 区間賞は app.js によって動的に生成されます -->
+            </div>
+            <table id="legRankingTable">
+                <thead id="legRankingHead">
+                    <!-- 区間ランキングヘッダーは app.js によって動的に生成されます -->
+                </thead>
+                <tbody id="legRankingBody">
+                    <!-- 区間ランキングは app.js によって動的に生成されます -->
+                </tbody>
+            </table>
+            <div id="legRankingStatus" class="result loading" style="display: none;"></div>
+        </div>
+
+        <!-- The Modal -->
+        <div id="playerRecordsModal" class="modal">
+          <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3 id="modalPlayerName"></h3>
+            <table id="modalRecordsTable">
+              <thead>
+                <tr>
+                  <th>日付</th>
+                  <th>区間</th>
+                  <th>距離</th>
+                </tr>
+              </thead>
+              <tbody id="modalRecordsBody">
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <h2>🌡️ アメダス地点検索</h2>

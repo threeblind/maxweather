@@ -11,6 +11,7 @@ import argparse
 AMEDAS_STATIONS_FILE = 'amedas_stations.json'
 EKIDEN_DATA_FILE = 'ekiden_data.json'
 STATE_FILE = 'ekiden_state.json'
+INDIVIDUAL_STATE_FILE = 'individual_results.json'
 EKIDEN_START_DATE = '2025-07-23'
 
 # --- グローバル変数 ---
@@ -65,19 +66,36 @@ def fetch_max_temperature(pref_code, station_code):
     except Exception:
         return {'temperature': None, 'error': '不明な解析エラー'}
 
-def load_ekiden_state():
+def load_ekiden_state(file_path):
     """駅伝の現在の状態を読み込む"""
-    if not os.path.exists(STATE_FILE):
+    if not os.path.exists(file_path):
         return [
             {
                 "id": team["id"], "name": team["name"],
                 "totalDistance": 0, "currentLeg": 1, "overallRank": 0
             } for team in ekiden_data['teams']
         ]
-    with open(STATE_FILE, 'r', encoding='utf-8') as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-def save_ekiden_state(state):
+def load_individual_results(file_path):
+    """選手個人の結果を読み込む"""
+    if not os.path.exists(file_path):
+        # 初期状態を生成
+        runners_state = {}
+        for team in ekiden_data['teams']:
+            for runner_name in team['runners']:
+                # 選手名をキーとして、総距離、チームID、記録配列を保存
+                runners_state[runner_name] = {
+                    "totalDistance": 0,
+                    "teamId": team['id'],
+                    "records": []
+                }
+        return runners_state
+    with open(file_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def save_ekiden_state(state, file_path):
     """駅伝の現在の状態を保存する"""
     data_to_save = [
         {
@@ -85,8 +103,13 @@ def save_ekiden_state(state):
             "currentLeg": s["newCurrentLeg"], "overallRank": s["overallRank"]
         } for s in state
     ]
-    with open(STATE_FILE, 'w', encoding='utf-8') as f:
+    with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(data_to_save, f, indent=2, ensure_ascii=False)
+
+def save_individual_results(runners_state, file_path):
+    """選手個人の結果を保存する"""
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(runners_state, f, indent=2, ensure_ascii=False)
 
 def get_east_asian_width_count(text):
     """全角文字を2、半角文字を1として文字幅をカウント"""
@@ -133,6 +156,9 @@ def main():
     parser = argparse.ArgumentParser(description='高温大学駅伝のレポートを生成します。')
     parser.add_argument('--realtime', action='store_true', help='リアルタイム速報用のJSON (realtime_report.json) を生成します。')
     parser.add_argument('--commit', action='store_true', help='本日の結果を状態ファイル (ekiden_state.json) に保存します。')
+    # テスト用のファイルパスを指定するオプションを追加
+    parser.add_argument('--state-file', default=STATE_FILE, help=f'チームの状態ファイルパス (デフォルト: {STATE_FILE})')
+    parser.add_argument('--individual-state-file', default=INDIVIDUAL_STATE_FILE, help=f'個人の状態ファイルパス (デフォルト: {INDIVIDUAL_STATE_FILE})')
     args = parser.parse_args()
 
     load_all_data()
@@ -140,8 +166,9 @@ def main():
     start_date = datetime.strptime(EKIDEN_START_DATE, '%Y-%m-%d')
     race_day = (datetime.now() - start_date).days + 1
 
-    current_state = load_ekiden_state()
+    current_state = load_ekiden_state(args.state_file)
     previous_rank_map = {s['id']: s['overallRank'] for s in current_state}
+    individual_results = load_individual_results(args.individual_state_file)
 
     results = []
     print("速報を生成中... 全チームの気温データを取得しています。")
@@ -160,6 +187,29 @@ def main():
                 temp_result = {'temperature': 0, 'error': '地点不明'}
             else:
                 temp_result = fetch_max_temperature(station['pref_code'], station['code'])
+
+            if temp_result.get('temperature'):
+                today_distance = temp_result['temperature']
+
+                # individual_resultsに選手情報がなければ初期化
+                runner_info = individual_results.setdefault(runner_name, {
+                    "totalDistance": 0,
+                    "teamId": team_data['id'],
+                    "records": []
+                })
+
+                # 同じ日の記録が既に存在するか確認
+                record_for_today = next((r for r in runner_info['records'] if r.get('day') == race_day), None)
+
+                if record_for_today:
+                    # 存在すれば、その日の距離を更新
+                    record_for_today['distance'] = today_distance
+                else:
+                    # 存在しなければ、新しい記録を追加
+                    runner_info['records'].append({"day": race_day, "leg": team_state["currentLeg"], "distance": today_distance})
+
+                # 記録の合計から総距離を再計算して一貫性を保つ
+                runner_info['totalDistance'] = round(sum(r['distance'] for r in runner_info['records']), 1)
 
         today_distance = temp_result['temperature'] or 0
         new_total_distance = round(team_state['totalDistance'] + today_distance, 1)
@@ -233,11 +283,14 @@ def main():
 
     if args.realtime:
         save_realtime_report(results, race_day)
-        print("\n--- [速報モード] 速報データを realtime_report.json に保存しました ---")
+        # リアルタイムモードでも個人成績を保存する
+        save_individual_results(individual_results, args.individual_state_file)
+        print(f"\n--- [速報モード] 速報データを realtime_report.json と {args.individual_state_file} に保存しました ---")
 
     if args.commit:
-        save_ekiden_state(results)
-        print("\n--- [コミットモード] 本日の結果を ekiden_state.json に保存しました ---")
+        save_ekiden_state(results, args.state_file)
+        save_individual_results(individual_results, args.individual_state_file)
+        print(f"\n--- [コミットモード] 本日の最終結果を {args.state_file} と {args.individual_state_file} に保存しました ---")
     elif not args.realtime:
         print("\n--- [プレビューモード] 結果を保存するには `python generate_report.py --commit` を実行してください ---")
 
