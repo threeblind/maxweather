@@ -338,7 +338,6 @@ const createLegRankingHeader = () => {
             <th>走者</th>
             <th>大学名</th>
             <th>区間距離</th>
-            <th>総距離</th>
         </tr>
     `;
 };
@@ -418,17 +417,21 @@ const updateLegRankingAndPrize = (realtimeData, individualData) => {
 
         // 今日の記録があり、かつその区間がレースの現在の区間と一致する選手のみを対象
         if (todayRecord && todayRecord.leg === raceCurrentLeg) {
+            // その選手が現在の区間を走った記録をすべて抽出
+            const recordsForCurrentLeg = runnerData.records.filter(r => r.leg === raceCurrentLeg);
+            // 区間内での合計距離を計算
+            const legTotalDistance = recordsForCurrentLeg.reduce((sum, record) => sum + record.distance, 0);
+
             currentLegRunners.push({
                 runnerName,
                 teamName: teamsMap.get(runnerData.teamId) || 'N/A',
-                distance: todayRecord.distance,
-                totalDistance: runnerData.totalDistance
+                legDistance: legTotalDistance
             });
         }
     }
 
     // ステップ3: ランキングを作成・表示する
-    currentLegRunners.sort((a, b) => b.distance - a.distance);
+    currentLegRunners.sort((a, b) => b.legDistance - a.legDistance);
 
     legRankingTitle.textContent = `${raceCurrentLeg}区個人区間記録`;
     legRankingBody.innerHTML = '';
@@ -441,8 +444,7 @@ const updateLegRankingAndPrize = (realtimeData, individualData) => {
                 <td>${index + 1}</td>
                 <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
                 <td class="team-name">${record.teamName}</td>
-                <td>${record.distance.toFixed(1)} km</td>
-                <td>${record.totalDistance.toFixed(1)} km</td>
+                <td>${record.legDistance.toFixed(1)} km</td>
             `;
             legRankingBody.appendChild(row);
         });
@@ -640,10 +642,10 @@ function showPlayerRecords(runnerName) {
     } else {
         // 日付でソートして表示
         const sortedRecords = [...runnerData.records].sort((a, b) => a.day - b.day);
-        sortedRecords.forEach(record => {
+        sortedRecords.forEach((record, index) => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${record.day}日目</td>
+                <td>${index + 1}日目</td>
                 <td>${record.leg}区</td>
                 <td>${record.distance.toFixed(1)} km</td>
             `;
