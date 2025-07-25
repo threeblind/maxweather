@@ -651,8 +651,8 @@ function showPlayerRecords(runnerName) {
         sortedRecords.forEach((record, index) => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${index + 1}日目</td>
                 <td>${record.leg}区</td>
+                <td>${index + 1}日目</td>
                 <td>${record.distance.toFixed(1)} km</td>
             `;
             modalBody.appendChild(row);
