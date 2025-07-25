@@ -138,6 +138,7 @@ def save_realtime_report(results, race_day):
         report_data["teams"].append({
             "id": r["id"],
             "name": r["name"],
+            "currentLeg": r["currentLegNumber"],
             "runner": f"{r['currentLegNumber']}{r['runner']}",
             "todayDistance": r["todayDistance"],
             "todayRank": r["todayRank"],
@@ -178,11 +179,11 @@ def main():
         
         print(f"  {team_data['name']} のデータを取得中...")
 
-        if runner_index >= len(team_data['runners']):
-            runner_name, temp_result = 'ゴール', {'temperature': 0, 'error': None}
-        else:
+        # 現在の区間の選手のみを処理対象とする
+        if runner_index < len(team_data['runners']):
             runner_name = team_data['runners'][runner_index]
             station = find_station_by_name(runner_name)
+
             if not station:
                 temp_result = {'temperature': 0, 'error': '地点不明'}
             else:
@@ -191,25 +192,20 @@ def main():
             if temp_result.get('temperature'):
                 today_distance = temp_result['temperature']
 
-                # individual_resultsに選手情報がなければ初期化
                 runner_info = individual_results.setdefault(runner_name, {
-                    "totalDistance": 0,
-                    "teamId": team_data['id'],
-                    "records": []
+                    "totalDistance": 0, "teamId": team_data['id'], "records": []
                 })
 
-                # 同じ日の記録が既に存在するか確認
                 record_for_today = next((r for r in runner_info['records'] if r.get('day') == race_day), None)
 
                 if record_for_today:
-                    # 存在すれば、その日の距離を更新
                     record_for_today['distance'] = today_distance
                 else:
-                    # 存在しなければ、新しい記録を追加
                     runner_info['records'].append({"day": race_day, "leg": team_state["currentLeg"], "distance": today_distance})
 
-                # 記録の合計から総距離を再計算して一貫性を保つ
                 runner_info['totalDistance'] = round(sum(r['distance'] for r in runner_info['records']), 1)
+        else:
+            runner_name, temp_result = 'ゴール', {'temperature': 0, 'error': None}
 
         today_distance = temp_result['temperature'] or 0
         new_total_distance = round(team_state['totalDistance'] + today_distance, 1)

@@ -337,6 +337,7 @@ const createLegRankingHeader = () => {
             <th>順位</th>
             <th>走者</th>
             <th>大学名</th>
+            <th>区間距離</th>
             <th>総距離</th>
         </tr>
     `;
@@ -372,7 +373,7 @@ const createPrizeTable = (records) => {
             <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${index + 1}</td>
             <td class="runner-name" style="text-align: left; padding: 6px; border: 1px solid #ddd;" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
             <td style="text-align: left; padding: 6px; border: 1px solid #ddd;">${record.teamName}</td>
-            <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${record.averageDistance.toFixed(1)} km</td>
+            <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${record.averageDistance.toFixed(3)} km</td>
         `;
         tbody.appendChild(row);
     });
@@ -398,49 +399,55 @@ const updateLegRankingAndPrize = (realtimeData, individualData) => {
 
     if (!legRankingBody || !legPrizeWinnerDiv || !legRankingTitle || !legRankingStatus) return;
 
-    // --- ① 個人総合記録 (総距離ベース) ---
-    const allRunners = [];
-    let currentLeg = null;
+    // --- ① 現在区間の個人記録 ---
+    // ステップ1: 「現在の区間」を特定する (総合1位のチームの区間)
+    const topTeam = realtimeData.teams[0];
+    if (!topTeam || !topTeam.currentLeg) {
+        legRankingStatus.textContent = '現在の区間を特定できませんでした。';
+        legRankingStatus.style.display = 'block';
+        legRankingBody.innerHTML = '';
+        return;
+    }
+    const raceCurrentLeg = topTeam.currentLeg;
+
+    // ステップ2: 表示する選手を絞り込む
+    const currentLegRunners = [];
     for (const runnerName in individualData) {
         const runnerData = individualData[runnerName];
-        // 選手が一度でも走っていれば（＝総距離が0より大きければ）ランキング対象
-        if (runnerData.totalDistance > 0) {
-            allRunners.push({
+        const todayRecord = runnerData.records.find(r => r.day === raceDay);
+
+        // 今日の記録があり、かつその区間がレースの現在の区間と一致する選手のみを対象
+        if (todayRecord && todayRecord.leg === raceCurrentLeg) {
+            currentLegRunners.push({
                 runnerName,
                 teamName: teamsMap.get(runnerData.teamId) || 'N/A',
+                distance: todayRecord.distance,
                 totalDistance: runnerData.totalDistance
             });
         }
-        // 現在の区間番号を取得する
-        if (!currentLeg) {
-            const todayRecord = runnerData.records.find(r => r.day === raceDay);
-            if (todayRecord) {
-                currentLeg = todayRecord.leg;
-            }
-        }
     }
 
-    // 総距離でソート
-    allRunners.sort((a, b) => b.totalDistance - a.totalDistance);
+    // ステップ3: ランキングを作成・表示する
+    currentLegRunners.sort((a, b) => b.distance - a.distance);
 
-    // テーブルタイトルと描画
-    legRankingTitle.textContent = currentLeg ? `${currentLeg}区個人区間記録` : `個人総合記録`;
+    legRankingTitle.textContent = `${raceCurrentLeg}区個人区間記録`;
     legRankingBody.innerHTML = '';
-    if (allRunners.length > 0) {
+    if (currentLegRunners.length > 0) {
         legRankingStatus.style.display = 'none';
-        allRunners.forEach((record, index) => {
+        currentLegRunners.forEach((record, index) => {
             const formattedRunnerName = formatRunnerName(record.runnerName);
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${index + 1}</td>
                 <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
                 <td class="team-name">${record.teamName}</td>
+                <td>${record.distance.toFixed(1)} km</td>
                 <td>${record.totalDistance.toFixed(1)} km</td>
             `;
             legRankingBody.appendChild(row);
         });
     } else {
-        legRankingStatus.textContent = '個人記録はまだありません。';
+        legRankingStatus.textContent = `本日、${raceCurrentLeg}区の記録はまだありません。`;
         legRankingStatus.className = 'result loading';
         legRankingStatus.style.display = 'block';
     }
@@ -449,8 +456,8 @@ const updateLegRankingAndPrize = (realtimeData, individualData) => {
     legPrizeWinnerDiv.innerHTML = ''; // 以前の内容をクリア
     legPrizeWinnerDiv.style.display = 'none'; // Hide by default
 
-    if (currentLeg && currentLeg > 1) {
-        const previousLeg = currentLeg - 1;
+    if (raceCurrentLeg && raceCurrentLeg > 1) {
+        const previousLeg = raceCurrentLeg - 1;
         const previousLegPerformances = [];
 
         for (const runnerName in individualData) {
