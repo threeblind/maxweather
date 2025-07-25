@@ -175,11 +175,17 @@
             .search-box {
                 flex-direction: column;
             }
-            .ranking-container,
-            .ekiden-ranking-container {
+            .ranking-container {
                 /* テーブルがはみ出した場合に横スクロールを可能にする */
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch; /* iOSでのスクロールを滑らかに */
+            }
+            /* 駅伝テーブルは横スクロールではなく、列を非表示にする */
+            .ekiden-ranking-container {
+                overflow-x: hidden;
+            }
+            .hide-on-mobile {
+                display: none;
             }
             /* スマホ表示でテーブルの文字と余白を小さくする */
             #rankingTable,

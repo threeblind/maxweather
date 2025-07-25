@@ -292,9 +292,9 @@ const createEkidenHeader = () => {
             <th>現在<br>走者</th>
             <th>本日距離<br>(順位)</th>
             <th>総合距離</th>
-            <th>トップ差</th>
-            <th>順位変動<br>(前日)</th>
-            <th>次走者</th>
+            <th class="hide-on-mobile">トップ差</th>
+            <th class="hide-on-mobile">順位変動<br>(前日)</th>
+            <th class="hide-on-mobile">次走者</th>
         </tr>
     `;
 };
@@ -348,9 +348,9 @@ const updateEkidenRankingTable = (data) => {
             <td class="runner">${team.runner}</td>
             <td class="today-distance">${team.todayDistance.toFixed(1)} km (${team.todayRank})</td>
             <td class="distance">${team.totalDistance.toFixed(1)} km</td>
-            <td class="gap">${gapDisplay}</td>
-            <td class="rank-change">${rankChangeDisplay}</td>
-            <td class="next-runner">${team.nextRunner}</td>
+            <td class="gap hide-on-mobile">${gapDisplay}</td>
+            <td class="rank-change hide-on-mobile">${rankChangeDisplay}</td>
+            <td class="next-runner hide-on-mobile">${team.nextRunner}</td>
         `;
         rankingBody.appendChild(row);
     });
