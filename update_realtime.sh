@@ -29,8 +29,16 @@ if ! git diff --quiet --exit-code realtime_report.json; then
     echo "realtime_report.json に変更を検出しました。GitHubにプッシュします。"
     git add realtime_report.json
     git commit -m "Update realtime report [bot] $(date +'%Y-%m-%d %H:%M:%S')"
-    git push origin main
-    echo "プッシュが完了しました。"
+
+    # リモートの変更を取り込んでからプッシュする (non-fast-forwardエラー対策)
+    echo "リモートの変更を取り込んでいます (git pull --rebase)..."
+    git pull --rebase origin main
+
+    if git push origin main; then
+        echo "プッシュが完了しました。"
+    else
+        echo "エラー: プッシュに失敗しました。GitHubの権限またはSSHキーの設定を確認してください。"
+    fi
 else
     echo "realtime_report.json に変更はありませんでした。コミットをスキップします。"
 fi
