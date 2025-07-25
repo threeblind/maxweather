@@ -251,13 +251,28 @@ function displayRanking({ title, updateTime, headers, rankingList }) {
 
     rankingList.forEach(item => {
         const row = document.createElement('tr');
-        
-        row.innerHTML = `
-            <td>${item.rank}</td>
-            <td class="location"><a href="${item.locationUrl}" target="_blank" rel="noopener noreferrer">${item.location}</a></td>
-            <td>${item.temperature}</td>
-            <td>${item.time}</td>
-        `;
+
+        const createCell = (text) => {
+            const cell = document.createElement('td');
+            cell.textContent = text;
+            return cell;
+        };
+
+        row.appendChild(createCell(item.rank));
+
+        const locationCell = document.createElement('td');
+        locationCell.className = 'location';
+        const link = document.createElement('a');
+        link.href = item.locationUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = item.location;
+        locationCell.appendChild(link);
+        row.appendChild(locationCell);
+
+        row.appendChild(createCell(item.temperature));
+        row.appendChild(createCell(item.time));
+
         rankingBody.appendChild(row);
     });
 }
@@ -328,30 +343,47 @@ const updateEkidenRankingTable = (data) => {
         const gap = topDistance - team.totalDistance;
         const gapDisplay = team.overallRank === 1 ? '----' : `-${gap.toFixed(1)}km`;
 
-        // 前日順位との比較
-        let rankChangeIcon = 'ー';
-        let rankChangeClass = 'rank-stay';
-        if (team.previousRank > 0) {
-            if (team.overallRank < team.previousRank) {
-                rankChangeIcon = '▲';
-                rankChangeClass = 'rank-up';
-            } else if (team.overallRank > team.previousRank) {
-                rankChangeIcon = '▼';
-                rankChangeClass = 'rank-down';
-            }
-        }
-        const rankChangeDisplay = `<span class="${rankChangeClass}">${rankChangeIcon}</span> (${team.previousRank > 0 ? team.previousRank : '－'})`;
+        const createCell = (text, className = '') => {
+            const cell = document.createElement('td');
+            cell.className = className;
+            cell.textContent = text;
+            return cell;
+        };
 
-        row.innerHTML = `
-            <td class="rank">${team.overallRank}</td>
-            <td class="team-name">${team.name}</td>
-            <td class="runner">${team.runner}</td>
-            <td class="today-distance">${team.todayDistance.toFixed(1)} km (${team.todayRank})</td>
-            <td class="distance">${team.totalDistance.toFixed(1)} km</td>
-            <td class="gap hide-on-mobile">${gapDisplay}</td>
-            <td class="rank-change hide-on-mobile">${rankChangeDisplay}</td>
-            <td class="next-runner hide-on-mobile">${team.nextRunner}</td>
-        `;
+        const createRankChangeCell = (team) => {
+            const cell = document.createElement('td');
+            cell.className = 'rank-change hide-on-mobile';
+
+            let rankChangeIcon = 'ー';
+            let rankChangeClass = 'rank-stay';
+            if (team.previousRank > 0) {
+                if (team.overallRank < team.previousRank) {
+                    rankChangeIcon = '▲';
+                    rankChangeClass = 'rank-up';
+                } else if (team.overallRank > team.previousRank) {
+                    rankChangeIcon = '▼';
+                    rankChangeClass = 'rank-down';
+                }
+            }
+
+            const iconSpan = document.createElement('span');
+            iconSpan.className = rankChangeClass;
+            iconSpan.textContent = rankChangeIcon;
+
+            cell.appendChild(iconSpan);
+            cell.append(` (${team.previousRank > 0 ? team.previousRank : '－'})`);
+            return cell;
+        };
+
+        row.appendChild(createCell(team.overallRank, 'rank'));
+        row.appendChild(createCell(team.name, 'team-name'));
+        row.appendChild(createCell(team.runner, 'runner'));
+        row.appendChild(createCell(`${team.todayDistance.toFixed(1)} km (${team.todayRank})`, 'today-distance'));
+        row.appendChild(createCell(`${team.totalDistance.toFixed(1)} km`, 'distance'));
+        row.appendChild(createCell(gapDisplay, 'gap hide-on-mobile'));
+        row.appendChild(createRankChangeCell(team));
+        row.appendChild(createCell(team.nextRunner, 'next-runner hide-on-mobile'));
+
         rankingBody.appendChild(row);
     });
 };

@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 import unicodedata
 import sys
+import argparse
 
 # --- 定数 ---
 AMEDAS_STATIONS_FILE = 'amedas_stations.json'
@@ -129,6 +130,11 @@ def save_realtime_report(results, race_day):
 
 def main():
     """メイン処理"""
+    parser = argparse.ArgumentParser(description='高温大学駅伝のレポートを生成します。')
+    parser.add_argument('--realtime', action='store_true', help='リアルタイム速報用のJSON (realtime_report.json) を生成します。')
+    parser.add_argument('--commit', action='store_true', help='本日の結果を状態ファイル (ekiden_state.json) に保存します。')
+    args = parser.parse_args()
+
     load_all_data()
 
     start_date = datetime.strptime(EKIDEN_START_DATE, '%Y-%m-%d')
@@ -222,21 +228,17 @@ def main():
         if i == 9:
             report.append('---------------------------------------------------　')
 
-    # コマンドライン引数からコミットモードかどうかを判断
-    is_commit_mode = '--commit' in sys.argv
-    is_realtime_mode = '--realtime' in sys.argv
-
     print("\n--- 速報生成完了 ---")
     print("\n".join(report))
 
-    if is_realtime_mode:
+    if args.realtime:
         save_realtime_report(results, race_day)
         print("\n--- [速報モード] 速報データを realtime_report.json に保存しました ---")
 
-    if is_commit_mode:
+    if args.commit:
         save_ekiden_state(results)
         print("\n--- [コミットモード] 本日の結果を ekiden_state.json に保存しました ---")
-    elif not is_realtime_mode:
+    elif not args.realtime:
         print("\n--- [プレビューモード] 結果を保存するには `python generate_report.py --commit` を実行してください ---")
 
 if __name__ == '__main__':

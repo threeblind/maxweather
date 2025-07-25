@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# スクリプトが失敗した場合に即座に終了するように設定
+# -e: コマンドが非ゼロのステータスで終了した場合にスクリリプトを終了
+# -u: 未定義の変数を参照しようとした場合にスクリプトを終了
+# -o pipefail: パイプラインのいずれかのコマンドが失敗した場合、パイプライン全体を失敗とみなす
+set -euo pipefail
 # このスクリプトは、高温大学駅伝のリアルタイム速報を生成し、
 # GitHubリポジトリにプッシュするためのものです。
 # cronジョブとして定期的に実行されることを想定しています。
@@ -30,14 +35,28 @@ if ! git diff --quiet --exit-code realtime_report.json; then
     git add realtime_report.json
     git commit -m "Update realtime report [bot] $(date +'%Y-%m-%d %H:%M:%S')"
 
+    # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash) します。
+    # これにより、`git pull --rebase` が安全に実行できます。
+    STASH_RESULT=$(git stash)
+
     # リモートの変更を取り込んでからプッシュする (non-fast-forwardエラー対策)
     echo "リモートの変更を取り込んでいます (git pull --rebase)..."
-    git pull --rebase origin main
+    if ! git pull --rebase origin main; then
+        echo "エラー: git pull --rebase に失敗しました。コンフリクトを解決する必要があるかもしれません。"
+        # pullに失敗した場合、stashを戻してから終了する
+        if [[ "$STASH_RESULT" != "No local changes to save" ]]; then
+            git stash pop
+        fi
+        exit 1
+    fi
 
-    if git push origin main; then
-        echo "プッシュが完了しました。"
-    else
-        echo "エラー: プッシュに失敗しました。GitHubの権限またはSSHキーの設定を確認してください。"
+    echo "GitHubにプッシュしています..."
+    git push origin main
+
+    # 退避していた変更を元に戻します。
+    if [[ "$STASH_RESULT" != "No local changes to save" ]]; then
+        echo "一時退避した変更を元に戻します..."
+        git stash pop
     fi
 else
     echo "realtime_report.json に変更はありませんでした。コミットをスキップします。"
