@@ -175,16 +175,19 @@
             .search-box {
                 flex-direction: column;
             }
-            .ranking-container {
+            .ranking-container,
+            .ekiden-ranking-container {
                 /* テーブルがはみ出した場合に横スクロールを可能にする */
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch; /* iOSでのスクロールを滑らかに */
             }
             /* スマホ表示でテーブルの文字と余白を小さくする */
-            #rankingTable {
+            #rankingTable,
+            #ekidenRankingTable {
                 font-size: 14px;
             }
-            #rankingTable th, #rankingTable td {
+            #rankingTable th, #rankingTable td,
+            #ekidenRankingTable th, #ekidenRankingTable td {
                 padding: 6px;
             }
         }
