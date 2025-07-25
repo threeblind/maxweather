@@ -4,6 +4,17 @@ let allIndividualData = {}; // 選手個人の全記録を保持するグロー�
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
 
+/**
+ * 選手名から括弧で囲まれた都道府県名を取り除く
+ * @param {string} name - 元の選手名 (e.g., "山形（山形）", "2山形（山形）")
+ * @returns {string} - 整形された選手名 (e.g., "山形", "2山形")
+ */
+const formatRunnerName = (name) => {
+    if (!name) return '';
+    // 正規表現で末尾の「（...）」とその前の空白を削除
+    return name.replace(/\s*（[^）]+）\s*$/, '');
+};
+
 // アメダス観測所データを読み込み
 async function loadStationsData() {
     try {
@@ -355,10 +366,11 @@ const createPrizeTable = (records) => {
 
     const tbody = document.createElement('tbody');
     records.forEach((record, index) => {
+        const formattedRunnerName = formatRunnerName(record.runnerName);
         const row = document.createElement('tr');
         row.innerHTML = `
             <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${index + 1}</td>
-            <td class="runner-name" style="text-align: left; padding: 6px; border: 1px solid #ddd;" onclick="showPlayerRecords('${record.runnerName}')">${record.runnerName}</td>
+            <td class="runner-name" style="text-align: left; padding: 6px; border: 1px solid #ddd;" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
             <td style="text-align: left; padding: 6px; border: 1px solid #ddd;">${record.teamName}</td>
             <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${record.averageDistance.toFixed(1)} km</td>
         `;
@@ -417,10 +429,11 @@ const updateLegRankingAndPrize = (realtimeData, individualData) => {
     if (allRunners.length > 0) {
         legRankingStatus.style.display = 'none';
         allRunners.forEach((record, index) => {
+            const formattedRunnerName = formatRunnerName(record.runnerName);
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${index + 1}</td>
-                <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${record.runnerName}</td>
+                <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
                 <td class="team-name">${record.teamName}</td>
                 <td>${record.totalDistance.toFixed(1)} km</td>
             `;
@@ -535,12 +548,12 @@ const updateEkidenRankingTable = (data) => {
 
         row.appendChild(createCell(team.overallRank, 'rank'));
         row.appendChild(createCell(team.name, 'team-name'));
-        row.appendChild(createCell(team.runner, 'runner'));
+        row.appendChild(createCell(formatRunnerName(team.runner), 'runner'));
         row.appendChild(createCell(`${team.todayDistance.toFixed(1)} km (${team.todayRank})`, 'today-distance'));
         row.appendChild(createCell(`${team.totalDistance.toFixed(1)} km`, 'distance'));
         row.appendChild(createCell(gapDisplay, 'gap hide-on-mobile'));
         row.appendChild(createRankChangeCell(team));
-        row.appendChild(createCell(team.nextRunner, 'next-runner hide-on-mobile'));
+        row.appendChild(createCell(formatRunnerName(team.nextRunner), 'next-runner hide-on-mobile'));
 
         rankingBody.appendChild(row);
     });
@@ -607,7 +620,7 @@ function showPlayerRecords(runnerName) {
 
     if (!modal || !modalTitle || !modalBody) return;
 
-    modalTitle.textContent = `${runnerName} の全記録`;
+    modalTitle.textContent = `${formatRunnerName(runnerName)} の全記録`;
     modalBody.innerHTML = ''; // 以前の記録をクリア
 
     if (runnerData.records.length === 0) {
