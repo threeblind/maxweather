@@ -277,15 +277,135 @@ async function loadRanking() {
     }
 }
 
-// Enterキーで検索
+// --- 駅伝ランキング表示機能 ---
+
+/**
+ * 駅伝用のテーブルヘッダーを生成します。
+ */
+const createEkidenHeader = () => {
+    const rankingHead = document.getElementById('ekidenRankingHead');
+    if (!rankingHead) return;
+    rankingHead.innerHTML = `
+        <tr>
+            <th>順位</th>
+            <th>大学名</th>
+            <th>現在<br>走者</th><th>本日距離</th>
+            <th>総合距離</th>
+            <th>トップ差</th>
+            <th>前日比</th>
+        </tr>
+    `;
+};
+
+/**
+ * 取得した駅伝データで順位表を更新します。
+ * @param {object} data - realtime_report.json から取得したデータ
+ */
+const updateEkidenRankingTable = (data) => {
+    const rankingBody = document.getElementById('ekidenRankingBody');
+    const rankingStatus = document.getElementById('ekidenRankingStatus');
+    if (!rankingBody || !rankingStatus) return;
+
+    if (!data || !data.teams || data.teams.length === 0) {
+        rankingStatus.textContent = '駅伝ランキングデータを読み込めませんでした。';
+        rankingStatus.className = 'result error';
+        rankingStatus.style.display = 'block';
+        rankingBody.innerHTML = '';
+        return;
+    }
+
+    rankingStatus.style.display = 'none';
+    rankingBody.innerHTML = ''; // テーブルをクリア
+
+    const topDistance = data.teams[0]?.totalDistance || 0;
+
+    data.teams.forEach(team => {
+        const row = document.createElement('tr');
+
+        // トップとの差を計算
+        const gap = topDistance - team.totalDistance;
+        const gapDisplay = team.overallRank === 1 ? '----' : `-${gap.toFixed(1)}km`;
+
+        // 前日順位との比較
+        let rankChangeIcon = 'ー';
+        let rankChangeClass = 'rank-stay';
+        if (team.previousRank > 0) {
+            if (team.overallRank < team.previousRank) {
+                rankChangeIcon = '▲';
+                rankChangeClass = 'rank-up';
+            } else if (team.overallRank > team.previousRank) {
+                rankChangeIcon = '▼';
+                rankChangeClass = 'rank-down';
+            }
+        }
+        const rankChangeDisplay = `<span class="${rankChangeClass}">${rankChangeIcon}</span> (${team.previousRank > 0 ? team.previousRank : '－'})`;
+
+        row.innerHTML = `
+            <td class="rank">${team.overallRank}</td>
+            <td class="team-name">${team.name}</td>
+                <td class="runner">${team.runner}</td><td class="today-distance">${team.todayDistance.toFixed(1)} km</td>
+            <td class="distance">${team.totalDistance.toFixed(1)} km</td>
+            <td class="gap">${gapDisplay}</td>
+            <td class="rank-change">${rankChangeDisplay}</td>
+        `;
+        rankingBody.appendChild(row);
+    });
+};
+
+/**
+ * サーバーから駅伝の最新データを取得します。
+ */
+const fetchEkidenData = async () => {
+    const titleContainer = document.getElementById('ekidenRankingTitleContainer');
+    const updateTimeEl = document.getElementById('ekidenRankingUpdateTime');
+    const statusEl = document.getElementById('ekidenRankingStatus');
+    const bodyEl = document.getElementById('ekidenRankingBody');
+
+    if (!titleContainer || !updateTimeEl || !statusEl || !bodyEl) {
+        console.error("Ekiden ranking elements not found in the DOM.");
+        return;
+    }
+
+    try {
+        // キャッシュを無効にするためのクエリパラメータを追加
+        const response = await fetch(`realtime_report.json?_=${new Date().getTime()}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        // タイトルと更新日時を更新
+        titleContainer.querySelector('h3').textContent = `高温大学駅伝 ${data.raceDay}日目 総合順位`;
+        updateTimeEl.textContent = `(更新: ${data.updateTime})`;
+
+        updateEkidenRankingTable(data);
+
+    } catch (error) {
+        console.error('Error fetching ekiden data:', error);
+        statusEl.textContent = '駅伝ランキングデータの取得に失敗しました。';
+        statusEl.className = 'result error';
+        statusEl.style.display = 'block';
+        bodyEl.innerHTML = '';
+    }
+};
+
+// --- 初期化処理 ---
+
 document.addEventListener('DOMContentLoaded', function() {
+    // アメダス機能の初期化
     loadStationsData();
     loadSearchHistory();
     loadRanking();
-    
+
     document.getElementById('locationInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             searchTemperature();
         }
     });
+
+    // 駅伝機能の初期化
+    createEkidenHeader();
+    fetchEkidenData();
+    // 30秒ごとにデータを自動更新
+    setInterval(fetchEkidenData, 30000);
 });

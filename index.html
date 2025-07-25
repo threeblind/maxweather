@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>アメダス最高気温検索 for 高温大学駅伝</title>
+    <title>高温大学駅伝 速報 & アメダス情報</title>
     <style>
         body {
             font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
@@ -116,6 +116,27 @@
         #rankingTable th {
             background-color: #f2f2f2;
         }
+        /* 駅伝ランキング用スタイル */
+        .ekiden-ranking-container {
+            margin-bottom: 40px;
+        }
+        #ekidenRankingTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        #ekidenRankingTable th, #ekidenRankingTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        #ekidenRankingTable th {
+            background-color: #f2f2f2;
+        }
+        #ekidenRankingTable td.team-name {
+            text-align: left;
+            font-weight: bold;
+        }
         #rankingTable td.location {
             text-align: left;
             white-space: nowrap;
@@ -127,6 +148,17 @@
         }
         #rankingTable td.location a:hover {
             text-decoration: underline;
+        }
+        #ekidenRankingTable td.rank-change .rank-up {
+            color: #dc3545; /* 赤 */
+            font-weight: bold;
+        }
+        #ekidenRankingTable td.rank-change .rank-down {
+            color: #007bff; /* 青 */
+            font-weight: bold;
+        }
+        #ekidenRankingTable td.rank-change .rank-stay {
+            color: #6c757d; /* グレー */
         }
 
         /* --- レスポンシブ対応 --- */
@@ -160,7 +192,25 @@
 </head>
 <body>
     <div class="container">
-        <h1>🌡️ アメダス最高気温検索 for高温大学駅伝</h1>
+        <h1>🔥 高温大学駅伝 速報 & アメダス情報</h1>
+
+        <div class="ekiden-ranking-container">
+            <div id="ekidenRankingTitleContainer">
+                <h3>高温大学駅伝 総合順位</h3>
+                <p id="ekidenRankingUpdateTime" class="ranking-update-time"></p>
+            </div>
+            <table id="ekidenRankingTable">
+                <thead id="ekidenRankingHead">
+                    <!-- 駅伝ランキングヘッダーは app.js によって動的に生成されます -->
+                </thead>
+                <tbody id="ekidenRankingBody">
+                    <!-- 駅伝ランキングは app.js によって動的に生成されます -->
+                </tbody>
+            </table>
+            <div id="ekidenRankingStatus" class="result loading" style="display: none;"></div>
+        </div>
+
+        <h2>🌡️ アメダス地点検索</h2>
         <div class="search-box">
             <input type="text" id="locationInput" placeholder="地点名を入力してください（例：東京、大阪、札幌）" />
             <button onclick="searchTemperature()">検索</button>
