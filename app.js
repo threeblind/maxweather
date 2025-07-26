@@ -562,6 +562,159 @@ const updateIndividualSections = (realtimeData, individualData) => {
 };
 
 /**
+ * Renders a line chart for rank history.
+ */
+async function displayRankHistoryChart() {
+    const canvas = document.getElementById('rankHistoryChart');
+    const statusEl = document.getElementById('rankHistoryStatus');
+    if (!canvas || !statusEl) return;
+
+    statusEl.textContent = 'Loading rank fluctuation chart...';
+    statusEl.className = 'result loading';
+    statusEl.style.display = 'block';
+
+    try {
+        // Fetch history data and team color info in parallel
+        const [historyRes, ekidenDataRes] = await Promise.all([
+            fetch(`rank_history.json?_=${new Date().getTime()}`),
+            fetch(`ekiden_data.json?_=${new Date().getTime()}`)
+        ]);
+
+        if (!historyRes.ok || !ekidenDataRes.ok) {
+            throw new Error('Failed to fetch data for the chart.');
+        }
+
+        const historyData = await historyRes.json();
+        const ekidenData = await ekidenDataRes.json();
+
+        if (!historyData || !historyData.dates || historyData.dates.length === 0) {
+            throw new Error('No rank history available to display.');
+        }
+
+        // Create a map of team IDs to colors
+        const teamColorMap = new Map(ekidenData.teams.map(t => [t.id, t.color]));
+
+        const datasets = historyData.teams.map(team => {
+            return {
+                label: team.name,
+                data: team.ranks,
+                borderColor: teamColorMap.get(team.id) || '#cccccc',
+                backgroundColor: (teamColorMap.get(team.id) || '#cccccc') + '33', // Add transparency
+                fill: false,
+                tension: 0.1,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 6
+            };
+        });
+        
+        // Dynamically set the chart width
+        const chartWrapper = canvas.parentElement;
+        const chartWidth = Math.max(400, historyData.dates.length * 20); // 最小幅を400pxに、1日あたりの幅を20pxに調整
+        chartWrapper.style.width = `${chartWidth}px`;
+
+        new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: historyData.dates.map(d => d.substring(5).replace('-', '/')), // YYYY-MM-DD -> MM/DD
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        reverse: true, // Rank 1 should be at the top
+                        min: 0.5, // グラフ上部の余白を確保
+                        max: historyData.teams.length + 0.5, // グラフ下部の余白を確保
+                        ticks: {
+                            stepSize: 1, // Integer steps for rank
+                            callback: function(value) {
+                                if (Math.floor(value) === value) {
+                                    return value;
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: '総合順位'
+                        }
+                    },
+                    x: {
+                         title: {
+                            display: true,
+                            text: '日付'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        onClick: (e, legendItem, legend) => {
+                            const chart = legend.chart;
+                            const index = legendItem.datasetIndex;
+
+                            // Check if the clicked item is already highlighted (borderWidth > 2)
+                            const isAlreadyHighlighted = chart.data.datasets[index].borderWidth > 2;
+
+                            // First, reset all datasets to their default style
+                            chart.data.datasets.forEach((dataset, i) => {
+                                const teamId = historyData.teams[i].id;
+                                dataset.borderColor = teamColorMap.get(teamId) || '#cccccc';
+                                dataset.borderWidth = 2;
+                            });
+
+                            // If it was not a "reset" click, highlight the new one and dim others
+                            if (!isAlreadyHighlighted) {
+                                chart.data.datasets.forEach((dataset, i) => {
+                                    if (i === index) {
+                                        dataset.borderWidth = 4; // Highlight selected
+                                    } else {
+                                        dataset.borderColor = '#e0e0e0'; // Dim others
+                                        dataset.borderWidth = 1;
+                                    }
+                                });
+                            }
+                            chart.update();
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                return `Date: ${historyData.dates[tooltipItems[0].dataIndex]}`;
+                            },
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += `Rank ${context.parsed.y}`;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                }
+            }
+        });
+
+        statusEl.style.display = 'none';
+
+    } catch (error) {
+        console.error('Failed to render rank history chart:', error);
+        statusEl.textContent = `Failed to display chart: ${error.message}`;
+        statusEl.className = 'result error';
+    }
+}
+
+/**
  * 取得した駅伝データで順位表を更新します。
  * @param {object} data - realtime_report.json から取得したデータ
  */
@@ -932,6 +1085,7 @@ document.addEventListener('DOMContentLoaded', function() {
     displayEntryList();
     displayOutline();
     fetchEkidenData();
+    displayRankHistoryChart();
     // 30秒ごとにデータを自動更新
     setInterval(fetchEkidenData, 30000);
 

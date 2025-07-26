@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
 import unicodedata
@@ -12,6 +12,7 @@ AMEDAS_STATIONS_FILE = 'amedas_stations.json'
 EKIDEN_DATA_FILE = 'ekiden_data.json'
 STATE_FILE = 'ekiden_state.json'
 INDIVIDUAL_STATE_FILE = 'individual_results.json'
+RANK_HISTORY_FILE = 'rank_history.json'
 EKIDEN_START_DATE = '2025-07-23'
 
 # --- グローバル変数 ---
@@ -152,6 +153,50 @@ def save_realtime_report(results, race_day):
     with open('realtime_report.json', 'w', encoding='utf-8') as f:
         json.dump(report_data, f, indent=2, ensure_ascii=False)
 
+def update_rank_history(results, race_day):
+    """
+    順位履歴ファイル(rank_history.json)を更新する。
+    - results: 総合順位でソート済みのその日の結果リスト
+    - race_day: レース日
+    """
+    try:
+        with open(RANK_HISTORY_FILE, 'r', encoding='utf-8') as f:
+            history = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # ファイルがない、または不正な場合は初期化
+        history = {
+            "dates": [],
+            "teams": [{"id": t["id"], "name": t["name"], "ranks": [], "distances": []} for t in ekiden_data['teams']]
+        }
+
+    today_str = (datetime.strptime(EKIDEN_START_DATE, '%Y-%m-%d') + timedelta(days=race_day - 1)).strftime('%Y-%m-%d')
+
+    # 日付のインデックスを取得または新規追加
+    try:
+        date_index = history["dates"].index(today_str)
+    except ValueError:
+        history["dates"].append(today_str)
+        date_index = len(history["dates"]) - 1
+        # 新しい日付の場合、全チームの履歴配列を拡張
+        for team_history in history["teams"]:
+            team_history["ranks"].append(None)
+            team_history["distances"].append(None)
+
+    # チームIDをキーにした辞書を作成して効率化
+    history_teams_map = {team['id']: team for team in history['teams']}
+
+    # 今日の結果を履歴に反映
+    for result in results:
+        team_id = result['id']
+        if team_id in history_teams_map:
+            team_history = history_teams_map[team_id]
+            team_history['ranks'][date_index] = result['overallRank']
+            team_history['distances'][date_index] = result['totalDistance']
+
+    # ファイルに保存
+    with open(RANK_HISTORY_FILE, 'w', encoding='utf-8') as f:
+        json.dump(history, f, indent=2, ensure_ascii=False)
+
 def main():
     """メイン処理"""
     parser = argparse.ArgumentParser(description='高温大学駅伝のレポートを生成します。')
@@ -160,12 +205,13 @@ def main():
     # テスト用のファイルパスを指定するオプションを追加
     parser.add_argument('--state-file', default=STATE_FILE, help=f'チームの状態ファイルパス (デフォルト: {STATE_FILE})')
     parser.add_argument('--individual-state-file', default=INDIVIDUAL_STATE_FILE, help=f'個人の状態ファイルパス (デフォルト: {INDIVIDUAL_STATE_FILE})')
+    parser.add_argument('--history-file', default=RANK_HISTORY_FILE, help=f'順位履歴ファイルパス (デフォルト: {RANK_HISTORY_FILE})')
     args = parser.parse_args()
 
     load_all_data()
 
     start_date = datetime.strptime(EKIDEN_START_DATE, '%Y-%m-%d')
-    race_day = (datetime.now() - start_date).days + 1
+    race_day = (datetime.now().date() - start_date.date()).days + 1
 
     current_state = load_ekiden_state(args.state_file)
     previous_rank_map = {s['id']: s['overallRank'] for s in current_state}
@@ -285,8 +331,9 @@ def main():
 
     if args.commit:
         save_ekiden_state(results, args.state_file)
+        update_rank_history(results, race_day)
         save_individual_results(individual_results, args.individual_state_file)
-        print(f"\n--- [コミットモード] 本日の最終結果を {args.state_file} と {args.individual_state_file} に保存しました ---")
+        print(f"\n--- [コミットモード] 本日の最終結果を {args.state_file}, {args.individual_state_file}, {args.history_file} に保存しました ---")
     elif not args.realtime:
         print("\n--- [プレビューモード] 結果を保存するには `python generate_report.py --commit` を実行してください ---")
 

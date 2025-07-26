@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>第１５回全国大学対抗高温駅伝大会 速報</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
@@ -458,6 +459,22 @@
         .feature-hidden {
             display: none !important;
         }
+        /* Rank History Chart Styles */
+        .rank-history-container {
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+        .chart-scroll-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fff;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 500px;
+        }
     </style>
 </head>
 <body>
@@ -473,6 +490,7 @@
                 <li><a href="#section-overall-ranking">総合順位</a></li>
                 <li><a href="#section-leg-ranking">個人記録</a></li>
                 <li><a href="#section-leg-prize">区間賞</a></li>
+                <li><a href="#section-rank-history">順位変動</a></li>
                 <li><a href="#section-entry-list">エントリー</a></li>
                 <li><a href="#section-course-map">コース</a></li>
                 <li><a href="#outlineContainer">大会概要</a></li>
@@ -516,6 +534,16 @@
             <div id="legPrizeWinner">
             <!-- 区間賞は app.js によって動的に生成されます -->
             </div>
+        </div>
+
+        <div id="section-rank-history" class="rank-history-container">
+            <h2>順位変動</h2>
+            <div class="chart-scroll-container">
+                <div class="chart-wrapper">
+                    <canvas id="rankHistoryChart"></canvas>
+                </div>
+            </div>
+            <div id="rankHistoryStatus" class="result loading" style="display: none;"></div>
         </div>
 
         <div id="section-entry-list" class="entry-list-container">
