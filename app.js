@@ -735,6 +735,71 @@ async function displayEntryList() {
     }
 }
 
+/**
+ * outline.json を読み込み、大会概要をページに表示します。
+ */
+async function displayOutline() {
+    const container = document.getElementById('outlineContainer');
+    if (!container) return;
+
+    try {
+        const response = await fetch('outline.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        let html = '<h2>大会開催概要</h2>';
+
+        // 関連リンク
+        html += '<h3>関連リンク</h3><ul>';
+        data.links.forEach(link => {
+            html += `<li><a href="${link.url}" target="_blank" rel="noopener noreferrer">${link.text}</a></li>`;
+        });
+        html += '</ul>';
+
+        // 大会要項
+        html += `<h3>${data.title}</h3>`;
+        html += `<p><strong>スタート日:</strong> ${data.details.startDate}</p>`;
+        html += `<p><strong>コース:</strong> ${data.details.course}</p>`;
+
+        // 区間
+        html += '<h4>区間</h4><ul>';
+        data.legs.forEach(leg => {
+            html += `<li>${leg}</li>`;
+        });
+        html += '</ul>';
+
+        // 出場校
+        html += '<h4>出場校</h4>';
+        html += `<p>${data.teams.description}</p><ul>`;
+        data.teams.list.forEach(team => {
+            html += `<li>${team}</li>`;
+        });
+        html += `</ul><p><small>${data.teams.legend}</small></p>`;
+
+        // ルール
+        data.rules.forEach(rule => {
+            html += `<h4>${rule.title}</h4><p>${rule.content.replace(/\n/g, '<br>')}</p>`;
+        });
+
+        // スケジュール
+        html += `<h4>${data.schedule.title}</h4><ul>`;
+        data.schedule.items.forEach(item => {
+            html += `<li>${item}</li>`;
+        });
+        html += '</ul>';
+
+        // 監督ルール
+        html += `<h4>${data.managerRules.title}</h4><p>${data.managerRules.content}</p>`;
+
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('開催概要の生成に失敗:', error);
+        container.innerHTML = '<p class="result error">開催概要の読み込みに失敗しました。</p>';
+    }
+}
+
 // --- 初期化処理 ---
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -753,6 +818,7 @@ document.addEventListener('DOMContentLoaded', function() {
     createEkidenHeader();
     createLegRankingHeader();
     displayEntryList();
+    displayOutline();
     fetchEkidenData();
     // 30秒ごとにデータを自動更新
     setInterval(fetchEkidenData, 30000);
