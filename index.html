@@ -451,12 +451,10 @@
                 display: none;
             }
             /* スマホ表示ではナビゲーションを横スクロールにする */
+            /* スマホ表示ではナビゲーションを折り返し表示にする */
             .page-nav ul {
-                flex-wrap: nowrap;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                padding-bottom: 10px;
-                justify-content: flex-start;
+                flex-wrap: wrap;
+                justify-content: center;
             }
             /* スマホ表示でテーブルの文字と余白を小さくする */
             #rankingTable,
@@ -524,7 +522,7 @@
 
         <div id="section-overall-ranking" class="ekiden-section-wrapper" >
             <div id="ekidenRankingTitleContainer">
-                <h3>高温大学駅伝 総合順位</h3>
+                <h3>🏆 高温大学駅伝 総合順位</h3>
                 <p id="ekidenRankingUpdateTime" class="ranking-update-time"></p>
             </div>
             <div class="ekiden-ranking-container">
@@ -541,7 +539,7 @@
         </div>
 
         <div id="section-leg-ranking" class="leg-ranking-container">
-            <h3 id="legRankingTitle">個人区間記録</h3>
+            <h3 id="legRankingTitle">🏃 個人区間記録</h3>
             <div id="leg-tabs-container" class="leg-tabs">
             </div>
             <table id="legRankingTable">
@@ -556,6 +554,7 @@
         </div>
 
         <div id="section-leg-prize" style="margin-top: 40px;">
+            <h2>🚩 区間記録</h2>
             <div id="legPrizeWinner">
             <!-- 区間賞は app.js によって動的に生成されます -->
             </div>
@@ -565,7 +564,7 @@
         </div>
 
         <div id="section-rank-history" class="rank-history-container">
-            <h2>順位変動</h2>
+            <h2>📈 順位変動</h2>
             <p class="chart-description">💡 グラフ上部の大学名をクリックすると、そのチームの推移をハイライト表示できます。もう一度クリックすると元に戻ります。</p>
             <div class="chart-scroll-container">
                 <div class="chart-wrapper">

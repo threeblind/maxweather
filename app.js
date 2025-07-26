@@ -437,7 +437,7 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap)
     // Sort and display
     runnersToShow.sort((a, b) => b.legDistance - a.legDistance);
 
-    legRankingTitle.textContent = `${legNumber}区 個人記録`;
+    legRankingTitle.textContent = `🏃 ${legNumber}区 個人記録`;
     legRankingBody.innerHTML = '';
     if (runnersToShow.length > 0) {
         legRankingStatus.style.display = 'none';
@@ -854,7 +854,7 @@ const fetchEkidenData = async () => {
         allIndividualData = individualData; // データをグローバル変数に保存
 
         // タイトルと更新日時を更新
-        titleContainer.querySelector('h3').textContent = `高温大学駅伝 ${realtimeData.raceDay}日目 総合順位`;
+        titleContainer.querySelector('h3').textContent = `🏆 高温大学駅伝 ${realtimeData.raceDay}日目 総合順位`;
         updateTimeEl.textContent = `(更新: ${realtimeData.updateTime})`;
 
         updateEkidenRankingTable(realtimeData);
