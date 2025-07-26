@@ -4,24 +4,25 @@
 
 ## 🌐 デモ
 
-GitHub Pagesで公開中: [https://t28k2.github.io/maxweather/](https://t28k2.github.io/maxweather/)
+GitHub Pagesで公開中: [https://threeblind.github.io/maxweather/](https://threeblind.github.io/maxweather/)
 
 ## 🚀 機能
 
 - **リアルタイム総合順位**: 全チームの順位、総距離、現在走者などを300秒ごとに自動更新。
-- **個人記録**: 現在区間の選手成績をランキング表示。選手名クリックで全日程の記録をポップアップ表示。
+- **個人記録**: 現在進行中の区間だけでなく、過去の区間の記録もタブで切り替えて表示。選手名クリックで全日程の記録をポップアップ表示。
 - **区間賞**: 前区間の上位3選手を平均距離順に表示。
+- **順位変動グラフ**: 全チームの順位推移をインタラクティブな折れ線グラフで可視化。凡例クリックで特定のチームをハイライト表示。
 - **アメダス地点情報**: 地点名での気温検索や、全国の最高気温ランキングを表示。
 
 ## 🛠️ 仕組み
 
 1.  **データ更新 (バックエンド)**
-    - `update_realtime.sh` が `generate_report.py` を定期実行します。
+    - `update_realtime.sh`（リアルタイム用）や `commit_daily.sh`（日次確定用）が `generate_report.py` を実行します。
     - Pythonスクリプトが、各選手に割り当てられたアメダス地点の最高気温をYahoo!天気から取得します。
-    - 取得した気温を走行距離に見立て、チーム成績 (`realtime_report.json`) と個人成績 (`individual_results.json`) を更新し、リポジトリにプッシュします。
+    - 取得した気温を走行距離に見立て、チーム成績 (`realtime_report.json`)、個人成績 (`individual_results.json`)、日々の順位履歴 (`rank_history.json`) を更新し、リポジトリにプッシュします。
 
 2.  **画面表示 (フロントエンド)**
-    - `app.js` が、リポジトリ上のJSONファイルを30秒ごとにフェッチします。
+    - `app.js` が、リポジトリ上の各種JSONファイルを30秒ごとにフェッチします。
     - 最新データに基づき、DOMを操作して画面上の順位表や各種情報を更新します。
 
 ## 📊 主要技術
