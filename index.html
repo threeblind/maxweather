@@ -475,6 +475,16 @@
             position: relative;
             height: 500px;
         }
+        .chart-description {
+            text-align: center;
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 15px;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
     </style>
 </head>
 <body>
@@ -538,6 +548,7 @@
 
         <div id="section-rank-history" class="rank-history-container">
             <h2>順位変動</h2>
+            <p class="chart-description">💡 グラフ上部の大学名をクリックすると、そのチームの推移をハイライト表示できます。もう一度クリックすると元に戻ります。</p>
             <div class="chart-scroll-container">
                 <div class="chart-wrapper">
                     <canvas id="rankHistoryChart"></canvas>
