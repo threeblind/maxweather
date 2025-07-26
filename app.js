@@ -930,4 +930,23 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
     }
+
+    // --- 横スクロールのグラデーション制御 ---
+    const scrollContainer = document.querySelector('.ekiden-ranking-container');
+    if (scrollContainer) {
+        const scrollWrapper = scrollContainer.closest('.table-scroll-wrapper');
+        if (scrollWrapper) {
+            const checkScroll = () => {
+                // スクロール位置をチェック (2pxの許容範囲)
+                const isAtEnd = scrollContainer.scrollLeft + scrollContainer.clientWidth >= scrollContainer.scrollWidth - 2;
+                // scrolled-to-end クラスを付け外しする
+                scrollWrapper.classList.toggle('scrolled-to-end', isAtEnd);
+            };
+            // スクロール時にチェック
+            scrollContainer.addEventListener('scroll', checkScroll);
+            // 初期表示時とウィンドウリサイズ時にもチェックを実行
+            window.addEventListener('resize', checkScroll);
+            checkScroll();
+        }
+    }
 });

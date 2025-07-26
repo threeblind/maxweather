@@ -165,8 +165,12 @@
             background-color: #f2f2f2;
         }
         /* 駅伝ランキング用スタイル */
-        .ekiden-ranking-container {
+        .ekiden-section-wrapper {
             margin-bottom: 40px;
+        }
+        #ekidenRankingTitleContainer {
+            /* This is now a separate element from the scrollable table */
+            margin-bottom: 10px;
         }
         #ekidenRankingTable {
             width: 100%;
@@ -177,6 +181,7 @@
             border: 1px solid #ddd;
             padding: 8px;
             text-align: center;
+            white-space: nowrap;
         }
         #ekidenRankingTable th {
             background-color: #f2f2f2;
@@ -428,12 +433,27 @@
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch; /* iOSでのスクロールを滑らかに */
             }
-            /* 駅伝テーブルは横スクロールではなく、列を非表示にする */
-            .ekiden-ranking-container {
-                overflow-x: hidden;
+            .table-scroll-wrapper {
+                position: relative;
             }
-            .hide-on-mobile {
-                display: none;
+            .table-scroll-wrapper::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 40px;
+                height: 100%;
+                background: linear-gradient(to left, rgba(255, 255, 255, 1) 20%, rgba(255, 255, 255, 0));
+                pointer-events: none; /* グラデーションがクリックやスクロールを妨げないようにする */
+                transition: opacity 0.2s ease-in-out;
+            }
+            .table-scroll-wrapper.scrolled-to-end::after {
+                opacity: 0;
+            }
+            /* 駅伝テーブルも横スクロールを可能にする */
+            .ekiden-ranking-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
             /* スマホ表示ではナビゲーションを横スクロールにする */
             .page-nav ul {
@@ -445,13 +465,13 @@
             }
             /* スマホ表示でテーブルの文字と余白を小さくする */
             #rankingTable,
-            #ekidenRankingTable {
+            #ekidenRankingTable,
             #legRankingTable {
                 font-size: 14px;
             }
             #rankingTable th, #rankingTable td,
             #ekidenRankingTable th, #ekidenRankingTable td,
-            #ekidenRankingTable th, #ekidenRankingTable td {
+            #legRankingTable th, #legRankingTable td {
                 padding: 6px;
             }
         }
@@ -480,19 +500,23 @@
             </ul>
         </nav>
 
-        <div id="section-overall-ranking" class="ekiden-ranking-container">
+        <div id="section-overall-ranking" class="ekiden-section-wrapper">
             <div id="ekidenRankingTitleContainer">
                 <h3>高温大学駅伝 総合順位</h3>
                 <p id="ekidenRankingUpdateTime" class="ranking-update-time"></p>
             </div>
-            <table id="ekidenRankingTable">
-                <thead id="ekidenRankingHead">
-                    <!-- 駅伝ランキングヘッダーは app.js によって動的に生成されます -->
-                </thead>
-                <tbody id="ekidenRankingBody">
-                    <!-- 駅伝ランキングは app.js によって動的に生成されます -->
-                </tbody>
-            </table>
+            <div class="table-scroll-wrapper">
+                <div class="ekiden-ranking-container">
+                <table id="ekidenRankingTable">
+                    <thead id="ekidenRankingHead">
+                        <!-- 駅伝ランキングヘッダーは app.js によって動的に生成されます -->
+                    </thead>
+                    <tbody id="ekidenRankingBody">
+                        <!-- 駅伝ランキングは app.js によって動的に生成されます -->
+                    </tbody>
+                </table>
+                </div>
+            </div>
             <div id="ekidenRankingStatus" class="result loading" style="display: none;"></div>
         </div>
 
@@ -509,6 +533,12 @@
                 </tbody>
             </table>
             <div id="legRankingStatus" class="result loading" style="display: none;"></div>
+        </div>
+
+        <div id="section-leg-prize" style="margin-top: 40px;">
+            <div id="legPrizeWinner">
+            <!-- 区間賞は app.js によって動的に生成されます -->
+            </div>
         </div>
 
         <div id="section-entry-list" class="entry-list-container">
@@ -533,12 +563,6 @@
 
         <div id="outlineContainer" class="outline-container">
             <!-- 開催概要は app.js によって動的に生成されます -->
-        </div>
-
-        <div id="section-leg-prize" style="margin-top: 40px;">
-            <div id="legPrizeWinner">
-            <!-- 区間賞は app.js によって動的に生成されます -->
-            </div>
         </div>
 
         <!-- The Modal -->
