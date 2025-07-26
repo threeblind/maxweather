@@ -31,6 +31,15 @@ class TestGenerateReport(unittest.TestCase):
             # テスト対象: 大野
             {"name": "大野（福井）", "code": "57121", "pref_code": "18"},
             {"name": "大野（岩手）", "code": "33086", "pref_code": "3"},
+            # テスト対象: 八尾
+            {"name": "八尾（大阪）", "code": "62096", "pref_code": "27"},
+            {"name": "八尾（富山）", "code": "55206", "pref_code": "16"},
+            # テスト対象: 大津
+            {"name": "大津（滋賀）", "code": "60216", "pref_code": "25"},
+            {"name": "大津（北海道）", "code": "20631", "pref_code": "1c"},
+            # テスト対象: 長浜
+            {"name": "長浜（滋賀）", "code": "60061", "pref_code": "25"},
+            {"name": "長浜（愛媛）", "code": "73256", "pref_code": "38"},
             # テスト対象: 山形
             {"name": "山形（山形）", "code": "35426", "pref_code": "6"},
             {"name": "山形（岩手）", "code": "33136", "pref_code": "3"},
@@ -54,6 +63,9 @@ class TestGenerateReport(unittest.TestCase):
             {"runner_name": "府中（東京）", "team_id": 13, "leg": 8, "expected_pref": "13", "expected_code": "44116"},
             {"runner_name": "大野（福井）", "team_id": 17, "leg": 10, "expected_pref": "18", "expected_code": "57121"},
             {"runner_name": "山形（山形）", "team_id": 18, "leg": 2, "expected_pref": "6", "expected_code": "35426"},
+            {"runner_name": "八尾（大阪）", "team_id": 5, "leg": 10, "expected_pref": "27", "expected_code": "62096"},
+            {"runner_name": "大津（滋賀）", "team_id": 14, "leg": 7, "expected_pref": "25", "expected_code": "60216"},
+            {"runner_name": "長浜（滋賀）", "team_id": 14, "leg": 8, "expected_pref": "25", "expected_code": "60061"},
         ]
 
         for case in test_cases:
