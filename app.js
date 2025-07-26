@@ -696,6 +696,13 @@ async function displayEntryList() {
             title.textContent = `No.${team.id} ${team.name}`;
             card.appendChild(title);
 
+            if (team.manager) {
+                const manager = document.createElement('span');
+                manager.className = 'manager-name';
+                manager.textContent = team.manager;
+                card.appendChild(manager);
+            }
+
             // Regular runners
             const runnersList = document.createElement('ul');
             team.runners.forEach((runner, index) => {
