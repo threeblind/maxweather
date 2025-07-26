@@ -365,11 +365,18 @@ const createPrizeTable = (records) => {
     `;
 
     const tbody = document.createElement('tbody');
+    let lastDistance = -1;
+    let lastRank = 0;
     records.forEach((record, index) => {
+        // 同順位処理
+        if (record.averageDistance !== lastDistance) {
+            lastRank = index + 1;
+            lastDistance = record.averageDistance;
+        }
         const formattedRunnerName = formatRunnerName(record.runnerName);
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${index + 1}</td>
+            <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${lastRank}</td>
             <td class="runner-name" style="text-align: left; padding: 6px; border: 1px solid #ddd;" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
             <td style="text-align: left; padding: 6px; border: 1px solid #ddd;">${record.teamName}</td>
             <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${record.averageDistance.toFixed(3)} km</td>
@@ -532,13 +539,12 @@ const updateIndividualSections = (realtimeData, individualData) => {
             if (previousLegPerformances.length > 0) {
                 // 平均距離でソートし、上位3名を取得
                 previousLegPerformances.sort((a, b) => b.averageDistance - a.averageDistance);
-                const top3 = previousLegPerformances.slice(0, 3);
 
                 const title = document.createElement('h4');
-                title.textContent = `${previousLeg}区 区間賞`;
+                title.textContent = `${previousLeg}区 区間記録`;
                 legPrizeWinnerDiv.appendChild(title);
 
-                legPrizeWinnerDiv.appendChild(createPrizeTable(top3));
+                legPrizeWinnerDiv.appendChild(createPrizeTable(previousLegPerformances));
                 legPrizeWinnerDiv.style.display = 'block';
             }
         }
