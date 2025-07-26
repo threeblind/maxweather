@@ -23,6 +23,23 @@
             text-align: center;
             margin-bottom: 30px;
         }
+        /* Main Thread Link */
+        .main-thread-link {
+            display: block;
+            background-color: #28a745; /* A distinct green color */
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+        .main-thread-link:hover {
+            background-color: #218838;
+        }
         /* ページ内ナビゲーション */
         .page-nav {
             margin-bottom: 40px;
@@ -395,6 +412,10 @@
 <body>
     <div class="container">
         <h1>🔥 第１５回全国大学対抗高温駅伝大会 速報</h1>
+
+        <div id="main-thread-link-container">
+            <!-- 本スレリンクは app.js によって動的に生成されます -->
+        </div>
 
         <nav class="page-nav">
             <ul>

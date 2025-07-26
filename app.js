@@ -750,6 +750,7 @@ async function displayEntryList() {
  */
 async function displayOutline() {
     const container = document.getElementById('outlineContainer');
+    const linkContainer = document.getElementById('main-thread-link-container');
     const mapFrame = document.getElementById('courseMapFrame');
     if (!container) return;
 
@@ -759,6 +760,18 @@ async function displayOutline() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+
+        // 本スレリンクを設定
+        if (linkContainer && data.mainThreadUrl) {
+            linkContainer.innerHTML = ''; // Clear previous content
+            const link = document.createElement('a');
+            link.href = data.mainThreadUrl;
+            link.className = 'main-thread-link';
+            link.textContent = data.mainThreadText || '本スレはこちら';
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            linkContainer.appendChild(link);
+        }
 
         // マップのURLを設定
         if (mapFrame && data.courseMapUrl) {
