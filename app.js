@@ -755,7 +755,7 @@ async function displayEntryList() {
 
             // ゼッケン番号は削除し、タイトルに統合
             const title = document.createElement('h4');
-            const titleText = `${team.status_symbol || ''} ${team.name} ${team.prefectures || ''}`.trim();
+            const titleText = `No.${team.id} ${team.status_symbol || ''} ${team.name} ${team.prefectures || ''}`.trim();
             title.textContent = titleText;
             card.appendChild(title);
 
