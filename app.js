@@ -672,6 +672,62 @@ function closePlayerRecordsModal() {
     }
 }
 
+/**
+ * ekiden_data.json をもとにエントリーリストを生成して表示します。
+ */
+async function displayEntryList() {
+    const entryListDiv = document.getElementById('entryList');
+    if (!entryListDiv) return;
+
+    try {
+        const response = await fetch('ekiden_data.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        entryListDiv.innerHTML = ''; // Clear previous content
+
+        data.teams.forEach(team => {
+            const card = document.createElement('div');
+            card.className = 'team-card';
+
+            const title = document.createElement('h4');
+            title.textContent = `No.${team.id} ${team.name}`;
+            card.appendChild(title);
+
+            // Regular runners
+            const runnersList = document.createElement('ul');
+            team.runners.forEach((runner, index) => {
+                const li = document.createElement('li');
+                const formattedName = formatRunnerName(runner);
+                li.textContent = `${index + 1}区: ${formattedName}`;
+                runnersList.appendChild(li);
+            });
+            card.appendChild(runnersList);
+
+            // Substitutes
+            if (team.substitutes && team.substitutes.length > 0) {
+                const substitutesList = document.createElement('ul');
+                substitutesList.innerHTML = '<li style="margin-top:10px; font-weight:bold; color:#555;">補欠</li>';
+                team.substitutes.forEach(substitute => {
+                    const li = document.createElement('li');
+                    const formattedName = formatRunnerName(substitute);
+                    li.textContent = formattedName;
+                    substitutesList.appendChild(li);
+                });
+                card.appendChild(substitutesList);
+            }
+
+            entryListDiv.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error('エントリーリストの生成に失敗:', error);
+        entryListDiv.innerHTML = '<p class="result error">エントリーリストの読み込みに失敗しました。</p>';
+    }
+}
+
 // --- 初期化処理 ---
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -689,6 +745,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 駅伝機能の初期化
     createEkidenHeader();
     createLegRankingHeader();
+    displayEntryList();
     fetchEkidenData();
     // 30秒ごとにデータを自動更新
     setInterval(fetchEkidenData, 30000);
