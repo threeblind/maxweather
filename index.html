@@ -253,6 +253,20 @@
         td.runner-name:hover {
             text-decoration: underline;
         }
+        /* 区間記録テーブルの折りたたみスタイル */
+        #legPrizeTable.collapsed tbody tr:nth-child(n + 4) {
+            display: none;
+        }
+        .toggle-prize-view {
+            margin-top: 10px;
+            text-align: center;
+        }
+        .toggle-prize-view button {
+            background-color: #6c757d;
+        }
+        .toggle-prize-view button:hover {
+            background-color: #5a6268;
+        }
         /* Leg Tabs Styles */
         .leg-tabs {
             display: flex;
@@ -544,6 +558,9 @@
         <div id="section-leg-prize" style="margin-top: 40px;">
             <div id="legPrizeWinner">
             <!-- 区間賞は app.js によって動的に生成されます -->
+            </div>
+            <div id="legPrizeToggleContainer" class="toggle-prize-view">
+                <!-- 「もっと見る」ボタンはここに表示されます -->
             </div>
         </div>
 

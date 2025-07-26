@@ -488,6 +488,7 @@ const switchLegTab = (legNumber, realtimeData, individualData, teamsMap) => {
 const updateIndividualSections = (realtimeData, individualData) => {
     const teamsMap = new Map(realtimeData.teams.map(t => [t.id, t.name]));
     const legPrizeWinnerDiv = document.getElementById('legPrizeWinner');
+    const legPrizeToggleContainer = document.getElementById('legPrizeToggleContainer');
     const tabsContainer = document.getElementById('leg-tabs-container');
 
     if (!legPrizeWinnerDiv || !tabsContainer) return;
@@ -516,6 +517,7 @@ const updateIndividualSections = (realtimeData, individualData) => {
 
     // 4. Handle Leg Prize
     legPrizeWinnerDiv.innerHTML = ''; // 以前の内容をクリア
+    if (legPrizeToggleContainer) legPrizeToggleContainer.innerHTML = ''; // トグルボタンもクリア
     legPrizeWinnerDiv.style.display = 'none'; // Hide by default
 
     const leadingLeg = activeLegs[0];
@@ -549,11 +551,25 @@ const updateIndividualSections = (realtimeData, individualData) => {
                 // 平均距離でソートし、上位3名を取得
                 previousLegPerformances.sort((a, b) => b.averageDistance - a.averageDistance);
 
+                const prizeTable = createPrizeTable(previousLegPerformances);
+
+                // 3人より多い記録がある場合、「もっと見る」ボタンを設置
+                if (previousLegPerformances.length > 3 && legPrizeToggleContainer) {
+                    prizeTable.classList.add('collapsed');
+
+                    const toggleButton = document.createElement('button');
+                    toggleButton.textContent = '全員の記録を見る ▼';
+                    toggleButton.onclick = () => {
+                        prizeTable.classList.remove('collapsed');
+                        legPrizeToggleContainer.innerHTML = ''; // クリック後はボタンを消す
+                    };
+                    legPrizeToggleContainer.appendChild(toggleButton);
+                }
+
                 const title = document.createElement('h4');
                 title.textContent = `${previousLeg}区 区間記録`;
                 legPrizeWinnerDiv.appendChild(title);
-
-                legPrizeWinnerDiv.appendChild(createPrizeTable(previousLegPerformances));
+                legPrizeWinnerDiv.appendChild(prizeTable);
                 legPrizeWinnerDiv.style.display = 'block';
             }
         }
