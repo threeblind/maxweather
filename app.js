@@ -15,6 +15,18 @@ const formatRunnerName = (name) => {
     return name.replace(/\s*（[^）]+）\s*$/, '');
 };
 
+/**
+ * ランクに応じてメダル絵文字を返します。
+ * @param {number} rank - 順位
+ * @returns {string} - メダル絵文字または空文字列
+ */
+const getMedalEmoji = (rank) => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return '';
+};
+
 // アメダス観測所データを読み込み
 async function loadStationsData() {
     try {
@@ -373,11 +385,12 @@ const createPrizeTable = (records) => {
             lastRank = index + 1;
             lastDistance = record.averageDistance;
         }
+        const medal = getMedalEmoji(lastRank);
         const formattedRunnerName = formatRunnerName(record.runnerName);
         const row = document.createElement('tr');
         row.innerHTML = `
             <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${lastRank}</td>
-            <td class="runner-name" style="text-align: left; padding: 6px; border: 1px solid #ddd;" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
+            <td class="runner-name" style="text-align: left; padding: 6px; border: 1px solid #ddd;" onclick="showPlayerRecords('${record.runnerName}')">${medal} ${formattedRunnerName}</td>
             <td style="text-align: left; padding: 6px; border: 1px solid #ddd;">${record.teamName}</td>
             <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${record.averageDistance.toFixed(3)} km</td>
         `;
@@ -439,12 +452,12 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap)
                 lastRank = index + 1;
                 lastDistance = record.legDistance;
             }
-
+            const medal = getMedalEmoji(lastRank);
             const formattedRunnerName = formatRunnerName(record.runnerName);
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${lastRank}</td>
-                <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
+                <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${medal} ${formattedRunnerName}</td>
                 <td class="team-name">${record.teamName}</td>
                 <td>${record.legDistance.toFixed(1)} km</td>
             `;
