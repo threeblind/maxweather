@@ -172,6 +172,10 @@
             /* This is now a separate element from the scrollable table */
             margin-bottom: 10px;
         }
+        .ekiden-ranking-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
         #ekidenRankingTable {
             width: 100%;
             border-collapse: collapse;
@@ -427,28 +431,6 @@
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch; /* iOSでのスクロールを滑らかに */
             }
-            .table-scroll-wrapper {
-                position: relative;
-            }
-            .table-scroll-wrapper::after {
-                content: '';
-                position: absolute;
-                top: 0;
-                right: 0;
-                width: 40px;
-                height: 100%;
-                background: linear-gradient(to left, rgba(255, 255, 255, 1) 20%, rgba(255, 255, 255, 0));
-                pointer-events: none; /* グラデーションがクリックやスクロールを妨げないようにする */
-                transition: opacity 0.2s ease-in-out;
-            }
-            .table-scroll-wrapper.scrolled-to-end::after {
-                opacity: 0;
-            }
-            /* 駅伝テーブルも横スクロールを可能にする */
-            .ekiden-ranking-container {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
             /* スマホ表示ではナビゲーションを横スクロールにする */
             .page-nav ul {
                 flex-wrap: nowrap;
@@ -494,22 +476,20 @@
             </ul>
         </nav>
 
-        <div id="section-overall-ranking" class="ekiden-section-wrapper">
+        <div id="section-overall-ranking" class="ekiden-section-wrapper" >
             <div id="ekidenRankingTitleContainer">
                 <h3>高温大学駅伝 総合順位</h3>
                 <p id="ekidenRankingUpdateTime" class="ranking-update-time"></p>
             </div>
-            <div class="table-scroll-wrapper">
-                <div class="ekiden-ranking-container">
-                <table id="ekidenRankingTable">
-                    <thead id="ekidenRankingHead">
-                        <!-- 駅伝ランキングヘッダーは app.js によって動的に生成されます -->
-                    </thead>
-                    <tbody id="ekidenRankingBody">
-                        <!-- 駅伝ランキングは app.js によって動的に生成されます -->
-                    </tbody>
-                </table>
-                </div>
+            <div class="ekiden-ranking-container">
+            <table id="ekidenRankingTable">
+                <thead id="ekidenRankingHead">
+                    <!-- 駅伝ランキングヘッダーは app.js によって動的に生成されます -->
+                </thead>
+                <tbody id="ekidenRankingBody">
+                    <!-- 駅伝ランキングは app.js によって動的に生成されます -->
+                </tbody>
+            </table>
             </div>
             <div id="ekidenRankingStatus" class="result loading" style="display: none;"></div>
         </div>
