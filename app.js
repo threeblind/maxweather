@@ -424,11 +424,19 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap)
     legRankingBody.innerHTML = '';
     if (runnersToShow.length > 0) {
         legRankingStatus.style.display = 'none';
+        let lastDistance = -1;
+        let lastRank = 0;
         runnersToShow.forEach((record, index) => {
+            // 同順位処理
+            if (record.legDistance !== lastDistance) {
+                lastRank = index + 1;
+                lastDistance = record.legDistance;
+            }
+
             const formattedRunnerName = formatRunnerName(record.runnerName);
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${index + 1}</td>
+                <td>${lastRank}</td>
                 <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
                 <td class="team-name">${record.teamName}</td>
                 <td>${record.legDistance.toFixed(1)} km</td>
