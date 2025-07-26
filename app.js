@@ -586,16 +586,16 @@ const updateEkidenRankingTable = (data) => {
     data.teams.forEach(team => {
         const row = document.createElement('tr');
 
-        // トップとの差を計算
-        const gap = topDistance - team.totalDistance;
-        const gapDisplay = team.overallRank === 1 ? '----' : `-${gap.toFixed(1)}km`;
-
         const createCell = (text, className = '') => {
             const cell = document.createElement('td');
             cell.className = className;
             cell.textContent = text;
             return cell;
         };
+
+        // トップとの差を計算
+        const gap = topDistance - team.totalDistance;
+        const gapDisplay = team.overallRank === 1 ? '----' : `-${gap.toFixed(1)}km`;
 
         const createRankChangeCell = (team) => {
             const cell = document.createElement('td');
@@ -625,8 +625,19 @@ const updateEkidenRankingTable = (data) => {
         row.appendChild(createCell(team.overallRank, 'rank'));
         row.appendChild(createCell(team.name, 'team-name'));
         row.appendChild(createCell(formatRunnerName(team.runner), 'runner'));
-        row.appendChild(createCell(`${team.todayDistance.toFixed(1)} km (${team.todayRank})`, 'today-distance'));
-        row.appendChild(createCell(`${team.totalDistance.toFixed(1)} km`, 'distance'));
+
+        // 本日距離セル。スマホでは単位(km)を非表示
+        const todayCell = document.createElement('td');
+        todayCell.className = 'today-distance';
+        todayCell.innerHTML = `${team.todayDistance.toFixed(1)}<span class="hide-on-mobile">km</span> (${team.todayRank})`;
+        row.appendChild(todayCell);
+
+        // 総合距離セル。スマホでは単位(km)を非表示
+        const totalCell = document.createElement('td');
+        totalCell.className = 'distance';
+        totalCell.innerHTML = `${team.totalDistance.toFixed(1)}<span class="hide-on-mobile">km</span>`;
+        row.appendChild(totalCell);
+
         row.appendChild(createCell(gapDisplay, 'gap hide-on-mobile'));
         row.appendChild(createRankChangeCell(team));
         row.appendChild(createCell(formatRunnerName(team.nextRunner), 'next-runner hide-on-mobile'));
