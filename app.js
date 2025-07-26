@@ -498,6 +498,16 @@ const updateLegRankingAndPrize = (realtimeData, individualData) => {
             }
         }
     }
+
+    // 区間賞が表示されているかどうかに基づいてナビゲーションリンクの表示を切り替える
+    const legPrizeNavLink = document.querySelector('a[href="#section-leg-prize"]');
+    if (legPrizeNavLink) {
+        if (legPrizeWinnerDiv.style.display === 'block') {
+            legPrizeNavLink.parentElement.style.display = '';
+        } else {
+            legPrizeNavLink.parentElement.style.display = 'none';
+        }
+    }
 };
 
 /**

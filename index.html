@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高温大学駅伝 速報 & アメダス情報</title>
+    <title>第１５回全国大学対抗高温駅伝大会 速報</title>
     <style>
         body {
             font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
@@ -22,6 +22,37 @@
             color: #333;
             text-align: center;
             margin-bottom: 30px;
+        }
+        /* ページ内ナビゲーション */
+        .page-nav {
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .page-nav ul {
+            display: flex;
+            gap: 10px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            justify-content: center;
+            flex-wrap: wrap; /* 小画面で折り返す */
+        }
+        .page-nav a {
+            display: block;
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .page-nav a:hover {
+            background-color: #007bff;
+            color: #fff;
+            border-color: #007bff;
         }
         .search-box {
             display: flex;
@@ -335,6 +366,14 @@
             .hide-on-mobile {
                 display: none;
             }
+            /* スマホ表示ではナビゲーションを横スクロールにする */
+            .page-nav ul {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 10px;
+                justify-content: flex-start;
+            }
             /* スマホ表示でテーブルの文字と余白を小さくする */
             #rankingTable,
             #ekidenRankingTable {
@@ -347,13 +386,28 @@
                 padding: 6px;
             }
         }
+        /* --- 機能の表示/非表示を制御 --- */
+        .feature-hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔥 高温大学駅伝 速報 & アメダス情報</h1>
+        <h1>🔥 第１５回全国大学対抗高温駅伝大会 速報</h1>
 
-        <div class="ekiden-ranking-container">
+        <nav class="page-nav">
+            <ul>
+                <li><a href="#section-overall-ranking">総合順位</a></li>
+                <li><a href="#section-leg-ranking">個人記録</a></li>
+                <li><a href="#section-leg-prize">区間賞</a></li>
+                <li><a href="#section-entry-list">エントリー</a></li>
+                <li><a href="#section-course-map">コース</a></li>
+                <li><a href="#outlineContainer">大会概要</a></li>
+            </ul>
+        </nav>
+
+        <div id="section-overall-ranking" class="ekiden-ranking-container">
             <div id="ekidenRankingTitleContainer">
                 <h3>高温大学駅伝 総合順位</h3>
                 <p id="ekidenRankingUpdateTime" class="ranking-update-time"></p>
@@ -369,7 +423,7 @@
             <div id="ekidenRankingStatus" class="result loading" style="display: none;"></div>
         </div>
 
-        <div class="leg-ranking-container">
+        <div id="section-leg-ranking" class="leg-ranking-container">
             <h3 id="legRankingTitle">個人区間記録</h3>
             <table id="legRankingTable">
                 <thead id="legRankingHead">
@@ -382,14 +436,14 @@
             <div id="legRankingStatus" class="result loading" style="display: none;"></div>
         </div>
 
-        <div class="entry-list-container">
+        <div id="section-entry-list" class="entry-list-container">
             <h2>📝 エントリーリスト</h2>
             <div id="entryList">
                 <!-- エントリーリストは app.js によって動的に生成されます -->
             </div>
         </div>
 
-        <div class="map-container">
+        <div id="section-course-map" class="map-container">
             <h2>🗺️ コースマップ</h2>
             <iframe
                 src="https://www.google.com/maps/d/embed?mid=1U1a1Uia2xl7ZQwfyo4BHOvIqjOxup6I&ll=35.19155391078836%2C138.9241244658864&z=13"
@@ -406,8 +460,10 @@
             <!-- 開催概要は app.js によって動的に生成されます -->
         </div>
 
-        <div id="legPrizeWinner" style="margin-top: 40px;">
+        <div id="section-leg-prize" style="margin-top: 40px;">
+            <div id="legPrizeWinner">
             <!-- 区間賞は app.js によって動的に生成されます -->
+            </div>
         </div>
 
         <!-- The Modal -->
@@ -429,34 +485,36 @@
           </div>
         </div>
 
-        <h2>🌡️ アメダス地点検索</h2>
-        <div class="search-box">
-            <input type="text" id="locationInput" placeholder="地点名を入力してください（例：東京、大阪、札幌）" />
-            <button onclick="searchTemperature()">検索</button>
-        </div>
-        <div id="result"></div>
-        
-        <div class="suggestions">
-            <h3>検索履歴</h3>
-            <div class="suggestion-list">
-                <!-- 検索履歴は app.js によって動的に生成されます -->
+        <div class="amedas-features feature-hidden">
+            <h2>🌡️ アメダス地点検索</h2>
+            <div class="search-box">
+                <input type="text" id="locationInput" placeholder="地点名を入力してください（例：東京、大阪、札幌）" />
+                <button onclick="searchTemperature()">検索</button>
             </div>
-        </div>
+            <div id="result"></div>
+            
+            <div class="suggestions">
+                <h3>検索履歴</h3>
+                <div class="suggestion-list">
+                    <!-- 検索履歴は app.js によって動的に生成されます -->
+                </div>
+            </div>
 
-        <div class="ranking-container">
-            <div id="rankingTitleContainer">
-                <h3>全国最高気温ランキング</h3>
-                <p id="rankingUpdateTime" class="ranking-update-time"></p>
+            <div class="ranking-container">
+                <div id="rankingTitleContainer">
+                    <h3>全国最高気温ランキング</h3>
+                    <p id="rankingUpdateTime" class="ranking-update-time"></p>
+                </div>
+                <table id="rankingTable">
+                    <thead id="rankingHead">
+                        <!-- ランキングヘッダーは app.js によって動的に生成されます -->
+                    </thead>
+                    <tbody id="rankingBody">
+                        <!-- ランキングは app.js によって動的に生成されます -->
+                    </tbody>
+                </table>
+                <div id="rankingStatus" class="result loading" style="display: none;"></div>
             </div>
-            <table id="rankingTable">
-                <thead id="rankingHead">
-                    <!-- ランキングヘッダーは app.js によって動的に生成されます -->
-                </thead>
-                <tbody id="rankingBody">
-                    <!-- ランキングは app.js によって動的に生成されます -->
-                </tbody>
-            </table>
-            <div id="rankingStatus" class="result loading" style="display: none;"></div>
         </div>
     </div>
 
