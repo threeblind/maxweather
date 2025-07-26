@@ -702,8 +702,10 @@ async function displayEntryList() {
             const card = document.createElement('div');
             card.className = 'team-card';
 
+            // ゼッケン番号は削除し、タイトルに統合
             const title = document.createElement('h4');
-            title.textContent = `No.${team.id} ${team.name}`;
+            const titleText = `${team.status_symbol || ''} ${team.name} ${team.prefectures || ''}`.trim();
+            title.textContent = titleText;
             card.appendChild(title);
 
             if (team.manager) {
@@ -713,27 +715,46 @@ async function displayEntryList() {
                 card.appendChild(manager);
             }
 
-            // Regular runners
-            const runnersList = document.createElement('ul');
+            // 正規メンバー
+            const runnersContainer = document.createElement('div');
+            runnersContainer.className = 'runners-container';
             team.runners.forEach((runner, index) => {
-                const li = document.createElement('li');
+                const runnerSpan = document.createElement('span');
+                runnerSpan.className = 'runner-item';
+                // 数字を全角に変換
+                const fullWidthNumber = String(index + 1).replace(/[0-9]/g, s => String.fromCharCode(s.charCodeAt(0) + 0xFEE0));
                 const formattedName = formatRunnerName(runner);
-                li.textContent = `${index + 1}区: ${formattedName}`;
-                runnersList.appendChild(li);
+                runnerSpan.textContent = `${fullWidthNumber}${formattedName}`;
+                runnersContainer.appendChild(runnerSpan);
             });
-            card.appendChild(runnersList);
+            card.appendChild(runnersContainer);
 
-            // Substitutes
+            // 補欠メンバー
             if (team.substitutes && team.substitutes.length > 0) {
-                const substitutesList = document.createElement('ul');
-                substitutesList.innerHTML = '<li style="margin-top:10px; font-weight:bold; color:#555;">補欠</li>';
+                const substitutesContainer = document.createElement('div');
+                substitutesContainer.className = 'substitutes-container';
+                
+                const label = document.createElement('div');
+                label.className = 'substitutes-label';
+                label.textContent = '補欠';
+                substitutesContainer.appendChild(label);
+
                 team.substitutes.forEach(substitute => {
-                    const li = document.createElement('li');
+                    const subSpan = document.createElement('span');
+                    subSpan.className = 'runner-item';
                     const formattedName = formatRunnerName(substitute);
-                    li.textContent = formattedName;
-                    substitutesList.appendChild(li);
+                    subSpan.textContent = formattedName;
+                    substitutesContainer.appendChild(subSpan);
                 });
-                card.appendChild(substitutesList);
+                card.appendChild(substitutesContainer);
+            }
+
+            // チーム紹介文
+            if (team.description) {
+                const descriptionP = document.createElement('p');
+                descriptionP.className = 'team-description';
+                descriptionP.textContent = team.description;
+                card.appendChild(descriptionP);
             }
 
             entryListDiv.appendChild(card);
