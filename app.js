@@ -452,12 +452,11 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap)
                 lastRank = index + 1;
                 lastDistance = record.legDistance;
             }
-            const medal = getMedalEmoji(lastRank);
             const formattedRunnerName = formatRunnerName(record.runnerName);
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${lastRank}</td>
-                <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${medal} ${formattedRunnerName}</td>
+                <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
                 <td class="team-name">${record.teamName}</td>
                 <td>${record.legDistance.toFixed(1)} km</td>
             `;
