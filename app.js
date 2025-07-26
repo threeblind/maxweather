@@ -319,9 +319,9 @@ const createEkidenHeader = () => {
             <th>現在<br>走者</th>
             <th>本日距離<br>(順位)</th>
             <th>総合距離</th>
-            <th>トップ差</th>
-            <th>順位変動<br>(前日)</th>
-            <th>次走者</th>
+            <th class="hide-on-mobile">トップ差</th>
+            <th class="hide-on-mobile">順位変動<br>(前日)</th>
+            <th class="hide-on-mobile">次走者</th>
         </tr>
     `;
 };
@@ -599,7 +599,7 @@ const updateEkidenRankingTable = (data) => {
 
         const createRankChangeCell = (team) => {
             const cell = document.createElement('td');
-            cell.className = 'rank-change';
+            cell.className = 'rank-change hide-on-mobile';
 
             let rankChangeIcon = 'ー';
             let rankChangeClass = 'rank-stay';
@@ -627,9 +627,9 @@ const updateEkidenRankingTable = (data) => {
         row.appendChild(createCell(formatRunnerName(team.runner), 'runner'));
         row.appendChild(createCell(`${team.todayDistance.toFixed(1)} km (${team.todayRank})`, 'today-distance'));
         row.appendChild(createCell(`${team.totalDistance.toFixed(1)} km`, 'distance'));
-        row.appendChild(createCell(gapDisplay, 'gap'));
+        row.appendChild(createCell(gapDisplay, 'gap hide-on-mobile'));
         row.appendChild(createRankChangeCell(team));
-        row.appendChild(createCell(formatRunnerName(team.nextRunner), 'next-runner'));
+        row.appendChild(createCell(formatRunnerName(team.nextRunner), 'next-runner hide-on-mobile'));
 
         rankingBody.appendChild(row);
     });
