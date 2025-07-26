@@ -750,6 +750,7 @@ async function displayEntryList() {
  */
 async function displayOutline() {
     const container = document.getElementById('outlineContainer');
+    const mapFrame = document.getElementById('courseMapFrame');
     if (!container) return;
 
     try {
@@ -758,6 +759,11 @@ async function displayOutline() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+
+        // マップのURLを設定
+        if (mapFrame && data.courseMapUrl) {
+            mapFrame.src = data.courseMapUrl;
+        }
 
         let html = '<h2>大会開催概要</h2>';
 
