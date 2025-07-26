@@ -236,7 +236,7 @@ async function fetchRankingData() {
         const locationLink = cells[1]?.querySelector('a');
         const rank = cells[0]?.textContent.trim();
         const location = locationLink?.textContent.trim().replace(/\s+/g, ' ');
-        const locationUrl = locationLink?.href;
+        const locationUrl = locationLink?.href;X
         const temperature = cells[2]?.textContent.trim();
         const time = cells[3]?.textContent.trim();
 
@@ -361,18 +361,15 @@ const createLegRankingHeader = () => {
  */
 const createPrizeTable = (records) => {
     const table = document.createElement('table');
-    // インラインスタイルで簡易的にデザインを調整
-    table.style.width = '100%';
-    table.style.marginTop = '10px';
-    table.style.borderCollapse = 'collapse';
+    table.id = 'legPrizeTable';
 
     const thead = document.createElement('thead');
     thead.innerHTML = `
         <tr>
-            <th style="width: 15%; text-align: center; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">順位</th>
-            <th style="text-align: left; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">走者</th>
-            <th style="text-align: left; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">大学名</th>
-            <th style="width: 25%; text-align: center; padding: 6px; border: 1px solid #ddd; background-color: #f2f2f2;">平均距離</th>
+            <th>順位</th>
+            <th>走者</th>
+            <th>大学名</th>
+            <th>平均距離</th>
         </tr>
     `;
 
@@ -389,10 +386,10 @@ const createPrizeTable = (records) => {
         const formattedRunnerName = formatRunnerName(record.runnerName);
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${lastRank}</td>
-            <td class="runner-name" style="text-align: left; padding: 6px; border: 1px solid #ddd;" onclick="showPlayerRecords('${record.runnerName}')">${medal} ${formattedRunnerName}</td>
-            <td style="text-align: left; padding: 6px; border: 1px solid #ddd;">${record.teamName}</td>
-            <td style="text-align: center; padding: 6px; border: 1px solid #ddd;">${record.averageDistance.toFixed(3)} km</td>
+            <td>${lastRank}</td>
+            <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${medal} ${formattedRunnerName}</td>
+            <td class="team-name">${record.teamName}</td>
+            <td>${record.averageDistance.toFixed(3)} km</td>
         `;
         tbody.appendChild(row);
     });
