@@ -248,6 +248,32 @@
         td.runner-name:hover {
             text-decoration: underline;
         }
+        /* Leg Tabs Styles */
+        .leg-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .leg-tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            font-size: 16px;
+            font-weight: bold;
+            color: #6c757d;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px; /* Overlap the container's border */
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .leg-tab:hover {
+            color: #007bff;
+        }
+        .leg-tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
         /* Entry List Styles */
         .entry-list-container {
             margin-top: 40px;
@@ -472,6 +498,8 @@
 
         <div id="section-leg-ranking" class="leg-ranking-container">
             <h3 id="legRankingTitle">個人区間記録</h3>
+            <div id="leg-tabs-container" class="leg-tabs">
+            </div>
             <table id="legRankingTable">
                 <thead id="legRankingHead">
                     <!-- 区間ランキングヘッダーは app.js によって動的に生成されます -->

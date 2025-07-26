@@ -383,61 +383,48 @@ const createPrizeTable = (records) => {
 };
 
 /**
- * 取得した個人記録データで個人総合順位と前日の区間賞を更新します。
- * @param {object} realtimeData - realtime_report.json のデータ
- * @param {object} individualData - individual_results.json のデータ
+ * Renders the individual ranking table for a specific leg.
+ * @param {number} legNumber - The leg to display rankings for.
+ * @param {object} realtimeData - The data from realtime_report.json.
+ * @param {object} individualData - The data from individual_results.json.
+ * @param {Map<number, string>} teamsMap - A map of team IDs to team names.
  */
-const updateLegRankingAndPrize = (realtimeData, individualData) => {
-    const { raceDay } = realtimeData;
-    const teamsMap = new Map(realtimeData.teams.map(t => [t.id, t.name]));
-
+const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap) => {
     const legRankingBody = document.getElementById('legRankingBody');
-    const legPrizeWinnerDiv = document.getElementById('legPrizeWinner');
     const legRankingTitle = document.getElementById('legRankingTitle');
     const legRankingStatus = document.getElementById('legRankingStatus');
 
-    if (!legRankingBody || !legPrizeWinnerDiv || !legRankingTitle || !legRankingStatus) return;
+    if (!legRankingBody || !legRankingTitle || !legRankingStatus) return;
 
-    // --- ① 現在区間の個人記録 ---
-    // ステップ1: 「現在の区間」を特定する (総合1位のチームの区間)
-    const topTeam = realtimeData.teams[0];
-    if (!topTeam || !topTeam.currentLeg) {
-        legRankingStatus.textContent = '現在の区間を特定できませんでした。';
-        legRankingStatus.style.display = 'block';
-        legRankingBody.innerHTML = '';
-        return;
-    }
-    const raceCurrentLeg = topTeam.currentLeg;
+    // Find teams currently in this leg
+    const teamsInThisLeg = new Set(realtimeData.teams.filter(t => t.currentLeg === legNumber).map(t => t.id));
 
-    // ステップ2: 表示する選手を絞り込む
-    const currentLegRunners = [];
+    const runnersToShow = [];
     for (const runnerName in individualData) {
         const runnerData = individualData[runnerName];
-        const todayRecord = runnerData.records.find(r => r.day === raceDay);
-
-        // 今日の記録があり、かつその区間がレースの現在の区間と一致する選手のみを対象
-        if (todayRecord && todayRecord.leg === raceCurrentLeg) {
-            // その選手が現在の区間を走った記録をすべて抽出
-            const recordsForCurrentLeg = runnerData.records.filter(r => r.leg === raceCurrentLeg);
-            // 区間内での合計距離を計算
-            const legTotalDistance = recordsForCurrentLeg.reduce((sum, record) => sum + record.distance, 0);
-
-            currentLegRunners.push({
-                runnerName,
-                teamName: teamsMap.get(runnerData.teamId) || 'N/A',
-                legDistance: legTotalDistance
-            });
+        // Check if this runner's team is currently in the selected leg
+        if (teamsInThisLeg.has(runnerData.teamId)) {
+            // Find the runner's record for this specific leg
+            const recordsForLeg = runnerData.records.filter(r => r.leg === legNumber);
+            if (recordsForLeg.length > 0) {
+                const legTotalDistance = recordsForLeg.reduce((sum, record) => sum + record.distance, 0);
+                runnersToShow.push({
+                    runnerName,
+                    teamName: teamsMap.get(runnerData.teamId) || 'N/A',
+                    legDistance: legTotalDistance
+                });
+            }
         }
     }
 
-    // ステップ3: ランキングを作成・表示する
-    currentLegRunners.sort((a, b) => b.legDistance - a.legDistance);
+    // Sort and display
+    runnersToShow.sort((a, b) => b.legDistance - a.legDistance);
 
-    legRankingTitle.textContent = `${raceCurrentLeg}区個人区間記録`;
+    legRankingTitle.textContent = `${legNumber}区 個人記録`;
     legRankingBody.innerHTML = '';
-    if (currentLegRunners.length > 0) {
+    if (runnersToShow.length > 0) {
         legRankingStatus.style.display = 'none';
-        currentLegRunners.forEach((record, index) => {
+        runnersToShow.forEach((record, index) => {
             const formattedRunnerName = formatRunnerName(record.runnerName);
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -449,17 +436,67 @@ const updateLegRankingAndPrize = (realtimeData, individualData) => {
             legRankingBody.appendChild(row);
         });
     } else {
-        legRankingStatus.textContent = `本日、${raceCurrentLeg}区の記録はまだありません。`;
+        legRankingStatus.textContent = `本日、${legNumber}区の記録はまだありません。`;
         legRankingStatus.className = 'result loading';
         legRankingStatus.style.display = 'block';
     }
+};
 
-    // --- ② 前区間の区間賞 ---
+/**
+ * Handles the click event for a leg tab.
+ * @param {number} legNumber - The leg number of the clicked tab.
+ * @param {object} realtimeData - The data from realtime_report.json.
+ * @param {object} individualData - The data from individual_results.json.
+ * @param {Map<number, string>} teamsMap - A map of team IDs to team names.
+ */
+const switchLegTab = (legNumber, realtimeData, individualData, teamsMap) => {
+    document.querySelectorAll('.leg-tab').forEach(tab => {
+        tab.classList.toggle('active', parseInt(tab.dataset.leg, 10) === legNumber);
+    });
+    displayLegRankingFor(legNumber, realtimeData, individualData, teamsMap);
+};
+
+/**
+ * Updates the individual records section, including tabs and leg prize.
+ * @param {object} realtimeData - realtime_report.json のデータ
+ * @param {object} individualData - individual_results.json のデータ
+ */
+const updateIndividualSections = (realtimeData, individualData) => {
+    const teamsMap = new Map(realtimeData.teams.map(t => [t.id, t.name]));
+    const legPrizeWinnerDiv = document.getElementById('legPrizeWinner');
+    const tabsContainer = document.getElementById('leg-tabs-container');
+
+    if (!legPrizeWinnerDiv || !tabsContainer) return;
+
+    // 1. Identify and sort active legs
+    const activeLegs = [...new Set(realtimeData.teams.map(t => t.currentLeg))].sort((a, b) => b - a);
+
+    // 2. Generate and display tabs
+    tabsContainer.innerHTML = ''; // Clear old tabs
+    activeLegs.forEach((leg, index) => {
+        const tab = document.createElement('button');
+        tab.className = 'leg-tab';
+        if (index === 0) {
+            tab.classList.add('active'); // First tab is active by default
+        }
+        tab.textContent = `${leg}区`;
+        tab.dataset.leg = leg; // Store leg number in data attribute
+        tab.onclick = () => switchLegTab(leg, realtimeData, individualData, teamsMap);
+        tabsContainer.appendChild(tab);
+    });
+
+    // 3. Display the ranking for the default (leading) leg
+    if (activeLegs.length > 0) {
+        displayLegRankingFor(activeLegs[0], realtimeData, individualData, teamsMap);
+    }
+
+    // 4. Handle Leg Prize
     legPrizeWinnerDiv.innerHTML = ''; // 以前の内容をクリア
     legPrizeWinnerDiv.style.display = 'none'; // Hide by default
 
-    if (raceCurrentLeg && raceCurrentLeg > 1) {
-        const previousLeg = raceCurrentLeg - 1;
+    const leadingLeg = activeLegs[0];
+    if (leadingLeg && leadingLeg > 1) {
+        const previousLeg = leadingLeg - 1;
 
         // 全チームが前区間を走り終えたかチェック
         const allTeamsFinishedPreviousLeg = realtimeData.teams.every(team => team.currentLeg > previousLeg);
@@ -618,7 +655,7 @@ const fetchEkidenData = async () => {
         updateTimeEl.textContent = `(更新: ${realtimeData.updateTime})`;
 
         updateEkidenRankingTable(realtimeData);
-        updateLegRankingAndPrize(realtimeData, individualData);
+        updateIndividualSections(realtimeData, individualData);
 
     } catch (error) {
         console.error('Error fetching ekiden data:', error);
