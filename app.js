@@ -361,7 +361,7 @@ const createLegRankingHeader = () => {
  */
 const createPrizeTable = (records) => {
     const table = document.createElement('table');
-    table.id = 'legPrizeTable';
+    // ID is now set dynamically by the caller, class is used for styling
 
     const thead = document.createElement('thead');
     thead.innerHTML = `
@@ -437,7 +437,6 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap)
     // Sort and display
     runnersToShow.sort((a, b) => b.legDistance - a.legDistance);
 
-    legRankingTitle.textContent = `🏃 ${legNumber}区 個人記録`;
     legRankingBody.innerHTML = '';
     if (runnersToShow.length > 0) {
         legRankingStatus.style.display = 'none';
@@ -488,7 +487,6 @@ const switchLegTab = (legNumber, realtimeData, individualData, teamsMap) => {
 const updateIndividualSections = (realtimeData, individualData) => {
     const teamsMap = new Map(realtimeData.teams.map(t => [t.id, t.name]));
     const legPrizeWinnerDiv = document.getElementById('legPrizeWinner');
-    const legPrizeToggleContainer = document.getElementById('legPrizeToggleContainer');
     const tabsContainer = document.getElementById('leg-tabs-container');
 
     if (!legPrizeWinnerDiv || !tabsContainer) return;
@@ -517,65 +515,86 @@ const updateIndividualSections = (realtimeData, individualData) => {
 
     // 4. Handle Leg Prize
     legPrizeWinnerDiv.innerHTML = ''; // 以前の内容をクリア
-    if (legPrizeToggleContainer) legPrizeToggleContainer.innerHTML = ''; // トグルボタンもクリア
     legPrizeWinnerDiv.style.display = 'none'; // Hide by default
 
-    const leadingLeg = activeLegs[0];
-    if (leadingLeg && leadingLeg > 1) {
-        const previousLeg = leadingLeg - 1;
+    // Find the minimum current leg across all teams. This determines which legs are fully completed.
+    let minCurrentLeg = Math.min(...realtimeData.teams.map(t => t.currentLeg));
 
-        // 全チームが前区間を走り終えたかチェック
-        const allTeamsFinishedPreviousLeg = realtimeData.teams.every(team => team.currentLeg > previousLeg);
+    // --- 表示テスト用 ---
+    // 以下の行を有効にすると、3区が進行中（1区と2区の記録が確定済み）の状態をシミュレートできます。
+    // テストが終わったら、この行を削除またはコメントアウトしてください。
+    // minCurrentLeg = 3;
 
-        if (allTeamsFinishedPreviousLeg) {
-            const previousLegPerformances = [];
-
-            for (const runnerName in individualData) {
-                const runnerData = individualData[runnerName];
-                // 特定の区間の記録をすべて抽出
-                const recordsForLeg = runnerData.records.filter(r => r.leg === previousLeg);
-
-                if (recordsForLeg.length > 0) {
-                    const totalDistance = recordsForLeg.reduce((sum, r) => sum + r.distance, 0);
-                    const averageDistance = totalDistance / recordsForLeg.length;
-
-                    previousLegPerformances.push({
-                        runnerName,
-                        teamName: teamsMap.get(runnerData.teamId) || 'N/A',
-                        averageDistance: averageDistance
-                    });
-                }
-            }
-
-            if (previousLegPerformances.length > 0) {
-                // 平均距離でソートし、上位3名を取得
-                previousLegPerformances.sort((a, b) => b.averageDistance - a.averageDistance);
-
-                const prizeTable = createPrizeTable(previousLegPerformances);
-
-                // 3人より多い記録がある場合、「もっと見る」ボタンを設置
-                if (previousLegPerformances.length > 3 && legPrizeToggleContainer) {
-                    prizeTable.classList.add('collapsed');
-
-                    const toggleButton = document.createElement('button');
-                    toggleButton.textContent = '全員の記録を見る ▼';
-                    toggleButton.onclick = () => {
-                        prizeTable.classList.remove('collapsed');
-                        legPrizeToggleContainer.innerHTML = ''; // クリック後はボタンを消す
-                    };
-                    legPrizeToggleContainer.appendChild(toggleButton);
-                }
-
-                const title = document.createElement('h4');
-                title.textContent = `${previousLeg}区 区間記録`;
-                legPrizeWinnerDiv.appendChild(title);
-                legPrizeWinnerDiv.appendChild(prizeTable);
-                legPrizeWinnerDiv.style.display = 'block';
-            }
-        }
+    // Identify all legs that are fully finished (from leg 1 up to minCurrentLeg - 1)
+    const finishedLegs = [];
+    for (let leg = 1; leg < minCurrentLeg; leg++) {
+        finishedLegs.push(leg);
     }
 
-    // 区間賞が表示されているかどうかに基づいてナビゲーションリンクの表示を切り替える
+    // If there are any finished legs, show the section container.
+    if (finishedLegs.length > 0) {
+        legPrizeWinnerDiv.style.display = 'block';
+    }
+
+    // Loop through the finished legs in descending order to display the newest first.
+    finishedLegs.sort((a, b) => b - a).forEach(finishedLeg => {
+        const legPerformances = [];
+
+        for (const runnerName in individualData) {
+            const runnerData = individualData[runnerName];
+            // Find all records for this specific leg
+            const recordsForLeg = runnerData.records.filter(r => r.leg === finishedLeg);
+
+            if (recordsForLeg.length > 0) {
+                const totalDistance = recordsForLeg.reduce((sum, r) => sum + r.distance, 0);
+                const averageDistance = totalDistance / recordsForLeg.length;
+
+                legPerformances.push({
+                    runnerName,
+                    teamName: teamsMap.get(runnerData.teamId) || 'N/A',
+                    averageDistance: averageDistance
+                });
+            }
+        }
+
+        if (legPerformances.length > 0) {
+            // Sort by average distance
+            legPerformances.sort((a, b) => b.averageDistance - a.averageDistance);
+
+            const legContainer = document.createElement('div');
+            legContainer.className = 'leg-prize-item';
+
+            const title = document.createElement('h4');
+            title.textContent = `${finishedLeg}区 区間記録`;
+            legContainer.appendChild(title);
+
+            const prizeTable = createPrizeTable(legPerformances);
+            prizeTable.classList.add('leg-prize-table'); // Use a class for common styling
+            prizeTable.id = `legPrizeTable-${finishedLeg}`; // Unique ID for each table
+            legContainer.appendChild(prizeTable);
+
+            // Add a "show more" button if there are more than 3 records
+            if (legPerformances.length > 3) {
+                prizeTable.classList.add('collapsed');
+
+                const toggleContainer = document.createElement('div');
+                toggleContainer.className = 'toggle-prize-view';
+
+                const toggleButton = document.createElement('button');
+                toggleButton.textContent = '全員の記録を見る ▼';
+                toggleButton.onclick = () => {
+                    prizeTable.classList.remove('collapsed');
+                    toggleContainer.innerHTML = ''; // Remove the button after click
+                };
+                toggleContainer.appendChild(toggleButton);
+                legContainer.appendChild(toggleContainer);
+            }
+
+            legPrizeWinnerDiv.appendChild(legContainer);
+        }
+    });
+
+    // Toggle visibility of the navigation link based on whether any prize sections are displayed
     const legPrizeNavLink = document.querySelector('a[href="#section-leg-prize"]');
     if (legPrizeNavLink) {
         if (legPrizeWinnerDiv.style.display === 'block') {
@@ -828,12 +847,12 @@ const updateEkidenRankingTable = (data) => {
  * サーバーから駅伝の最新データを取得します。
  */
 const fetchEkidenData = async () => {
-    const titleContainer = document.getElementById('ekidenRankingTitleContainer');
+    const titleEl = document.getElementById('ekidenRankingTitle');
     const updateTimeEl = document.getElementById('ekidenRankingUpdateTime');
     const statusEl = document.getElementById('ekidenRankingStatus');
     const bodyEl = document.getElementById('ekidenRankingBody');
 
-    if (!titleContainer || !updateTimeEl || !statusEl || !bodyEl) {
+    if (!titleEl || !updateTimeEl || !statusEl || !bodyEl) {
         console.error("Ekiden ranking elements not found in the DOM.");
         return;
     }
@@ -854,7 +873,7 @@ const fetchEkidenData = async () => {
         allIndividualData = individualData; // データをグローバル変数に保存
 
         // タイトルと更新日時を更新
-        titleContainer.querySelector('h3').textContent = `🏆 高温大学駅伝 ${realtimeData.raceDay}日目 総合順位`;
+        titleEl.textContent = `🏆 高温大学駅伝 ${realtimeData.raceDay}日目 総合順位`;
         updateTimeEl.textContent = `(更新: ${realtimeData.updateTime})`;
 
         updateEkidenRankingTable(realtimeData);

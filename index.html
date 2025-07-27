@@ -222,28 +222,31 @@
         .leg-ranking-container {
             margin-bottom: 40px;
         }
-        #legRankingTable, #legPrizeTable {
+        #legRankingTable, .leg-prize-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
         }
         #legRankingTable th, #legRankingTable td,
-        #legPrizeTable th, #legPrizeTable td {
+        .leg-prize-table th, .leg-prize-table td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: center;
         }
-        #legRankingTable th, #legPrizeTable th {
+        #legRankingTable th, .leg-prize-table th {
             background-color: #f2f2f2;
         }
         #legRankingTable td.team-name,
-        #legPrizeTable td.team-name {
+        .leg-prize-table td.team-name {
             text-align: left;
         }
         #legPrizeWinner h4 {
             font-size: 20px;
             margin-bottom: 10px;
             color: #333;
+        }
+        .leg-prize-item {
+            margin-bottom: 30px;
         }
         /* 選手名をクリック可能にするスタイル */
         td.runner-name {
@@ -254,7 +257,7 @@
             text-decoration: underline;
         }
         /* 区間記録テーブルの折りたたみスタイル */
-        #legPrizeTable.collapsed tbody tr:nth-child(n + 4) {
+        .leg-prize-table.collapsed tbody tr:nth-child(n + 4) {
             display: none;
         }
         .toggle-prize-view {
@@ -521,10 +524,8 @@
         </nav>
 
         <div id="section-overall-ranking" class="ekiden-section-wrapper" >
-            <div id="ekidenRankingTitleContainer">
-                <h3>🏆 高温大学駅伝 総合順位</h3>
-                <p id="ekidenRankingUpdateTime" class="ranking-update-time"></p>
-            </div>
+            <h2 id="ekidenRankingTitle">🏆 高温大学駅伝 総合順位</h2>
+            <p id="ekidenRankingUpdateTime" class="ranking-update-time"></p>
             <div class="ekiden-ranking-container">
             <table id="ekidenRankingTable">
                 <thead id="ekidenRankingHead">
@@ -539,7 +540,7 @@
         </div>
 
         <div id="section-leg-ranking" class="leg-ranking-container">
-            <h3 id="legRankingTitle">🏃 個人区間記録</h3>
+            <h2 id="legRankingTitle">🏃 個人記録</h2>
             <div id="leg-tabs-container" class="leg-tabs">
             </div>
             <table id="legRankingTable">
@@ -557,9 +558,6 @@
             <h2>🚩 区間記録</h2>
             <div id="legPrizeWinner">
             <!-- 区間賞は app.js によって動的に生成されます -->
-            </div>
-            <div id="legPrizeToggleContainer" class="toggle-prize-view">
-                <!-- 「もっと見る」ボタンはここに表示されます -->
             </div>
         </div>
 
