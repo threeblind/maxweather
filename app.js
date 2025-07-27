@@ -660,7 +660,7 @@ async function displayRankHistoryChart() {
         new Chart(canvas, {
             type: 'line',
             data: {
-                labels: historyData.dates.map(d => d.substring(5).replace('-', '/')), // YYYY-MM-DD -> MM/DD
+                labels: historyData.dates.map((_, index) => `${index + 1}日目`), // X軸を経過日数に変更
                 datasets: datasets
             },
             options: {
@@ -687,7 +687,7 @@ async function displayRankHistoryChart() {
                     x: {
                          title: {
                             display: true,
-                            text: '日付'
+                            text: '経過日数'
                         }
                     }
                 },
@@ -727,7 +727,8 @@ async function displayRankHistoryChart() {
                         intersect: false,
                         callbacks: {
                             title: function(tooltipItems) {
-                                return `Date: ${historyData.dates[tooltipItems[0].dataIndex]}`;
+                                const day = tooltipItems[0].dataIndex + 1;
+                                return `${day}日目 (${historyData.dates[tooltipItems[0].dataIndex]})`;
                             },
                             label: function(context) {
                                 let label = context.dataset.label || '';
