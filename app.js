@@ -605,12 +605,20 @@ const updateIndividualSections = (realtimeData, individualData) => {
     }
 };
 
+let rankHistoryChartInstance = null; // グラフのインスタンスを保持する変数
+
 /**
  * Renders a line chart for rank history.
  */
 async function displayRankHistoryChart() {
     const canvas = document.getElementById('rankHistoryChart');
     const statusEl = document.getElementById('rankHistoryStatus');
+
+    // 既存のチャートインスタンスがあれば破棄して、再描画に備える
+    if (rankHistoryChartInstance) {
+        rankHistoryChartInstance.destroy();
+    }
+
     if (!canvas || !statusEl) return;
 
     statusEl.textContent = 'Loading rank fluctuation chart...';
@@ -657,7 +665,7 @@ async function displayRankHistoryChart() {
         const chartWidth = Math.max(400, historyData.dates.length * 20); // 最小幅を400pxに、1日あたりの幅を20pxに調整
         chartWrapper.style.width = `${chartWidth}px`;
 
-        new Chart(canvas, {
+        rankHistoryChartInstance = new Chart(canvas, {
             type: 'line',
             data: {
                 labels: historyData.dates.map((_, index) => `${index + 1}日目`), // X軸を経過日数に変更
@@ -755,6 +763,84 @@ async function displayRankHistoryChart() {
     } catch (error) {
         console.error('Failed to render rank history chart:', error);
         statusEl.textContent = `Failed to display chart: ${error.message}`;
+        statusEl.className = 'result error';
+    }
+}
+
+/**
+ * 区間通過順位のテーブルを生成・表示します。
+ */
+async function displayLegRankHistoryTable() {
+    const headEl = document.getElementById('legRankHistoryHead');
+    const bodyEl = document.getElementById('legRankHistoryBody');
+    const statusEl = document.getElementById('legRankHistoryStatus');
+    const tableEl = document.getElementById('legRankHistoryTable');
+
+    if (!headEl || !bodyEl || !statusEl || !tableEl) return;
+
+    statusEl.textContent = '区間通過順位を読み込み中...';
+    statusEl.className = 'result loading';
+    statusEl.style.display = 'block';
+
+    try {
+        // 必要なデータを並行して取得
+        const [historyRes, ekidenDataRes, realtimeRes] = await Promise.all([
+            fetch(`leg_rank_history.json?_=${new Date().getTime()}`),
+            fetch(`ekiden_data.json?_=${new Date().getTime()}`),
+            fetch(`realtime_report.json?_=${new Date().getTime()}`)
+        ]);
+
+        if (!historyRes.ok || !ekidenDataRes.ok || !realtimeRes.ok) {
+            throw new Error('区間通過順位データの取得に失敗しました。');
+        }
+
+        const historyData = await historyRes.json();
+        const ekidenData = await ekidenDataRes.json();
+        const realtimeData = await realtimeRes.json();
+
+        if (!historyData || !historyData.teams) {
+            throw new Error('表示する区間通過順位データがありません。');
+        }
+
+        // ヘッダーを日本語化し、往路・復路のグループ化を追加
+        const numLegs = ekidenData.leg_boundaries.length;
+        const outwardLegs = 5; // 往路は5区間
+        const returnLegs = numLegs - outwardLegs; // 復路は残り
+
+        let headerHtml = `
+            <tr>
+                <th class="team-name" rowspan="2">大学名</th>
+                <th colspan="${outwardLegs}">往路</th>
+                <th colspan="${returnLegs}">復路</th>
+            </tr>
+            <tr>
+        `;
+        for (let i = 1; i <= numLegs; i++) {
+            headerHtml += `<th>${i}区</th>`;
+        }
+        headerHtml += '</tr>';
+        headEl.innerHTML = headerHtml;
+
+        // 現在の総合順位でチームをソートするためのMapを作成
+        const rankMap = new Map(realtimeData.teams.map(t => [t.id, t.overallRank]));
+        const sortedTeams = [...historyData.teams].sort((a, b) => (rankMap.get(a.id) || 999) - (rankMap.get(b.id) || 999));
+
+        // テーブルボディを生成
+        bodyEl.innerHTML = sortedTeams.map(team => {
+            const cellsHtml = team.leg_ranks.map(rank => {
+                const isFirst = rank === 1;
+                const cellClass = isFirst ? 'class="rank-first"' : '';
+                const displayRank = rank !== null ? rank : '-';
+                return `<td ${cellClass}>${displayRank}</td>`;
+            }).join('');
+            return `<tr><td class="team-name">${team.name}</td>${cellsHtml}</tr>`;
+        }).join('');
+
+        statusEl.style.display = 'none';
+
+    } catch (error) {
+        console.error('区間通過順位テーブルの描画に失敗:', error);
+        statusEl.textContent = `区間通過順位の表示に失敗: ${error.message}`;
         statusEl.className = 'result error';
     }
 }
@@ -1185,9 +1271,9 @@ document.addEventListener('DOMContentLoaded', function() {
     createEkidenHeader();
     createLegRankingHeader();
     displayEntryList();
+    displayLegRankHistoryTable();
     displayOutline();
     fetchEkidenData();
-    displayRankHistoryChart();
     // 30秒ごとにデータを自動更新
     setInterval(fetchEkidenData, 30000);
 
@@ -1212,6 +1298,27 @@ document.addEventListener('DOMContentLoaded', function() {
         window.addEventListener('click', (event) => {
             if (event.target == teamModal) {
                 teamModal.style.display = 'none';
+            }
+        });
+    }
+
+    // 順位変動グラフモーダルのイベントリスナー
+    const rankHistoryModal = document.getElementById('rankHistoryModal');
+    const openBtn = document.getElementById('openRankHistoryModalBtn');
+    const closeBtn = document.getElementById('closeRankHistoryModal');
+
+    if (openBtn && rankHistoryModal && closeBtn) {
+        openBtn.onclick = () => {
+            rankHistoryModal.style.display = 'block';
+            // モーダルが開かれたときにグラフを描画
+            displayRankHistoryChart();
+        };
+        closeBtn.onclick = () => {
+            rankHistoryModal.style.display = 'none';
+        };
+        window.addEventListener('click', (event) => {
+            if (event.target == rankHistoryModal) {
+                rankHistoryModal.style.display = 'none';
             }
         });
     }

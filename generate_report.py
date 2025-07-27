@@ -13,6 +13,7 @@ EKIDEN_DATA_FILE = 'ekiden_data.json'
 STATE_FILE = 'ekiden_state.json'
 INDIVIDUAL_STATE_FILE = 'individual_results.json'
 RANK_HISTORY_FILE = 'rank_history.json'
+LEG_RANK_HISTORY_FILE = 'leg_rank_history.json'
 EKIDEN_START_DATE = '2025-07-23'
 
 # --- グローバル変数 ---
@@ -153,14 +154,15 @@ def save_realtime_report(results, race_day):
     with open('realtime_report.json', 'w', encoding='utf-8') as f:
         json.dump(report_data, f, indent=2, ensure_ascii=False)
 
-def update_rank_history(results, race_day):
+def update_rank_history(results, race_day, rank_history_file_path):
     """
-    順位履歴ファイル(rank_history.json)を更新する。
-    - results: 総合順位でソート済みのその日の結果リスト
-    - race_day: レース日
+    Updates the daily rank history file (e.g., rank_history.json).
+    - results: List of today's results, sorted by overall rank.
+    - race_day: The current day of the race.
+    - rank_history_file_path: Path to the rank history file.
     """
     try:
-        with open(RANK_HISTORY_FILE, 'r', encoding='utf-8') as f:
+        with open(rank_history_file_path, 'r', encoding='utf-8') as f:
             history = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         # ファイルがない、または不正な場合は初期化
@@ -194,7 +196,55 @@ def update_rank_history(results, race_day):
             team_history['distances'][date_index] = result['totalDistance']
 
     # ファイルに保存
-    with open(RANK_HISTORY_FILE, 'w', encoding='utf-8') as f:
+    with open(rank_history_file_path, 'w', encoding='utf-8') as f:
+        json.dump(history, f, indent=2, ensure_ascii=False)
+
+def update_leg_rank_history(results, previous_day_state, leg_rank_history_file_path):
+    """
+    Updates the leg-by-leg rank history file (leg_rank_history.json).
+    This function records the overall rank of a team at the moment it completes a leg.
+
+    - results: List of today's results, sorted by overall rank.
+    - previous_day_state: The state of the ekiden from the *start* of the day (before today's results).
+    - leg_rank_history_file_path: Path to the leg rank history file.
+    """
+    num_legs = len(ekiden_data['leg_boundaries'])
+
+    try:
+        with open(leg_rank_history_file_path, 'r', encoding='utf-8') as f:
+            history = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # Initialize if file doesn't exist or is invalid
+        history = {
+            "teams": [
+                {
+                    "id": t["id"], "name": t["name"],
+                    "leg_ranks": [None] * num_legs
+                } for t in ekiden_data['teams']
+            ]
+        }
+
+    # Create maps for efficient lookups
+    previous_state_map = {team['id']: team for team in previous_day_state}
+    history_teams_map = {team['id']: team for team in history['teams']}
+
+    # Iterate through today's results
+    for result in results:
+        team_id = result['id']
+        prev_state = previous_state_map.get(team_id)
+        team_history = history_teams_map.get(team_id)
+
+        if not prev_state or not team_history:
+            continue
+
+        # Check if the team has advanced to a new leg
+        if result['newCurrentLeg'] > prev_state['currentLeg']:
+            completed_leg_index = prev_state['currentLeg'] - 1
+            # Record the rank only if it hasn't been recorded yet for this leg
+            if 0 <= completed_leg_index < num_legs and team_history['leg_ranks'][completed_leg_index] is None:
+                team_history['leg_ranks'][completed_leg_index] = result['overallRank']
+
+    with open(leg_rank_history_file_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2, ensure_ascii=False)
 
 def main():
@@ -205,7 +255,8 @@ def main():
     # テスト用のファイルパスを指定するオプションを追加
     parser.add_argument('--state-file', default=STATE_FILE, help=f'チームの状態ファイルパス (デフォルト: {STATE_FILE})')
     parser.add_argument('--individual-state-file', default=INDIVIDUAL_STATE_FILE, help=f'個人の状態ファイルパス (デフォルト: {INDIVIDUAL_STATE_FILE})')
-    parser.add_argument('--history-file', default=RANK_HISTORY_FILE, help=f'順位履歴ファイルパス (デフォルト: {RANK_HISTORY_FILE})')
+    parser.add_argument('--history-file', default=RANK_HISTORY_FILE, help=f'Daily rank history file path (default: {RANK_HISTORY_FILE})')
+    parser.add_argument('--leg-history-file', default=LEG_RANK_HISTORY_FILE, help=f'Leg-by-leg rank history file path (default: {LEG_RANK_HISTORY_FILE})')
     args = parser.parse_args()
 
     load_all_data()
@@ -324,19 +375,21 @@ def main():
     print("\n".join(report))
 
     if args.realtime:
-        update_rank_history(results, race_day)
+        update_rank_history(results, race_day, args.history_file)
+        update_leg_rank_history(results, current_state, args.leg_history_file)
         save_realtime_report(results, race_day)
         # リアルタイムモードでも個人成績を保存する
         save_individual_results(individual_results, args.individual_state_file)
-        print(f"\n--- [速報モード] 速報データを realtime_report.json, {args.history_file}, {args.individual_state_file} に保存しました ---")
+        print(f"\n--- [Realtime Mode] Saved report data to realtime_report.json, {args.history_file}, {args.leg_history_file}, and {args.individual_state_file} ---")
 
     if args.commit:
         save_ekiden_state(results, args.state_file)
-        update_rank_history(results, race_day)
+        update_rank_history(results, race_day, args.history_file)
+        update_leg_rank_history(results, current_state, args.leg_history_file)
         save_individual_results(individual_results, args.individual_state_file)
-        print(f"\n--- [コミットモード] 本日の最終結果を {args.state_file}, {args.individual_state_file}, {args.history_file} に保存しました ---")
+        print(f"\n--- [Commit Mode] Saved final results to {args.state_file}, {args.individual_state_file}, {args.history_file}, and {args.leg_history_file} ---")
     elif not args.realtime:
-        print("\n--- [プレビューモード] 結果を保存するには `python generate_report.py --commit` を実行してください ---")
+        print("\n--- [Preview Mode] To save results, run `python generate_report.py --commit` ---")
 
 if __name__ == '__main__':
     main()

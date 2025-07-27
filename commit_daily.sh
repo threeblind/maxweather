@@ -26,9 +26,9 @@ echo "generate_report.py --commit を実行中..."
 python generate_report.py --commit
 
 # 3. 状態ファイルに変更があるか確認し、変更があればPush
-if ! git diff --quiet --exit-code ekiden_state.json individual_results.json rank_history.json; then
-    echo "状態ファイル (ekiden_state.json, individual_results.json, rank_history.json) に変更を検出しました。GitHubにプッシュします。"
-    git add ekiden_state.json individual_results.json rank_history.json
+if ! git diff --quiet --exit-code ekiden_state.json individual_results.json rank_history.json leg_rank_history.json; then
+    echo "状態ファイル (ekiden_state.json, individual_results.json, rank_history.json, leg_rank_history.json) に変更を検出しました。GitHubにプッシュします。"
+    git add ekiden_state.json individual_results.json rank_history.json leg_rank_history.json
     git commit -m "Update daily state [bot] $(date +'%Y-%m-%d')"
 
     # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash)
