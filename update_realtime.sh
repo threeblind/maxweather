@@ -30,9 +30,9 @@ echo "generate_report.py を実行中..."
 python generate_report.py --realtime
 
 # 3. 速報ファイルに変更があるか確認し、変更があればPush
-if ! git diff --quiet --exit-code realtime_report.json individual_results.json; then
-    echo "速報ファイル (realtime_report.json, individual_results.json) に変更を検出しました。GitHubにプッシュします。"
-    git add realtime_report.json individual_results.json
+if ! git diff --quiet --exit-code realtime_report.json individual_results.json rank_history.json; then
+    echo "速報ファイル (realtime_report.json, individual_results.json, rank_history.json) に変更を検出しました。GitHubにプッシュします。"
+    git add realtime_report.json individual_results.json rank_history.json
     git commit -m "Update realtime report [bot] $(date +'%Y-%m-%d %H:%M:%S')"
 
     # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash) します。

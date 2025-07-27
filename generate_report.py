@@ -324,10 +324,11 @@ def main():
     print("\n".join(report))
 
     if args.realtime:
+        update_rank_history(results, race_day)
         save_realtime_report(results, race_day)
         # リアルタイムモードでも個人成績を保存する
         save_individual_results(individual_results, args.individual_state_file)
-        print(f"\n--- [速報モード] 速報データを realtime_report.json と {args.individual_state_file} に保存しました ---")
+        print(f"\n--- [速報モード] 速報データを realtime_report.json, {args.history_file}, {args.individual_state_file} に保存しました ---")
 
     if args.commit:
         save_ekiden_state(results, args.state_file)
