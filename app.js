@@ -1233,6 +1233,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // --- Smooth Scrolling for Page Navigation ---
+    document.querySelectorAll('.page-nav a').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            try {
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth' });
+                }
+            } catch (error) {
+                console.error(`Smooth scroll target not found for ${targetId}`, error);
+            }
+        });
+    });
+
     // --- Back to Top Button ---
     const backToTopButton = document.getElementById('back-to-top');
 
