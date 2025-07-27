@@ -584,8 +584,8 @@
             <ul>
                 <li><a href="#section-overall-ranking">総合順位</a></li>
                 <li><a href="#section-leg-ranking">個人記録</a></li>
-                <li><a href="#section-leg-prize">区間記録</a></li>
                 <li><a href="#section-rank-history">順位変動</a></li>
+                <li><a href="#section-leg-prize">区間記録</a></li>
                 <li><a href="#section-entry-list">エントリー</a></li>
                 <li><a href="#section-course-map">コース</a></li>
                 <li><a href="#outlineContainer">大会概要</a></li>
@@ -623,13 +623,6 @@
             <div id="legRankingStatus" class="result loading" style="display: none;"></div>
         </div>
 
-        <div id="section-leg-prize" style="margin-top: 40px;">
-            <h2>🚩 区間記録</h2>
-            <div id="legPrizeWinner">
-            <!-- 区間賞は app.js によって動的に生成されます -->
-            </div>
-        </div>
-
         <div id="section-rank-history" class="rank-history-container">
             <h2>📈 順位変動</h2>
             <p class="chart-description">💡 グラフ上部の大学名をクリックすると、そのチームの推移をハイライト表示できます。もう一度クリックすると元に戻ります。</p>
@@ -639,6 +632,13 @@
                 </div>
             </div>
             <div id="rankHistoryStatus" class="result loading" style="display: none;"></div>
+        </div>
+
+        <div id="section-leg-prize" style="margin-top: 40px;">
+            <h2>🚩 区間記録</h2>
+            <div id="legPrizeWinner">
+            <!-- 区間賞は app.js によって動的に生成されます -->
+            </div>
         </div>
 
         <div id="section-entry-list" class="entry-list-container">
