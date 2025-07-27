@@ -536,8 +536,8 @@ const updateIndividualSections = (realtimeData, individualData) => {
         legPrizeWinnerDiv.style.display = 'block';
     }
 
-    // Loop through the finished legs in descending order to display the newest first.
-    finishedLegs.sort((a, b) => b - a).forEach(finishedLeg => {
+    // Loop through the finished legs in ascending order (1, 2, 3...).
+    finishedLegs.sort((a, b) => a - b).forEach(finishedLeg => {
         const legPerformances = [];
 
         for (const runnerName in individualData) {
