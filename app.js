@@ -1251,18 +1251,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Back to Top Button ---
     const backToTopButton = document.getElementById('back-to-top');
+    let hideButtonTimer;
 
     if (backToTopButton) {
-        // Show or hide the button based on scroll position
+        // スクロールイベントでボタンの表示/非表示を制御
         window.addEventListener('scroll', () => {
-            if (window.scrollY > 400) { // Show after scrolling 400px
-                backToTopButton.classList.add('show');
-            } else {
+            // ページ上部では常に非表示
+            if (window.scrollY <= 400) {
                 backToTopButton.classList.remove('show');
+                return;
             }
+
+            // スクロール中は表示し、既存のタイマーをクリア
+            backToTopButton.classList.add('show');
+            clearTimeout(hideButtonTimer);
+
+            // 1.5秒間スクロールがなければ非表示にする
+            hideButtonTimer = setTimeout(() => {
+                backToTopButton.classList.remove('show');
+            }, 1500);
         });
 
-        // Smooth scroll to top on click
+        // ボタンにマウスが乗っている間は消さない
+        backToTopButton.addEventListener('mouseenter', () => {
+            clearTimeout(hideButtonTimer);
+        });
+
+        // クリックでトップにスムーズスクロール
         backToTopButton.addEventListener('click', (e) => {
             e.preventDefault();
             const targetElement = document.getElementById('page-top');
