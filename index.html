@@ -423,6 +423,23 @@
             text-decoration: none;
             cursor: pointer;
         }
+        .modal-details-table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+        }
+        .modal-details-table th, .modal-details-table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+            font-size: 16px;
+        }
+        .modal-details-table th {
+            background-color: #f8f9fa;
+            width: 40%;
+            font-weight: bold;
+        }
+
         .map-container {
             margin-top: 40px;
             margin-bottom: 40px;
@@ -483,6 +500,14 @@
             #ekidenRankingTable th, #ekidenRankingTable td,
             #legRankingTable th, #legRankingTable td {
                 padding: 6px;
+            }
+            /* スマホ表示の時だけ大学名をクリック可能に見せる */
+            #ekidenRankingTable td.team-name {
+                cursor: pointer;
+                color: #007bff;
+            }
+            #ekidenRankingTable td.team-name:hover {
+                text-decoration: underline;
             }
         }
         /* --- 機能の表示/非表示を制御 --- */
@@ -629,6 +654,17 @@
               <tbody id="modalRecordsBody">
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- The Team Details Modal (for mobile) -->
+        <div id="teamDetailsModal" class="modal">
+          <div class="modal-content">
+            <span class="close-button" id="closeTeamModal">&times;</span>
+            <h3 id="modalTeamName"></h3>
+            <div id="modalTeamDetailsBody">
+              <!-- Details will be injected here by JS -->
+            </div>
           </div>
         </div>
 

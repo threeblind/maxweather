@@ -759,6 +759,56 @@ async function displayRankHistoryChart() {
 }
 
 /**
+ * Displays a modal with detailed information for a specific team.
+ * This is intended for mobile view where some columns are hidden.
+ * @param {object} team - The team data object from the report.
+ * @param {number} topDistance - The total distance of the leading team.
+ */
+function showTeamDetailsModal(team, topDistance) {
+    const modal = document.getElementById('teamDetailsModal');
+    const modalTitle = document.getElementById('modalTeamName');
+    const modalBody = document.getElementById('modalTeamDetailsBody');
+
+    if (!modal || !modalTitle || !modalBody) return;
+
+    // モーダルのタイトルに順位と大学名を設定
+    modalTitle.textContent = `${team.overallRank}位 ${team.name}`;
+
+    // トップとの差を計算
+    const gap = topDistance - team.totalDistance;
+    const gapDisplay = team.overallRank === 1 ? '----' : `-${gap.toFixed(1)}km`;
+
+    // 順位変動のテキストを生成
+    let rankChangeText = 'ー';
+    if (team.previousRank > 0) {
+        if (team.overallRank < team.previousRank) { rankChangeText = `▲ (${team.previousRank}位から)`; }
+        else if (team.overallRank > team.previousRank) { rankChangeText = `▼ (${team.previousRank}位から)`; }
+        else { rankChangeText = `ー (${team.previousRank}位)`; }
+    } else { rankChangeText = `ー (前日記録なし)`; }
+
+    // 走者名を整形
+    const currentRunnerDisplay = formatRunnerName(team.runner);
+    const nextRunnerDisplay = formatRunnerName(team.nextRunner);
+
+    // 距離表示に "km" を追加
+    const todayDistanceDisplay = `${team.todayDistance.toFixed(1)}km (${team.todayRank}位)`;
+    const totalDistanceDisplay = `${team.totalDistance.toFixed(1)}km`;
+
+    // モーダルの中身を生成
+    modalBody.innerHTML = `
+        <table class="modal-details-table">
+            <tr><th>現在走者</th><td>${currentRunnerDisplay}</td></tr>
+            <tr><th>本日距離 (順位)</th><td>${todayDistanceDisplay}</td></tr>
+            <tr><th>総合距離</th><td>${totalDistanceDisplay}</td></tr>
+            <tr><th>トップ差</th><td>${gapDisplay}</td></tr>
+            <tr><th>順位変動 (前日比)</th><td>${rankChangeText}</td></tr>
+            <tr><th>次走者</th><td>${nextRunnerDisplay}</td></tr>
+        </table>
+    `;
+    modal.style.display = 'block';
+}
+
+/**
  * 取得した駅伝データで順位表を更新します。
  * @param {object} data - realtime_report.json から取得したデータ
  */
@@ -820,7 +870,14 @@ const updateEkidenRankingTable = (data) => {
         };
 
         row.appendChild(createCell(team.overallRank, 'rank'));
-        row.appendChild(createCell(team.name, 'team-name'));
+        
+        const teamNameCell = createCell(team.name, 'team-name');
+        teamNameCell.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                showTeamDetailsModal(team, topDistance);
+            }
+        });
+        row.appendChild(teamNameCell);
         row.appendChild(createCell(formatRunnerName(team.runner), 'runner'));
 
         // 本日距離セル。スマホでは単位(km)を非表示
@@ -1146,6 +1203,17 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
+    // チーム詳細モーダルを閉じるイベントリスナー
+    const teamModal = document.getElementById('teamDetailsModal');
+    const closeTeamButton = document.getElementById('closeTeamModal');
+    if (teamModal && closeTeamButton) {
+        closeTeamButton.onclick = () => teamModal.style.display = 'none';
+        window.addEventListener('click', (event) => {
+            if (event.target == teamModal) {
+                teamModal.style.display = 'none';
+            }
+        });
+    }
     // --- 横スクロールのグラデーション制御 ---
     const scrollContainer = document.querySelector('.ekiden-ranking-container');
     if (scrollContainer) {
