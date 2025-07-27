@@ -1232,4 +1232,27 @@ document.addEventListener('DOMContentLoaded', function() {
             checkScroll();
         }
     }
+
+    // --- Back to Top Button ---
+    const backToTopButton = document.getElementById('back-to-top');
+
+    if (backToTopButton) {
+        // Show or hide the button based on scroll position
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 400) { // Show after scrolling 400px
+                backToTopButton.classList.add('show');
+            } else {
+                backToTopButton.classList.remove('show');
+            }
+        });
+
+        // Smooth scroll to top on click
+        backToTopButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetElement = document.getElementById('page-top');
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    }
 });

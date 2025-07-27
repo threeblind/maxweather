@@ -541,11 +541,41 @@
             border-radius: 5px;
             border: 1px solid #e0e0e0;
         }
+        /* Back to Top Button */
+        .back-to-top-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 123, 255, 0.8);
+            color: white;
+            text-align: center;
+            line-height: 50px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50%;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s, transform 0.3s, background-color 0.2s;
+            transform: translateY(20px);
+        }
+        .back-to-top-btn.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .back-to-top-btn:hover {
+            background-color: rgba(0, 86, 179, 0.9);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔥 第１５回全国大学対抗高温駅伝大会 速報</h1>
+        <h1 id="page-top">🔥 第１５回全国大学対抗高温駅伝大会 速報</h1>
 
         <div id="main-thread-link-container">
             <!-- 本スレリンクは app.js によって動的に生成されます -->
@@ -563,7 +593,7 @@
             </ul>
         </nav>
 
-        <div id="section-overall-ranking" class="ekiden-section-wrapper" >
+        <div id="section-overall-ranking" class="ekiden-section-wrapper">
             <h2 id="ekidenRankingTitle">🏆 総合順位</h2>
             <p id="ekidenRankingUpdateTime" class="ranking-update-time"></p>
             <div class="ekiden-ranking-container">
@@ -701,6 +731,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Back to Top Button -->
+    <a href="#page-top" id="back-to-top" class="back-to-top-btn" title="トップに戻る">↑</a>
 
     <script src="app.js"></script>
 </body>
