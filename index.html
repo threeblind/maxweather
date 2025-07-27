@@ -149,8 +149,9 @@
             font-size: 14px;
             color: #666;
             text-align: right;
-            margin-top: -10px;
-            margin-bottom: 10px;
+            /* タイトルとの余白を詰める */
+            margin-top: -5px;
+            margin-bottom: 5px;
         }
         #rankingTable {
             width: 100%;
@@ -169,9 +170,9 @@
         .ekiden-section-wrapper {
             margin-bottom: 40px;
         }
-        #ekidenRankingTitleContainer {
-            /* This is now a separate element from the scrollable table */
-            margin-bottom: 10px;
+        #ekidenRankingTitle {
+            /* 総合順位タイトルの下の余白を詰める */
+            margin-bottom: 0;
         }
         .ekiden-ranking-container {
             overflow-x: auto;
@@ -180,7 +181,7 @@
         #ekidenRankingTable {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 0;
         }
         #ekidenRankingTable th, #ekidenRankingTable td {
             border: 1px solid #ddd;
