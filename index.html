@@ -589,6 +589,7 @@
                 <li><a href="#section-entry-list">エントリー</a></li>
                 <li><a href="#section-course-map">コース</a></li>
                 <li><a href="#outlineContainer">大会概要</a></li>
+                <li><a href="#section-amedas-search">検索</a></li>
             </ul>
         </nav>
 
@@ -698,35 +699,19 @@
           </div>
         </div>
 
-        <div class="amedas-features feature-hidden">
+        <div id="section-amedas-search" class="amedas-features" style="margin-top: 40px;">
             <h2>🌡️ アメダス地点検索</h2>
             <div class="search-box">
                 <input type="text" id="locationInput" placeholder="地点名を入力してください（例：東京、大阪、札幌）" />
                 <button onclick="searchTemperature()">検索</button>
             </div>
             <div id="result"></div>
-            
+
             <div class="suggestions">
                 <h3>検索履歴</h3>
                 <div class="suggestion-list">
                     <!-- 検索履歴は app.js によって動的に生成されます -->
                 </div>
-            </div>
-
-            <div class="ranking-container">
-                <div id="rankingTitleContainer">
-                    <h3>全国最高気温ランキング</h3>
-                    <p id="rankingUpdateTime" class="ranking-update-time"></p>
-                </div>
-                <table id="rankingTable">
-                    <thead id="rankingHead">
-                        <!-- ランキングヘッダーは app.js によって動的に生成されます -->
-                    </thead>
-                    <tbody id="rankingBody">
-                        <!-- ランキングは app.js によって動的に生成されます -->
-                    </tbody>
-                </table>
-                <div id="rankingStatus" class="result loading" style="display: none;"></div>
             </div>
         </div>
     </div>
