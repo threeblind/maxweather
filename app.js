@@ -565,7 +565,7 @@ const updateIndividualSections = (realtimeData, individualData) => {
             legContainer.className = 'leg-prize-item';
 
             const title = document.createElement('h4');
-            title.textContent = `${finishedLeg}区 区間記録`;
+            title.textContent = `${finishedLeg}区`;
             legContainer.appendChild(title);
 
             const prizeTable = createPrizeTable(legPerformances);
@@ -930,7 +930,7 @@ const fetchEkidenData = async () => {
         allIndividualData = individualData; // データをグローバル変数に保存
 
         // タイトルと更新日時を更新
-        titleEl.textContent = `🏆 高温大学駅伝 ${realtimeData.raceDay}日目 総合順位`;
+        titleEl.textContent = `🏆 ${realtimeData.raceDay}日目 総合順位`;
         updateTimeEl.textContent = `(更新: ${realtimeData.updateTime})`;
 
         updateEkidenRankingTable(realtimeData);
