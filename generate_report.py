@@ -341,13 +341,18 @@ def generate_breaking_news_comment(current_results, previous_results_file):
             runner_name = coldest_runner['runner']
             temp = coldest_runner['todayDistance']
             return f"【奮起】{team_name}の{runner_name}選手(現在{temp:.1f}℃)、ここからの追い上げに期待がかかります！"
-
-    # 7. 定時速報 (他の速報がない場合)
-    now = datetime.now()
-    if now.hour in [12, 13, 14, 15, 16] and now.minute == 5:
-        if current_results:
-            leader_name = current_results[0]['name']
-            return f"【定時速報】{now.hour}時05分、レースは本日の中盤戦。現在トップを走るのは{leader_name}です。"
+    
+    # 7. 
+    if current_results:
+        now = datetime.now()
+        if now.hour in [12, 13, 14, 15, 16] and now.minute == 5:
+            # Find the team with the highest distance today
+            top_performer_today = max(current_results, key=lambda x: x.get('todayDistance', 0))
+            # Ensure there's some distance to report
+            if top_performer_today.get('todayDistance', 0) > 0:
+                team_name = top_performer_today['name']
+                distance = top_performer_today['todayDistance']
+                return f"【定時速報】{now.hour}時05分、{team_name}が本日{distance:.1f}kmと絶好調！素晴らしいペースです！"    
 
     return "" # 大きな変動がなければ空文字列を返す
 
