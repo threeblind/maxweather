@@ -494,7 +494,7 @@ def main():
         else:
             # No new comment, check if we should keep the old one
             old_comment, old_timestamp = previous_report_data.get('breakingNewsComment', ""), previous_report_data.get('breakingNewsTimestamp', "")
-            if old_timestamp and (datetime.now() - datetime.fromisoformat(old_timestamp)) < timedelta(hours=3):
+            if old_timestamp and (datetime.now() - datetime.fromisoformat(old_timestamp)) < timedelta(hours=1):
                 comment_to_save = old_comment
                 timestamp_to_save = old_timestamp
             else:
