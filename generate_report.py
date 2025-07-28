@@ -330,8 +330,19 @@ def generate_breaking_news_comment(current_results, previous_results_file):
         runner_name = hottest_runner['runner']
         temp = hottest_runner['todayDistance']
         return f"【猛暑】{team_name}の{runner_name}選手が本日{temp:.1f}℃を記録！素晴らしい走りです！"
+    
+    # 3. 27度以下の選手への鼓舞 (16時まで)
+    if now.hour < 16:
+        cold_runners = [r for r in current_results if 0 < r.get('todayDistance', 0) <= 27.0]
+        if cold_runners:
+            coldest_runner = min(cold_runners, key=lambda x: x['todayDistance'])
+            team_name = coldest_runner['name']
+            runner_name = coldest_runner['runner']
+            temp = coldest_runner['todayDistance']
+            return f"【奮起】{team_name}の{runner_name}選手(現在{temp:.1f}℃)、ここからの追い上げに期待がかかります！"
 
-    # 3. 3ランク以上のジャンプアップ
+
+    # 4. 3ランク以上のジャンプアップ
     jump_up_teams = []
     for team_id, current_rank in {t['id']: t['overallRank'] for t in current_results}.items():
         if team_id in previous_ranks:
@@ -345,7 +356,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
         best_jumper = max(jump_up_teams, key=lambda x: x['jump'])
         return f"【ジャンプアップ】{best_jumper['name']}が{best_jumper['jump']}ランクアップで{best_jumper['current_rank']}位に浮上！"
 
-    # 4. 5ランク以上のランクダウン
+    # 5. 5ランク以上のランクダウン
     rank_down_teams = []
     for team_id, current_rank in {t['id']: t['overallRank'] for t in current_results}.items():
         if team_id in previous_ranks:
@@ -359,7 +370,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
         worst_dropper = max(rank_down_teams, key=lambda x: x['drop'])
         return f"【波乱】{worst_dropper['name']}が{worst_dropper['drop']}ランクダウン。厳しい展開です。"
 
-    # 4.5. 追い上げ
+    # 6. 追い上げ
     previous_distances = {team['id']: team['totalDistance'] for team in previous_data.get('teams', [])}
     closing_gap_teams = []
     for i in range(1, len(current_results)):
@@ -382,7 +393,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
         best_closer = max(closing_gap_teams, key=lambda x: x['gap_closed'])
         return f"【追い上げ】{best_closer['name']}が猛追！前のチームとの差を{best_closer['gap_closed']:.1f}km縮めました！"
 
-    # 4.8. 表彰台争い、トップ5争い (差が詰まった瞬間を検知)
+    # 7. 表彰台争い、トップ5争い、シード争い (差が詰まった瞬間を検知)
     previous_distances = {team['id']: team['totalDistance'] for team in previous_data.get('teams', [])}
 
     if len(current_results) > 3:
@@ -411,7 +422,6 @@ def generate_breaking_news_comment(current_results, previous_results_file):
             if 0 <= current_gap_top5 < 0.5 and current_gap_top5 < previous_gap_top5:
                 return f"【トップ5争い】5位{team_5['name']}と6位{team_6['name']}がデッドヒート！"
 
-    # 5. 壮絶な競り合い
     if len(current_results) > 10:
         # シード権争い (10位 vs 11位)
         team_10 = current_results[9] # 10th place
@@ -426,18 +436,8 @@ def generate_breaking_news_comment(current_results, previous_results_file):
             # Announce only if the gap is now under 0.5km AND it has shrunk since the last update
             if 0 <= current_gap_seed < 0.5 and current_gap_seed < previous_gap_seed:
                 return f"【シード権争い】10位{team_10['name']}と11位{team_11['name']}が熾烈な争い！"
-
-    # 6. 27度以下の選手への鼓舞 (16時まで)
-    if now.hour < 16:
-        cold_runners = [r for r in current_results if 0 < r.get('todayDistance', 0) <= 27.0]
-        if cold_runners:
-            coldest_runner = min(cold_runners, key=lambda x: x['todayDistance'])
-            team_name = coldest_runner['name']
-            runner_name = coldest_runner['runner']
-            temp = coldest_runner['todayDistance']
-            return f"【奮起】{team_name}の{runner_name}選手(現在{temp:.1f}℃)、ここからの追い上げに期待がかかります！"
     
-    # 7. 本日トップの選手名を紹介
+    # 8. 本日トップの選手名を紹介
     if current_results:
         if now.hour in [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] and now.minute == 45:
             # Find the team with the highest distance today
@@ -448,7 +448,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
                 distance = top_performer_today['todayDistance']
                 return f"【定時速報】本日のトップは{runner_name}選手！{distance:.1f}kmと素晴らしい走りです！"
 
-    # 8. 本日トップの大学を紹介
+    # 9. 本日トップの大学を紹介
     if current_results:
         if now.hour in [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] and now.minute == 15:
             top_team = current_results[0]
