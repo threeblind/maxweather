@@ -436,20 +436,32 @@ def generate_breaking_news_comment(current_results, previous_results_file):
             if 0 <= current_gap_seed < 0.5 and current_gap_seed < previous_gap_seed:
                 return f"【シード権争い】10位{team_10['name']}と11位{team_11['name']}が熾烈な争い！"
     
-    # 9. 定時速報 (選手)
-    if current_results:
-        if now.hour in [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] and now.minute == 45:
-            # Find the team with the highest distance today
+    # --- 定時速報ロジック (他の速報がない場合に表示) ---
+    can_show_timed_report = True
+    last_comment = previous_data.get('breakingNewsComment', "")
+    last_timestamp_str = previous_data.get('breakingNewsTimestamp')
+
+    if last_comment and last_timestamp_str:
+        try:
+            last_timestamp = datetime.fromisoformat(last_timestamp_str)
+            if (now - last_timestamp) < timedelta(hours=1):
+                # 1時間以内に速報があった場合、それが「定時速報」でなければ、今回の定時速報は表示しない
+                if not last_comment.startswith("【定時速報】"):
+                    can_show_timed_report = False
+        except (ValueError, TypeError):
+            pass # タイムスタンプの形式が不正な場合は無視
+
+    if can_show_timed_report:
+        # 9. 定時速報 (選手)
+        if current_results and now.hour in range(7, 19) and now.minute == 45:
             top_performer_today = max(current_results, key=lambda x: x.get('todayDistance', 0))
-            # Ensure there's some distance to report
             if top_performer_today.get('todayDistance', 0) > 0:
                 runner_name = top_performer_today['runner']
                 distance = top_performer_today['todayDistance']
                 return f"【定時速報】本日のトップは{runner_name}選手！{distance:.1f}kmと素晴らしい走りです！"
 
-    # 10. 定時速報 (チーム)
-    if current_results:
-        if now.hour in [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] and now.minute == 15:
+        # 10. 定時速報 (チーム)
+        if current_results and now.hour in range(7, 19) and now.minute == 15:
             top_team = current_results[0]
             team_name = top_team['name']
             total_distance = top_team['totalDistance']
