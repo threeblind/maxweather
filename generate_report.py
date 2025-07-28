@@ -263,6 +263,11 @@ def update_leg_rank_history(results, previous_day_state, leg_rank_history_file_p
 
 def generate_breaking_news_comment(current_results, previous_results_file):
     """前回と今回の結果を比較し、注目すべき変動があれば速報コメントを生成する"""
+    now = datetime.now()
+    # 夜間（19時以降）と早朝（7時前）は速報を生成しない
+    if not (7 <= now.hour < 19):
+        return ""
+
     if not os.path.exists(previous_results_file):
         return ""
 
@@ -423,7 +428,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
                 return f"【シード権争い】10位{team_10['name']}と11位{team_11['name']}が熾烈な争い！"
 
     # 6. 27度以下の選手への鼓舞 (16時まで)
-    if datetime.now().hour < 16:
+    if now.hour < 16:
         cold_runners = [r for r in current_results if 0 < r.get('todayDistance', 0) <= 27.0]
         if cold_runners:
             coldest_runner = min(cold_runners, key=lambda x: x['todayDistance'])
@@ -434,7 +439,6 @@ def generate_breaking_news_comment(current_results, previous_results_file):
     
     # 7. 本日トップの選手名を紹介
     if current_results:
-        now = datetime.now()
         if now.hour in [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] and now.minute == 45:
             # Find the team with the highest distance today
             top_performer_today = max(current_results, key=lambda x: x.get('todayDistance', 0))
@@ -446,7 +450,6 @@ def generate_breaking_news_comment(current_results, previous_results_file):
 
     # 8. 本日トップの大学を紹介
     if current_results:
-        now = datetime.now()
         if now.hour in [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] and now.minute == 15:
             top_team = current_results[0]
             team_name = top_team['name']
