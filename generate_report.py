@@ -332,7 +332,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
         return f"【猛暑】{team_name}の{runner_name}選手が本日{temp:.1f}℃を記録！素晴らしい走りです！"
     
     # 4. 27度以下の選手への鼓舞 (16時まで、本日初の場合のみ)
-    if now.hour < 16:
+    if 13 <=now.hour < 16:
         cold_runners = [r for r in current_results if 0 < r.get('todayDistance', 0) <= 27.0]
         if cold_runners and not previous_data.get('breakingNewsComment', '').startswith('【奮起】'):
             coldest_runner = min(cold_runners, key=lambda x: x['todayDistance'])
