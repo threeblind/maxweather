@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime, timedelta
 import requests
+import shutil
 from bs4 import BeautifulSoup
 import unicodedata
 import sys
@@ -122,12 +123,14 @@ def pad_str(text, length, char='＿'):
     padding = length - get_east_asian_width_count(text)
     return text + char * (padding if padding > 0 else 0)
 
-def save_realtime_report(results, race_day):
+def save_realtime_report(results, race_day, breaking_news_comment, breaking_news_timestamp):
     """速報用のJSONデータを生成して保存する"""
     now = datetime.now()
     report_data = {
         "updateTime": now.strftime('%Y/%m/%d %H:%M'),
         "raceDay": race_day,
+        "breakingNewsComment": breaking_news_comment,
+        "breakingNewsTimestamp": breaking_news_timestamp,
         "teams": []
     }
 
@@ -247,6 +250,89 @@ def update_leg_rank_history(results, previous_day_state, leg_rank_history_file_p
     with open(leg_rank_history_file_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2, ensure_ascii=False)
 
+def generate_breaking_news_comment(current_results, previous_results_file):
+    """前回と今回の結果を比較し、注目すべき変動があれば速報コメントを生成する"""
+    if not os.path.exists(previous_results_file):
+        return ""
+
+    try:
+        with open(previous_results_file, 'r', encoding='utf-8') as f:
+            previous_data = json.load(f)
+    except (json.JSONDecodeError, KeyError):
+        return ""
+
+    # チームIDをキーにしたマップを作成
+    current_teams_map = {team['id']: team for team in current_results}
+    previous_ranks = {team['id']: team['overallRank'] for team in previous_data.get('teams', [])}
+
+    # --- コメント生成ロジック (優先度順) ---
+
+    # 1. 首位交代
+    if current_results and previous_data.get('teams'):
+        current_leader_id = current_results[0]['id']
+        previous_leader_id = previous_data['teams'][0]['id']
+        if current_leader_id != previous_leader_id:
+            current_leader_name = current_results[0]['name']
+            return f"【速報】首位交代！ {current_leader_name}がトップに浮上しました！"
+
+    # 2. 39度以上の猛暑日記録
+    hot_runners = [r for r in current_results if r.get('todayDistance', 0) >= 39.0]
+    if hot_runners:
+        hottest_runner = max(hot_runners, key=lambda x: x['todayDistance'])
+        team_name = hottest_runner['name']
+        runner_name = hottest_runner['runner']
+        temp = hottest_runner['todayDistance']
+        return f"【猛暑】{team_name}の{runner_name}選手が本日{temp:.1f}℃を記録！素晴らしい走りです！"
+
+    # 3. 3ランク以上のジャンプアップ
+    jump_up_teams = []
+    for team_id, current_rank in {t['id']: t['overallRank'] for t in current_results}.items():
+        if team_id in previous_ranks:
+            previous_rank = previous_ranks[team_id]
+            if previous_rank - current_rank >= 3:
+                team_name = current_teams_map[team_id]['name']
+                jump_up_teams.append({
+                    "name": team_name, "jump": previous_rank - current_rank, "current_rank": current_rank
+                })
+    if jump_up_teams:
+        best_jumper = max(jump_up_teams, key=lambda x: x['jump'])
+        return f"【ジャンプアップ】{best_jumper['name']}が{best_jumper['jump']}ランクアップで{best_jumper['current_rank']}位に浮上！"
+
+    # 4. 5ランク以上のランクダウン
+    rank_down_teams = []
+    for team_id, current_rank in {t['id']: t['overallRank'] for t in current_results}.items():
+        if team_id in previous_ranks:
+            previous_rank = previous_ranks[team_id]
+            if current_rank - previous_rank >= 5:
+                team_name = current_teams_map[team_id]['name']
+                rank_down_teams.append({
+                    "name": team_name, "drop": current_rank - previous_rank
+                })
+    if rank_down_teams:
+        worst_dropper = max(rank_down_teams, key=lambda x: x['drop'])
+        return f"【波乱】{worst_dropper['name']}が{worst_dropper['drop']}ランクダウン。厳しい展開です。"
+
+    # 5. 壮絶な競り合い
+    if len(current_results) > 10:
+        # シード権争い (10位 vs 11位)
+        team_10 = current_results[9]
+        team_11 = current_results[10]
+        gap = team_10['totalDistance'] - team_11['totalDistance']
+        if 0 <= gap < 0.5:
+            return f"【シード権争い】10位{team_10['name']}と11位{team_11['name']}が熾烈な争い！"
+
+    # 6. 27度以下の選手への鼓舞 (15時まで)
+    if datetime.now().hour < 15:
+        cold_runners = [r for r in current_results if 0 < r.get('todayDistance', 0) <= 27.0]
+        if cold_runners:
+            coldest_runner = min(cold_runners, key=lambda x: x['todayDistance'])
+            team_name = coldest_runner['name']
+            runner_name = coldest_runner['runner']
+            temp = coldest_runner['todayDistance']
+            return f"【奮起】{team_name}の{runner_name}選手(現在{temp:.1f}℃)、ここからの追い上げに期待がかかります！"
+
+    return "" # 大きな変動がなければ空文字列を返す
+
 def main():
     """メイン処理"""
     parser = argparse.ArgumentParser(description='高温大学駅伝のレポートを生成します。')
@@ -260,6 +346,16 @@ def main():
     args = parser.parse_args()
 
     load_all_data()
+
+    # Copy the previous report for comparison
+    previous_report_file = 'realtime_report_previous.json'
+    realtime_report_file = 'realtime_report.json'
+    if os.path.exists(realtime_report_file):
+        shutil.copy(realtime_report_file, previous_report_file)
+        with open(previous_report_file, 'r', encoding='utf-8') as f:
+            previous_report_data = json.load(f)
+    else:
+        previous_report_file = ''
 
     start_date = datetime.strptime(EKIDEN_START_DATE, '%Y-%m-%d')
     race_day = (datetime.now().date() - start_date.date()).days + 1
@@ -375,12 +471,30 @@ def main():
     print("\n".join(report))
 
     if args.realtime:
+        # Generate breaking news comment
+        new_comment_text = ""
+        if previous_report_file:
+            new_comment_text = generate_breaking_news_comment(results, previous_report_file)
+
+        if new_comment_text:
+            comment_to_save = new_comment_text
+            timestamp_to_save = datetime.now().isoformat()
+            print(f"Generated breaking news: '{comment_to_save}'")
+        else:
+            # No new comment, check if we should keep the old one
+            old_comment, old_timestamp = previous_report_data.get('breakingNewsComment', ""), previous_report_data.get('breakingNewsTimestamp', "")
+            if old_timestamp and (datetime.now() - datetime.fromisoformat(old_timestamp)) < timedelta(hours=3):
+                comment_to_save = old_comment
+                timestamp_to_save = old_timestamp
+            else:
+                comment_to_save, timestamp_to_save = "", ""
+
+        # 各種速報ファイルを保存
+        save_realtime_report(results, race_day, comment_to_save, timestamp_to_save)
         update_rank_history(results, race_day, args.history_file)
         update_leg_rank_history(results, current_state, args.leg_history_file)
-        save_realtime_report(results, race_day)
-        # リアルタイムモードでも個人成績を保存する
         save_individual_results(individual_results, args.individual_state_file)
-        print(f"\n--- [Realtime Mode] Saved report data to realtime_report.json, {args.history_file}, {args.leg_history_file}, and {args.individual_state_file} ---")
+        print(f"\n--- [Realtime Mode] Saved report data to {realtime_report_file}, {args.history_file}, {args.leg_history_file}, and {args.individual_state_file} ---")
 
     if args.commit:
         save_ekiden_state(results, args.state_file)

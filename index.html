@@ -41,6 +41,23 @@
         .main-thread-link:hover {
             background-color: #218838;
         }
+        /* 速報コメント */
+        .breaking-news {
+            background-color: #fffbe6; /* 薄い黄色 */
+            border: 2px solid #ffe58f; /* 少し濃い黄色 */
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #856404; /* 暗い黄色/茶色 */
+            display: none; /* デフォルトは非表示 */
+        }
+        .breaking-news::before {
+            content: '📢';
+            margin-right: 10px;
+        }
         /* ページ内ナビゲーション */
         .page-nav {
             margin-bottom: 40px;
@@ -613,6 +630,10 @@
                 <li><a href="#outlineContainer">大会概要</a></li>
             </ul>
         </nav>
+
+        <div id="breaking-news-container" class="breaking-news">
+            <!-- 速報コメントは app.js によって動的に生成されます -->
+        </div>
 
         <div id="section-overall-ranking" class="ekiden-section-wrapper">
             <h2 id="ekidenRankingTitle">🏆 総合順位</h2>

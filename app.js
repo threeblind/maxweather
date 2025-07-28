@@ -1002,23 +1002,37 @@ const fetchEkidenData = async () => {
     }
 
     try {
-        // Promise.allで両方のファイルを並行して取得（キャッシュ無効化）
+        // Fetch realtime and individual data in parallel (cache busting)
         const [realtimeRes, individualRes] = await Promise.all([
             fetch(`realtime_report.json?_=${new Date().getTime()}`),
             fetch(`individual_results.json?_=${new Date().getTime()}`)
         ]);
 
         if (!realtimeRes.ok || !individualRes.ok) {
-            throw new Error(`HTTP error! status: ${realtimeRes.status} or ${individualRes.status}`);
+            throw new Error(`HTTP error! status: ${realtimeRes.status}, ${individualRes.status}`);
         }
 
         const realtimeData = await realtimeRes.json();
         const individualData = await individualRes.json();
-        allIndividualData = individualData; // データをグローバル変数に保存
+        allIndividualData = individualData; // Store data in global variable
 
-        // タイトルと更新日時を更新
+        // Update title and update time
         titleEl.textContent = `🏆 ${realtimeData.raceDay}日目 総合順位`;
         updateTimeEl.textContent = `(更新: ${realtimeData.updateTime})`;
+
+        // Update breaking news comment from realtime_report.json
+        const newsContainer = document.getElementById('breaking-news-container');
+        if (newsContainer) {
+            if (realtimeData && realtimeData.breakingNewsComment && realtimeData.breakingNewsTimestamp) {
+                const comment = realtimeData.breakingNewsComment;
+                const date = new Date(realtimeData.breakingNewsTimestamp);
+                const timeStr = date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                newsContainer.textContent = `${comment} (${timeStr}時点)`;
+                newsContainer.style.display = 'block';
+            } else {
+                newsContainer.style.display = 'none';
+            }
+        }
 
         updateEkidenRankingTable(realtimeData);
         updateIndividualSections(realtimeData, individualData);
