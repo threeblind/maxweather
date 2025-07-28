@@ -295,8 +295,8 @@ def generate_breaking_news_comment(current_results, previous_results_file):
         if team_id in previous_teams_map:
             previous_team = previous_teams_map[team_id]
             # Check if the current leg in the new results is greater than the one in the previous report
-            if team['newCurrentLeg'] > previous_team['newCurrentLeg']:
-                completed_leg = previous_team['newCurrentLeg']
+            if team['newCurrentLeg'] > previous_team['currentLeg']:
+                completed_leg = previous_team['currentLeg']
                 if completed_leg not in leg_finishers_by_leg:
                     leg_finishers_by_leg[completed_leg] = []
                 leg_finishers_by_leg[completed_leg].append(team['name'])
