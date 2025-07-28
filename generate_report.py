@@ -435,7 +435,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
     # 7. 本日トップの選手名を紹介
     if current_results:
         now = datetime.now()
-        if now.hour in [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] and now.minute in [15, 45]:
+        if now.hour in [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] and now.minute == 45:
             # Find the team with the highest distance today
             top_performer_today = max(current_results, key=lambda x: x.get('todayDistance', 0))
             # Ensure there's some distance to report
@@ -443,6 +443,15 @@ def generate_breaking_news_comment(current_results, previous_results_file):
                 runner_name = top_performer_today['runner']
                 distance = top_performer_today['todayDistance']
                 return f"【定時速報】本日のトップは{runner_name}選手！{distance:.1f}kmと素晴らしい走りです！"
+
+    # 8. 本日トップの大学を紹介
+    if current_results:
+        now = datetime.now()
+        if now.hour in [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] and now.minute == 15:
+            top_team = current_results[0]
+            team_name = top_team['name']
+            total_distance = top_team['totalDistance']
+            return f"【定時速報】現在トップは{team_name}！総合距離{total_distance:.1f}kmです！"
 
     return "" # 大きな変動がなければ空文字列を返す
 
