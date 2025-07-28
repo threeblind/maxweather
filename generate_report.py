@@ -377,29 +377,50 @@ def generate_breaking_news_comment(current_results, previous_results_file):
         best_closer = max(closing_gap_teams, key=lambda x: x['gap_closed'])
         return f"【追い上げ】{best_closer['name']}が猛追！前のチームとの差を{best_closer['gap_closed']:.1f}km縮めました！"
 
-    # 4.8. 表彰台争い、トップ5争い
+    # 4.8. 表彰台争い、トップ5争い (差が詰まった瞬間を検知)
+    previous_distances = {team['id']: team['totalDistance'] for team in previous_data.get('teams', [])}
+
     if len(current_results) > 3:
         team_3 = current_results[2]
         team_4 = current_results[3]
-        gap_podium = team_3['totalDistance'] - team_4['totalDistance']
-        if 0 <= gap_podium < 0.5:
-            return f"【表彰台争い】3位{team_3['name']}と4位{team_4['name']}が激しく競り合っています！"
+        current_gap_podium = team_3['totalDistance'] - team_4['totalDistance']
+
+        prev_dist_3 = previous_distances.get(team_3['id'])
+        prev_dist_4 = previous_distances.get(team_4['id'])
+
+        if prev_dist_3 is not None and prev_dist_4 is not None:
+            previous_gap_podium = prev_dist_3 - prev_dist_4
+            if 0 <= current_gap_podium < 0.5 and current_gap_podium < previous_gap_podium:
+                return f"【表彰台争い】3位{team_3['name']}と4位{team_4['name']}が激しく競り合っています！"
 
     if len(current_results) > 5:
         team_5 = current_results[4]
         team_6 = current_results[5]
-        gap_top5 = team_5['totalDistance'] - team_6['totalDistance']
-        if 0 <= gap_top5 < 0.5:
-            return f"【トップ5争い】5位{team_5['name']}と6位{team_6['name']}がデッドヒート！"
+        current_gap_top5 = team_5['totalDistance'] - team_6['totalDistance']
+
+        prev_dist_5 = previous_distances.get(team_5['id'])
+        prev_dist_6 = previous_distances.get(team_6['id'])
+
+        if prev_dist_5 is not None and prev_dist_6 is not None:
+            previous_gap_top5 = prev_dist_5 - prev_dist_6
+            if 0 <= current_gap_top5 < 0.5 and current_gap_top5 < previous_gap_top5:
+                return f"【トップ5争い】5位{team_5['name']}と6位{team_6['name']}がデッドヒート！"
 
     # 5. 壮絶な競り合い
     if len(current_results) > 10:
         # シード権争い (10位 vs 11位)
-        team_10 = current_results[9]
-        team_11 = current_results[10]
-        gap = team_10['totalDistance'] - team_11['totalDistance']
-        if 0 <= gap < 0.5:
-            return f"【シード権争い】10位{team_10['name']}と11位{team_11['name']}が熾烈な争い！"
+        team_10 = current_results[9] # 10th place
+        team_11 = current_results[10] # 11th place
+        current_gap_seed = team_10['totalDistance'] - team_11['totalDistance']
+
+        prev_dist_10 = previous_distances.get(team_10['id'])
+        prev_dist_11 = previous_distances.get(team_11['id'])
+
+        if prev_dist_10 is not None and prev_dist_11 is not None:
+            previous_gap_seed = prev_dist_10 - prev_dist_11
+            # Announce only if the gap is now under 0.5km AND it has shrunk since the last update
+            if 0 <= current_gap_seed < 0.5 and current_gap_seed < previous_gap_seed:
+                return f"【シード権争い】10位{team_10['name']}と11位{team_11['name']}が熾烈な争い！"
 
     # 6. 27度以下の選手への鼓舞 (15時まで)
     if datetime.now().hour < 15:
@@ -414,7 +435,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
     # 7. 本日トップの選手名を紹介
     if current_results:
         now = datetime.now()
-        if now.hour in [12, 13, 14, 15] and now.minute == 5:
+        if now.hour in [12, 13, 14, 15] and now.minute == 15:
             # Find the team with the highest distance today
             top_performer_today = max(current_results, key=lambda x: x.get('todayDistance', 0))
             # Ensure there's some distance to report
