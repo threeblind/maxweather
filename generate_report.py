@@ -422,8 +422,8 @@ def generate_breaking_news_comment(current_results, previous_results_file):
             if 0 <= current_gap_seed < 0.5 and current_gap_seed < previous_gap_seed:
                 return f"【シード権争い】10位{team_10['name']}と11位{team_11['name']}が熾烈な争い！"
 
-    # 6. 27度以下の選手への鼓舞 (15時まで)
-    if datetime.now().hour < 15:
+    # 6. 27度以下の選手への鼓舞 (16時まで)
+    if datetime.now().hour < 16:
         cold_runners = [r for r in current_results if 0 < r.get('todayDistance', 0) <= 27.0]
         if cold_runners:
             coldest_runner = min(cold_runners, key=lambda x: x['todayDistance'])
@@ -435,7 +435,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
     # 7. 本日トップの選手名を紹介
     if current_results:
         now = datetime.now()
-        if now.hour in [12, 13, 14, 15, 16] and now.minute == 15:
+        if now.hour in [12, 13, 14, 15, 16] and now.minute in [15, 45]:
             # Find the team with the highest distance today
             top_performer_today = max(current_results, key=lambda x: x.get('todayDistance', 0))
             # Ensure there's some distance to report
