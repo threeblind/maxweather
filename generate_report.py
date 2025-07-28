@@ -283,7 +283,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
 
     # --- コメント生成ロジック (優先度順) ---
 
-    # 1. 首位交代
+    # 1. 首位交代 (最優先)
     if current_results and previous_data.get('teams'):
         current_leader_id = current_results[0]['id']
         previous_leader_id = previous_data['teams'][0]['id']
@@ -291,7 +291,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
             current_leader_name = current_results[0]['name']
             return f"【速報】首位交代！ {current_leader_name}がトップに浮上しました！"
 
-    # 2. 区間走破（本日初）
+    # 2. 区間走破
     previous_teams_map = {team['id']: team for team in previous_data.get('teams', [])}
     previous_distances = {team['id']: team['totalDistance'] for team in previous_data.get('teams', [])}
     leg_finishers_by_leg = {}  # {leg_number: [team_name1, team_name2]}
@@ -322,27 +322,26 @@ def generate_breaking_news_comment(current_results, previous_results_file):
             comments.append(f"{team_names_str}が{leg}区を走りきりました！")
         return "【区間走破】" + " ".join(comments)
 
-    # 2. 39度以上の猛暑日記録
+    # 3. 39度以上の猛暑日記録 (本日初の場合のみ)
     hot_runners = [r for r in current_results if r.get('todayDistance', 0) >= 39.0]
-    if hot_runners:
+    if hot_runners and not previous_data.get('breakingNewsComment', '').startswith('【猛暑】'):
         hottest_runner = max(hot_runners, key=lambda x: x['todayDistance'])
         team_name = hottest_runner['name']
         runner_name = hottest_runner['runner']
         temp = hottest_runner['todayDistance']
         return f"【猛暑】{team_name}の{runner_name}選手が本日{temp:.1f}℃を記録！素晴らしい走りです！"
     
-    # 3. 27度以下の選手への鼓舞 (16時まで)
+    # 4. 27度以下の選手への鼓舞 (16時まで、本日初の場合のみ)
     if now.hour < 16:
         cold_runners = [r for r in current_results if 0 < r.get('todayDistance', 0) <= 27.0]
-        if cold_runners:
+        if cold_runners and not previous_data.get('breakingNewsComment', '').startswith('【奮起】'):
             coldest_runner = min(cold_runners, key=lambda x: x['todayDistance'])
             team_name = coldest_runner['name']
             runner_name = coldest_runner['runner']
             temp = coldest_runner['todayDistance']
             return f"【奮起】{team_name}の{runner_name}選手(現在{temp:.1f}℃)、ここからの追い上げに期待がかかります！"
 
-
-    # 4. 3ランク以上のジャンプアップ
+    # 5. 3ランク以上のジャンプアップ
     jump_up_teams = []
     for team_id, current_rank in {t['id']: t['overallRank'] for t in current_results}.items():
         if team_id in previous_ranks:
@@ -356,7 +355,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
         best_jumper = max(jump_up_teams, key=lambda x: x['jump'])
         return f"【ジャンプアップ】{best_jumper['name']}が{best_jumper['jump']}ランクアップで{best_jumper['current_rank']}位に浮上！"
 
-    # 5. 5ランク以上のランクダウン
+    # 6. 5ランク以上のランクダウン
     rank_down_teams = []
     for team_id, current_rank in {t['id']: t['overallRank'] for t in current_results}.items():
         if team_id in previous_ranks:
@@ -370,7 +369,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
         worst_dropper = max(rank_down_teams, key=lambda x: x['drop'])
         return f"【波乱】{worst_dropper['name']}が{worst_dropper['drop']}ランクダウン。厳しい展開です。"
 
-    # 6. 追い上げ
+    # 7. 追い上げ
     previous_distances = {team['id']: team['totalDistance'] for team in previous_data.get('teams', [])}
     closing_gap_teams = []
     for i in range(1, len(current_results)):
@@ -393,7 +392,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
         best_closer = max(closing_gap_teams, key=lambda x: x['gap_closed'])
         return f"【追い上げ】{best_closer['name']}が猛追！前のチームとの差を{best_closer['gap_closed']:.1f}km縮めました！"
 
-    # 7. 表彰台争い、トップ5争い、シード争い (差が詰まった瞬間を検知)
+    # 8. 接戦 (表彰台、トップ5、シード権)
     previous_distances = {team['id']: team['totalDistance'] for team in previous_data.get('teams', [])}
 
     if len(current_results) > 3:
@@ -437,7 +436,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
             if 0 <= current_gap_seed < 0.5 and current_gap_seed < previous_gap_seed:
                 return f"【シード権争い】10位{team_10['name']}と11位{team_11['name']}が熾烈な争い！"
     
-    # 8. 本日トップの選手名を紹介
+    # 9. 定時速報 (選手)
     if current_results:
         if now.hour in [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] and now.minute == 45:
             # Find the team with the highest distance today
@@ -448,7 +447,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
                 distance = top_performer_today['todayDistance']
                 return f"【定時速報】本日のトップは{runner_name}選手！{distance:.1f}kmと素晴らしい走りです！"
 
-    # 9. 本日トップの大学を紹介
+    # 10. 定時速報 (チーム)
     if current_results:
         if now.hour in [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] and now.minute == 15:
             top_team = current_results[0]
