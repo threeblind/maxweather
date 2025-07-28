@@ -1,1 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+
+# Temporary files
 realtime_report_previous.json
+
+# IDE settings
+.vscode/
+
+*.log
