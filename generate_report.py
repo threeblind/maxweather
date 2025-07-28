@@ -435,7 +435,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
     # 7. 本日トップの選手名を紹介
     if current_results:
         now = datetime.now()
-        if now.hour in [12, 13, 14, 15, 16] and now.minute in [15, 45]:
+        if now.hour in [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] and now.minute in [15, 45]:
             # Find the team with the highest distance today
             top_performer_today = max(current_results, key=lambda x: x.get('todayDistance', 0))
             # Ensure there's some distance to report
