@@ -286,6 +286,29 @@ def generate_breaking_news_comment(current_results, previous_results_file):
             current_leader_name = current_results[0]['name']
             return f"【速報】首位交代！ {current_leader_name}がトップに浮上しました！"
 
+    # 2. 区間走破（本日初）
+    previous_teams_map = {team['id']: team for team in previous_data.get('teams', [])}
+    leg_finishers_by_leg = {}  # {leg_number: [team_name1, team_name2]}
+
+    for team in current_results:
+        team_id = team['id']
+        if team_id in previous_teams_map:
+            previous_team = previous_teams_map[team_id]
+            # Check if the current leg in the new results is greater than the one in the previous report
+            if team['newCurrentLeg'] > previous_team['newCurrentLeg']:
+                completed_leg = previous_team['newCurrentLeg']
+                if completed_leg not in leg_finishers_by_leg:
+                    leg_finishers_by_leg[completed_leg] = []
+                leg_finishers_by_leg[completed_leg].append(team['name'])
+
+    if leg_finishers_by_leg:
+        comments = []
+        # Sort by leg number to announce earlier legs first
+        for leg, teams in sorted(leg_finishers_by_leg.items()):
+            team_names_str = '、'.join(teams)
+            comments.append(f"{team_names_str}が{leg}区を走りきりました！")
+        return "【区間走破】" + " ".join(comments)
+
     # 2. 39度以上の猛暑日記録
     hot_runners = [r for r in current_results if r.get('todayDistance', 0) >= 39.0]
     if hot_runners:
