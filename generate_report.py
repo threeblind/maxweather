@@ -288,18 +288,26 @@ def generate_breaking_news_comment(current_results, previous_results_file):
 
     # 2. 区間走破（本日初）
     previous_teams_map = {team['id']: team for team in previous_data.get('teams', [])}
+    previous_distances = {team['id']: team['totalDistance'] for team in previous_data.get('teams', [])}
     leg_finishers_by_leg = {}  # {leg_number: [team_name1, team_name2]}
 
     for team in current_results:
         team_id = team['id']
         if team_id in previous_teams_map:
             previous_team = previous_teams_map[team_id]
-            # Check if the current leg in the new results is greater than the one in the previous report
-            if team['newCurrentLeg'] > previous_team['currentLeg']:
-                completed_leg = previous_team['currentLeg']
-                if completed_leg not in leg_finishers_by_leg:
-                    leg_finishers_by_leg[completed_leg] = []
-                leg_finishers_by_leg[completed_leg].append(team['name'])
+            previous_total_distance = previous_distances.get(team_id)
+
+            # チームが前回更新時にいた区間（＝本日担当区間）をチェック対象とする
+            leg_to_check_completion = previous_team['currentLeg']
+
+            if leg_to_check_completion <= len(ekiden_data['leg_boundaries']) and previous_total_distance is not None:
+                boundary = ekiden_data['leg_boundaries'][leg_to_check_completion - 1]
+                # この更新サイクルで、初めて区間の境界線を越えたかを判定
+                if team['totalDistance'] >= boundary and previous_total_distance < boundary:
+                    completed_leg = leg_to_check_completion
+                    if completed_leg not in leg_finishers_by_leg:
+                        leg_finishers_by_leg[completed_leg] = []
+                    leg_finishers_by_leg[completed_leg].append(team['name'])
 
     if leg_finishers_by_leg:
         comments = []
