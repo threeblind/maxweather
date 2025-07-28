@@ -202,7 +202,7 @@ def update_rank_history(results, race_day, rank_history_file_path):
     with open(rank_history_file_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2, ensure_ascii=False)
 
-def update_leg_rank_history(results, previous_day_state, leg_rank_history_file_path):
+def update_leg_rank_history(results, previous_day_state, leg_rank_history_file_path, is_commit_mode=False):
     """
     Updates the leg-by-leg rank history file (leg_rank_history.json).
     This function records the overall rank of a team at the moment it completes a leg.
@@ -210,6 +210,8 @@ def update_leg_rank_history(results, previous_day_state, leg_rank_history_file_p
     - results: List of today's results, sorted by overall rank.
     - previous_day_state: The state of the ekiden from the *start* of the day (before today's results).
     - leg_rank_history_file_path: Path to the leg rank history file.
+    - is_commit_mode: If True, overwrites any existing rank for a leg completed today.
+                      If False (realtime), only records if the rank is not yet set.
     """
     num_legs = len(ekiden_data['leg_boundaries'])
 
@@ -240,12 +242,21 @@ def update_leg_rank_history(results, previous_day_state, leg_rank_history_file_p
         if not prev_state or not team_history:
             continue
 
-        # Check if the team has advanced to a new leg
-        if result['newCurrentLeg'] > prev_state['currentLeg']:
-            completed_leg_index = prev_state['currentLeg'] - 1
-            # Record the rank only if it hasn't been recorded yet for this leg
-            if 0 <= completed_leg_index < num_legs and team_history['leg_ranks'][completed_leg_index] is None:
-                team_history['leg_ranks'][completed_leg_index] = result['overallRank']
+        # The team started the day in `prev_state['currentLeg']`.
+        # It is now in `result['newCurrentLeg']`.
+        # We update the ranks for all legs completed today with the current overall rank.
+        start_leg_today = prev_state['currentLeg']
+        last_completed_leg = result['newCurrentLeg'] - 1
+
+        # Iterate from the leg they started today up to the last leg they completed.
+        for leg_number in range(start_leg_today, last_completed_leg + 1):
+            leg_index = leg_number - 1
+            if 0 <= leg_index < len(team_history['leg_ranks']):
+                # In commit mode, always overwrite.
+                # In realtime mode, update continuously as requested.
+                # The previous logic of only writing once (if None) is removed
+                # to allow for continuous updates.
+                team_history['leg_ranks'][leg_index] = result['overallRank']
 
     with open(leg_rank_history_file_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2, ensure_ascii=False)
@@ -499,7 +510,7 @@ def main():
     if args.commit:
         save_ekiden_state(results, args.state_file)
         update_rank_history(results, race_day, args.history_file)
-        update_leg_rank_history(results, current_state, args.leg_history_file)
+        update_leg_rank_history(results, current_state, args.leg_history_file, is_commit_mode=True)
         save_individual_results(individual_results, args.individual_state_file)
         print(f"\n--- [Commit Mode] Saved final results to {args.state_file}, {args.individual_state_file}, {args.history_file}, and {args.leg_history_file} ---")
     elif not args.realtime:
