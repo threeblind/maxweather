@@ -1,8 +1,8 @@
 {
-  "updateTime": "2025/07/28 14:25",
+  "updateTime": "2025/07/28 14:35",
   "raceDay": 6,
-  "breakingNewsComment": "【区間走破】福島大学、立命館大学、鳥取大学、上武大学、福岡大学、東北大学、日本大学、金沢大学、名古屋大学、関西大学、学連選抜、熊本学園大学、広島経済大学、山梨学院大学、四国大学、三重大学が2区を走りきりました！",
-  "breakingNewsTimestamp": "2025-07-28T14:25:04.029237",
+  "breakingNewsComment": "【区間走破】福島大学、立命館大学、鳥取大学、福岡大学、上武大学、東北大学、日本大学、金沢大学、名古屋大学、関西大学、学連選抜、熊本学園大学、広島経済大学、山梨学院大学、四国大学、三重大学が2区を走りきりました！",
+  "breakingNewsTimestamp": "2025-07-28T14:35:03.413391",
   "teams": [
     {
       "id": 15,
@@ -44,6 +44,19 @@
       "error": null
     },
     {
+      "id": 3,
+      "name": "福岡大学",
+      "currentLeg": 2,
+      "runner": "2福岡",
+      "todayDistance": 37.9,
+      "todayRank": 2,
+      "totalDistance": 223.3,
+      "overallRank": 4,
+      "previousRank": 5,
+      "nextRunner": "3黒木",
+      "error": null
+    },
+    {
       "id": 4,
       "name": "上武大学",
       "currentLeg": 2,
@@ -51,22 +64,9 @@
       "todayDistance": 37.0,
       "todayRank": 5,
       "totalDistance": 223.2,
-      "overallRank": 4,
+      "overallRank": 5,
       "previousRank": 4,
       "nextRunner": "3熊谷",
-      "error": null
-    },
-    {
-      "id": 3,
-      "name": "福岡大学",
-      "currentLeg": 2,
-      "runner": "2福岡",
-      "todayDistance": 37.4,
-      "todayRank": 4,
-      "totalDistance": 222.8,
-      "overallRank": 5,
-      "previousRank": 5,
-      "nextRunner": "3黒木",
       "error": null
     },
     {
@@ -88,7 +88,7 @@
       "currentLeg": 2,
       "runner": "2古河",
       "todayDistance": 37.7,
-      "todayRank": 2,
+      "todayRank": 3,
       "totalDistance": 221.3,
       "overallRank": 7,
       "previousRank": 8,
@@ -114,7 +114,7 @@
       "currentLeg": 2,
       "runner": "2美濃",
       "todayDistance": 37.7,
-      "todayRank": 2,
+      "todayRank": 3,
       "totalDistance": 219.3,
       "overallRank": 9,
       "previousRank": 11,
@@ -204,9 +204,9 @@
       "name": "三重大学",
       "currentLeg": 2,
       "runner": "2五條",
-      "todayDistance": 35.3,
+      "todayDistance": 35.4,
       "todayRank": 13,
-      "totalDistance": 210.2,
+      "totalDistance": 210.3,
       "overallRank": 16,
       "previousRank": 16,
       "nextRunner": "3小俣",
