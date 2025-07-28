@@ -342,6 +342,13 @@ def generate_breaking_news_comment(current_results, previous_results_file):
             temp = coldest_runner['todayDistance']
             return f"【奮起】{team_name}の{runner_name}選手(現在{temp:.1f}℃)、ここからの追い上げに期待がかかります！"
 
+    # 7. 定時速報 (他の速報がない場合)
+    now = datetime.now()
+    if now.hour in [12, 13, 14, 15, 16] and now.minute == 5:
+        if current_results:
+            leader_name = current_results[0]['name']
+            return f"【定時速報】{now.hour}時05分、レースは本日の中盤戦。現在トップを走るのは{leader_name}です。"
+
     return "" # 大きな変動がなければ空文字列を返す
 
 def main():
