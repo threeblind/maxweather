@@ -492,6 +492,21 @@
             border-radius: 8px;
             z-index: 0; /* Ensure it's behind modals */
         }
+        .map-controls {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .map-controls label {
+            font-weight: bold;
+        }
+        .map-controls select {
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
         /* Custom Runner Marker Styles */
         .runner-icon .runner-marker {
             position: relative;
@@ -668,6 +683,12 @@
 
         <div id="section-course-map" class="map-container">
             <h2>🗺️ 速報マップ</h2>
+            <div class="map-controls">
+                <label for="team-tracker-select">追跡モード:</label>
+                <select id="team-tracker-select">
+                    <!-- Options will be populated by JS -->
+                </select>
+            </div>
             <div class="map-frame-wrapper">
                 <div id="map"></div>
             </div>

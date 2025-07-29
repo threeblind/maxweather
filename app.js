@@ -322,6 +322,7 @@ async function loadRanking() {
 let map = null;
 let runnerMarkersLayer = null;
 let teamColorMap = new Map();
+let trackedTeamName = "lead_group"; // デフォルトは先頭集団を追跡
 
 /**
  * Initializes the interactive map, draws the course, and places relay point markers.
@@ -396,6 +397,34 @@ function createRunnerIcon(teamInitial, color) {
 }
 
 /**
+ * Populates the team tracker dropdown and sets up its event listener.
+ * @param {Array} teams - The list of teams from ekiden_data.json.
+ */
+function setupTeamTracker(teams) {
+    const selectEl = document.getElementById('team-tracker-select');
+    if (!selectEl) return;
+
+    // Add default option
+    selectEl.innerHTML = `<option value="lead_group">先頭集団を追跡</option>`;
+
+    // Add each team as an option
+    teams.forEach(team => {
+        const option = document.createElement('option');
+        option.value = team.name;
+        option.textContent = team.name;
+        selectEl.appendChild(option);
+    });
+
+    // Add event listener
+    selectEl.addEventListener('change', (event) => {
+        trackedTeamName = event.target.value;
+        // Immediately update the map view without waiting for the next 30-second interval
+        // We can do this by re-fetching the data, which will trigger the map update logic.
+        fetchEkidenData(); 
+    });
+}
+
+/**
  * Updates the runner markers on the map with the latest locations.
  * @param {Array} runnerLocations - Data from runner_locations.json.
  */
@@ -424,16 +453,28 @@ function updateRunnerMarkers(runnerLocations) {
         runnerMarkersLayer.addLayer(marker);
     });
 
-    // 先頭集団（例: トップ5）にズームを合わせる
-    const leadGroup = runnerLocations.slice(0, 5);
-    if (leadGroup.length > 1) {
-        const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
-        const bounds = L.latLngBounds(leadGroupLatLngs);
-        // マーカーが見切れないように少し余白(padding)を持たせ、過度なズームインを防ぐ
-        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
-    } else if (leadGroup.length === 1) {
-        // ランナーが1人だけの場合は、その位置にズーム
-        map.setView([leadGroup[0].latitude, leadGroup[0].longitude], 13);
+    // --- Map View Update Logic ---
+    if (trackedTeamName && trackedTeamName !== "lead_group") {
+        // --- Track a specific team ---
+        const trackedRunner = runnerLocations.find(r => r.team_name === trackedTeamName);
+        if (trackedRunner) {
+            map.setView([trackedRunner.latitude, trackedRunner.longitude], 14, {
+                animate: true,
+                pan: {
+                    duration: 1
+                }
+            });
+        }
+    } else {
+        // --- Track the lead group (default behavior) ---
+        const leadGroup = runnerLocations.slice(0, 5);
+        if (leadGroup.length > 1) {
+            const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
+            const bounds = L.latLngBounds(leadGroupLatLngs);
+            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+        } else if (leadGroup.length === 1) {
+            map.setView([leadGroup[0].latitude, leadGroup[0].longitude], 13);
+        }
     }
 }
 
@@ -1106,6 +1147,8 @@ const updateEkidenRankingTable = (data) => {
     });
 };
 
+let isTrackerInitialized = false; // Flag to ensure the tracker is only set up once
+
 /**
  * サーバーから駅伝の最新データを取得します。
  */
@@ -1139,6 +1182,12 @@ const fetchEkidenData = async () => {
         const ekidenData = await ekidenDataRes.json();
         
         allIndividualData = individualData; // Store data in global variable
+
+        // Populate team tracker dropdown if it hasn't been initialized
+        if (!isTrackerInitialized && ekidenData.teams) {
+            setupTeamTracker(ekidenData.teams);
+            isTrackerInitialized = true;
+        }
 
         // Populate team color map if it's empty
         if (teamColorMap.size === 0) {
