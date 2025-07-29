@@ -330,21 +330,17 @@ def generate_breaking_news_comment(current_results, previous_results_file):
     # 3. 39度以上の猛暑日記録 (本日初の場合のみ)
     hot_runners = [r for r in current_results if r.get('todayDistance', 0) >= 39.0]
     if hot_runners and not previous_data.get('breakingNewsComment', '').startswith('【猛暑】'):
-        hottest_runner = max(hot_runners, key=lambda x: x['todayDistance'])
-        team_name = hottest_runner['name']
-        runner_name = hottest_runner['runner']
-        temp = hottest_runner['todayDistance']
-        return f"【猛暑】{team_name}の{runner_name}選手が本日{temp:.1f}℃を記録！素晴らしい走りです！"
+        runner_details = [f"{r['name']}の{r['runner']}選手({r['todayDistance']:.1f}km)" for r in hot_runners]
+        runner_list_str = '、'.join(runner_details)
+        return f"【猛暑】{runner_list_str}が39℃を超える走りをみせています！素晴らしい走りです！"
     
     # 4. 27度以下の選手への鼓舞 (16時まで、本日初の場合のみ)
     if 13 <=now.hour < 16:
         cold_runners = [r for r in current_results if 0 < r.get('todayDistance', 0) <= 27.0]
         if cold_runners and not previous_data.get('breakingNewsComment', '').startswith('【奮起】'):
-            coldest_runner = min(cold_runners, key=lambda x: x['todayDistance'])
-            team_name = coldest_runner['name']
-            runner_name = coldest_runner['runner']
-            temp = coldest_runner['todayDistance']
-            return f"【奮起】{team_name}の{runner_name}選手(現在{temp:.1f}℃)、ここからの追い上げに期待がかかります！"
+            runner_details = [f"{r['name']}の{r['runner']}選手({r['todayDistance']:.1f}km)" for r in cold_runners]
+            runner_list_str = '、'.join(runner_details)
+            return f"【奮起】{runner_list_str}、ここからの追い上げに期待がかかります！"
 
     # 5. 3ランク以上のジャンプアップ
     jump_up_teams = []
