@@ -358,7 +358,9 @@ async function initializeMap() {
         if (coursePath && coursePath.length > 0) {
             const latlngs = coursePath.map(p => [p.lat, p.lon]);
             L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
-            map.fitBounds(latlngs); // Adjust map view to fit the entire course
+            // 初期表示ではコース全体ではなく、日本全体をデフォルトビューとする
+            // 実際の先頭集団へのズームは、この後の fetchEkidenData -> updateRunnerMarkers で行われる
+            map.setView([36, 138], 5); // 日本の中心あたり
         }
 
         // 6. Draw relay point markers
