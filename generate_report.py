@@ -326,6 +326,22 @@ def generate_breaking_news_comment(current_results, previous_results_file):
             team_names_str = '、'.join(teams)
             comments.append(f"{team_names_str}が{leg}区を走りきりました！")
         return "【区間走破】" + " ".join(comments)
+    
+# 3. Heat wave record (only on record update)
+    hottest_runners = []
+    # Create a map of previous temperatures keyed by team ID
+    previous_temps_map = {team['id']: team.get('todayDistance', 0) for team in previous_data.get('teams', [])}
+
+    for r in current_results:
+        # Extract runners who are at 40.0km or higher AND have surpassed their previous record for the day
+        if r.get('todayDistance', 0) >= 40.0 and r['todayDistance'] > previous_temps_map.get(r['id'], 0):
+            hottest_runners.append(r)
+
+    if hottest_runners:
+        runner_details = [f"Runner {r['runner']} of {r['name']} ({r['todayDistance']:.1f}km)" for r in hottest_runners]
+        runner_list_str = ', '.join(runner_details)
+        return f"【酷暑】{runner_list_str}が脅威の走りで酷暑日超え、これは強烈な走り！！"
+        
 
 # 3. Heat wave record (only on record update)
     hotter_runners = []
