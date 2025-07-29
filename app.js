@@ -1465,11 +1465,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // 駅伝機能の初期化
     createEkidenHeader();
     createLegRankingHeader();
-    displayEntryList();
-    initializeMap(); // Initialize the map
-    displayLegRankHistoryTable();
-    displayOutline();
+
+    // --- ページの主要コンテンツを非同期で読み込み ---
+    // 1. マップを初期化
+    initializeMap();
+    // 2. 最も重要な速報データを最初に取得して表示（マップのズームもここで行われる）
     fetchEkidenData();
+    // 3. その他のコンテンツを読み込む
+    displayEntryList(); // エントリーリスト
+    displayLegRankHistoryTable(); // 順位推移テーブル
+    displayOutline(); // 大会概要
     // 30秒ごとにデータを自動更新
     setInterval(fetchEkidenData, 30000);
 
