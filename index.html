@@ -637,18 +637,25 @@
 
         <nav class="page-nav">
             <ul>
+                <li><a href="#section-course-map">速報マップ</a></li>
                 <li><a href="#section-overall-ranking">総合順位</a></li>
                 <li><a href="#section-leg-rank-history">順位推移</a></li>
                 <li><a href="#section-leg-ranking">個人記録</a></li>
                 <li><a href="#section-leg-prize">区間記録</a></li>
                 <li><a href="#section-entry-list">エントリー</a></li>
-                <li><a href="#section-course-map">コース</a></li>
                 <li><a href="#outlineContainer">大会概要</a></li>
             </ul>
         </nav>
 
         <div id="breaking-news-container" class="breaking-news">
             <!-- 速報コメントは app.js によって動的に生成されます -->
+        </div>
+
+        <div id="section-course-map" class="map-container">
+            <h2>🗺️ 速報マップ</h2>
+            <div class="map-frame-wrapper">
+                <div id="map"></div>
+            </div>
         </div>
 
         <div id="section-overall-ranking" class="ekiden-section-wrapper">
@@ -728,13 +735,6 @@
             <h2>📝 エントリーリスト</h2>
             <div id="entryList">
                 <!-- エントリーリストは app.js によって動的に生成されます -->
-            </div>
-        </div>
-
-        <div id="section-course-map" class="map-container">
-            <h2>🗺️ コースマップ</h2>
-            <div class="map-frame-wrapper">
-                <div id="map"></div>
             </div>
         </div>
 
