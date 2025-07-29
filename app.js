@@ -425,12 +425,12 @@ function updateRunnerMarkers(runnerLocations) {
     });
 
     // 先頭集団（例: トップ5）にズームを合わせる
-    const leadGroup = runnerLocations.slice(0, 8);
+    const leadGroup = runnerLocations.slice(0, 5);
     if (leadGroup.length > 1) {
         const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
         const bounds = L.latLngBounds(leadGroupLatLngs);
         // マーカーが見切れないように少し余白(padding)を持たせ、過度なズームインを防ぐ
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
     } else if (leadGroup.length === 1) {
         // ランナーが1人だけの場合は、その位置にズーム
         map.setView([leadGroup[0].latitude, leadGroup[0].longitude], 13);
