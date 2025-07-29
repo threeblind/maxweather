@@ -332,7 +332,7 @@ def generate_breaking_news_comment(current_results, previous_results_file):
     if hot_runners and not previous_data.get('breakingNewsComment', '').startswith('【猛暑】'):
         runner_details = [f"{r['name']}の{r['runner']}選手({r['todayDistance']:.1f}km)" for r in hot_runners]
         runner_list_str = '、'.join(runner_details)
-        return f"【猛暑】{runner_list_str}が39℃を超える走りをみせています！素晴らしい走りです！"
+        return f"【猛暑】{runner_list_str}が39kmを超える走りをみせています！素晴らしい走りです！"
     
     # 4. 27度以下の選手への鼓舞 (16時まで、本日初の場合のみ)
     if 13 <=now.hour < 16:
