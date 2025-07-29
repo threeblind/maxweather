@@ -425,7 +425,7 @@ function updateRunnerMarkers(runnerLocations) {
     });
 
     // 先頭集団（例: トップ5）にズームを合わせる
-    const leadGroup = runnerLocations.slice(0, 10);
+    const leadGroup = runnerLocations.slice(0, 8);
     if (leadGroup.length > 1) {
         const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
         const bounds = L.latLngBounds(leadGroupLatLngs);
