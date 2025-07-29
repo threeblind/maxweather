@@ -409,7 +409,7 @@ function updateRunnerMarkers(runnerLocations) {
 
     runnerLocations.forEach(runner => {
         const color = teamColorMap.get(runner.team_name) || '#808080'; // Default to grey
-        const teamInitial = runner.team_name ? runner.team_name.substring(0, 1) : '?';
+        const teamInitial = runner.team_name ? runner.team_name.substring(0, 2) : '??';
         const icon = createRunnerIcon(teamInitial, color);
         const latLng = [runner.latitude, runner.longitude];
         const marker = L.marker(latLng, { icon: icon });
