@@ -318,6 +318,125 @@ async function loadRanking() {
 
 // --- 駅伝ランキング表示機能 ---
 
+// --- Map Variables ---
+let map = null;
+let runnerMarkersLayer = null;
+let teamColorMap = new Map();
+
+/**
+ * Initializes the interactive map, draws the course, and places relay point markers.
+ */
+async function initializeMap() {
+    // 1. Initialize the map if it hasn't been already
+    if (map) return;
+    map = L.map('map');
+
+    // 2. Add the base map layer (OpenStreetMap)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // 3. Create a layer group for runner markers that can be easily cleared and updated
+    runnerMarkersLayer = L.layerGroup().addTo(map);
+
+    try {
+        // 4. Fetch course path and relay points data in parallel
+        const [coursePathRes, relayPointsRes] = await Promise.all([
+            fetch(`course_path.json?_=${new Date().getTime()}`),
+            fetch(`relay_points.json?_=${new Date().getTime()}`)
+        ]);
+
+        if (!coursePathRes.ok || !relayPointsRes.ok) {
+            throw new Error('Failed to fetch map data.');
+        }
+
+        const coursePath = await coursePathRes.json();
+        const relayPoints = await relayPointsRes.json();
+
+        // 5. Draw the course path
+        if (coursePath && coursePath.length > 0) {
+            const latlngs = coursePath.map(p => [p.lat, p.lon]);
+            L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
+            map.fitBounds(latlngs); // Adjust map view to fit the entire course
+        }
+
+        // 6. Draw relay point markers
+        if (relayPoints && relayPoints.length > 0) {
+            relayPoints.forEach(point => {
+                L.marker([point.latitude, point.longitude])
+                    .addTo(map)
+                    .bindPopup(`<b>${point.name}</b><br>${point.target_distance_km} km地点`);
+            });
+        }
+    } catch (error) {
+        console.error('Error initializing map:', error);
+        document.getElementById('map').innerHTML = `<p class="result error">マップの読み込みに失敗しました: ${error.message}</p>`;
+    }
+}
+
+/**
+ * Creates a custom HTML icon for a runner's map marker.
+ * @param {string} teamInitial - The first character of the team name.
+ * @param {string} color - The team's color.
+ * @returns {L.DivIcon} - A Leaflet DivIcon object.
+ */
+function createRunnerIcon(teamInitial, color) {
+    const iconHtml = `
+        <div class="runner-marker" style="background-color: ${color};">
+            <span class="rank-number">${teamInitial}</span>
+        </div>
+    `;
+    return L.divIcon({
+        html: iconHtml,
+        className: 'runner-icon',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -14]
+    });
+}
+
+/**
+ * Updates the runner markers on the map with the latest locations.
+ * @param {Array} runnerLocations - Data from runner_locations.json.
+ */
+function updateRunnerMarkers(runnerLocations) {
+    if (!map || !runnerMarkersLayer) return;
+    runnerMarkersLayer.clearLayers(); // Remove old markers
+
+    if (!runnerLocations || runnerLocations.length === 0) {
+        return; // 表示するランナーがいない場合は何もしない
+    }
+
+    const runnerLatLngs = [];
+    runnerLocations.forEach(runner => {
+        const color = teamColorMap.get(runner.team_name) || '#808080'; // Default to grey
+        const teamInitial = runner.team_name ? runner.team_name.substring(0, 1) : '?';
+        const icon = createRunnerIcon(teamInitial, color);
+        const latLng = [runner.latitude, runner.longitude];
+        const marker = L.marker(latLng, { icon: icon });
+
+        const popupContent = `
+            <b>${runner.rank}位: ${runner.team_name}</b><br>
+            走者: ${formatRunnerName(runner.runner_name)}<br>
+            総距離: ${runner.total_distance_km.toFixed(1)} km
+        `;
+        marker.bindPopup(popupContent);
+
+        runnerMarkersLayer.addLayer(marker);
+        runnerLatLngs.push(latLng);
+    });
+
+    // 全てのランナーが表示されるように地図の表示領域を調整
+    if (runnerLatLngs.length > 1) {
+        const bounds = L.latLngBounds(runnerLatLngs);
+        // マーカーが見切れないように少し余白(padding)を持たせ、過度なズームインを防ぐ
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+    } else if (runnerLatLngs.length === 1) {
+        // ランナーが1人だけの場合は、その位置にズーム
+        map.setView(runnerLatLngs[0], 13);
+    }
+}
+
 /**
  * 駅伝用のテーブルヘッダーを生成します。
  */
@@ -1002,19 +1121,31 @@ const fetchEkidenData = async () => {
     }
 
     try {
-        // Fetch realtime and individual data in parallel (cache busting)
-        const [realtimeRes, individualRes] = await Promise.all([
+        // Fetch all necessary data in parallel
+        const [realtimeRes, individualRes, runnerLocationsRes, ekidenDataRes] = await Promise.all([
             fetch(`realtime_report.json?_=${new Date().getTime()}`),
-            fetch(`individual_results.json?_=${new Date().getTime()}`)
+            fetch(`individual_results.json?_=${new Date().getTime()}`),
+            fetch(`runner_locations.json?_=${new Date().getTime()}`),
+            fetch(`ekiden_data.json?_=${new Date().getTime()}`)
         ]);
 
-        if (!realtimeRes.ok || !individualRes.ok) {
-            throw new Error(`HTTP error! status: ${realtimeRes.status}, ${individualRes.status}`);
+        if (!realtimeRes.ok || !individualRes.ok || !runnerLocationsRes.ok || !ekidenDataRes.ok) {
+            throw new Error(`HTTP error! One or more data files failed to load.`);
         }
 
         const realtimeData = await realtimeRes.json();
         const individualData = await individualRes.json();
+        const runnerLocations = await runnerLocationsRes.json();
+        const ekidenData = await ekidenDataRes.json();
+        
         allIndividualData = individualData; // Store data in global variable
+
+        // Populate team color map if it's empty
+        if (teamColorMap.size === 0) {
+            ekidenData.teams.forEach(team => {
+                teamColorMap.set(team.name, team.color);
+            });
+        }
 
         // Update title and update time
         titleEl.textContent = `🏆 ${realtimeData.raceDay}日目 総合順位`;
@@ -1022,20 +1153,19 @@ const fetchEkidenData = async () => {
 
         // Update breaking news comment from realtime_report.json
         const newsContainer = document.getElementById('breaking-news-container');
-        if (newsContainer) {
-            if (realtimeData && realtimeData.breakingNewsComment && realtimeData.breakingNewsTimestamp) {
-                const comment = realtimeData.breakingNewsComment;
-                const date = new Date(realtimeData.breakingNewsTimestamp);
-                const timeStr = date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-                newsContainer.textContent = `${comment} (${timeStr}時点)`;
-                newsContainer.style.display = 'block';
-            } else {
-                newsContainer.style.display = 'none';
-            }
+        if (newsContainer && realtimeData.breakingNewsComment && realtimeData.breakingNewsTimestamp) {
+            const comment = realtimeData.breakingNewsComment;
+            const date = new Date(realtimeData.breakingNewsTimestamp);
+            const timeStr = date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            newsContainer.textContent = `${comment} (${timeStr}時点)`;
+            newsContainer.style.display = 'block';
+        } else if (newsContainer) {
+            newsContainer.style.display = 'none';
         }
 
         updateEkidenRankingTable(realtimeData);
         updateIndividualSections(realtimeData, individualData);
+        updateRunnerMarkers(runnerLocations); // Update map markers
 
     } catch (error) {
         console.error('Error fetching ekiden data:', error);
@@ -1285,6 +1415,7 @@ document.addEventListener('DOMContentLoaded', function() {
     createEkidenHeader();
     createLegRankingHeader();
     displayEntryList();
+    initializeMap(); // Initialize the map
     displayLegRankHistoryTable();
     displayOutline();
     fetchEkidenData();
