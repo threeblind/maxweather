@@ -3,10 +3,13 @@ import os
 from datetime import datetime, timedelta
 import requests
 import shutil
-from bs4 import BeautifulSoup
-import unicodedata
 import sys
 import argparse
+import re
+import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
+import unicodedata
+from geopy.distance import geodesic
 
 # --- 定数 ---
 AMEDAS_STATIONS_FILE = 'amedas_stations.json'
@@ -16,6 +19,8 @@ INDIVIDUAL_STATE_FILE = 'individual_results.json'
 RANK_HISTORY_FILE = 'rank_history.json'
 LEG_RANK_HISTORY_FILE = 'leg_rank_history.json'
 EKIDEN_START_DATE = '2025-07-23'
+KML_FILE = 'ekiden_map.kml'
+RUNNER_LOCATIONS_OUTPUT_FILE = 'runner_locations.json'
 
 # --- グローバル変数 ---
 stations_data = []
@@ -469,6 +474,88 @@ def generate_breaking_news_comment(current_results, previous_results_file):
 
     return "" # 大きな変動がなければ空文字列を返す
 
+def get_leg_number_from_name(name):
+    """'第１区'のようなPlacemark名から区間番号を抽出します。"""
+    match = re.search(r'第(\d+)区', name)
+    if match:
+        return int(match.group(1))
+    return float('inf') # マッチしない場合は最後にソートされるように大きな数を返す
+
+def calculate_and_save_runner_locations(teams_data):
+    """
+    KMLファイルとリアルタイムレポートから、各チームの現在位置（緯度経度）を計算する。
+    """
+    # 1. KMLファイルを解析
+    try:
+        tree = ET.parse(KML_FILE)
+        root = tree.getroot()
+        ns = {'kml': 'http://www.opengis.net/kml/2.2'}
+    except (FileNotFoundError, ET.ParseError) as e:
+        print(f"エラー: {KML_FILE} の解析に失敗しました: {e}")
+        return
+
+    # 2. LineStringを持つPlacemarkを抽出し、区間番号でソート
+    placemarks = root.findall('.//kml:Placemark', ns)
+    linestring_placemarks = []
+    for pm in placemarks:
+        name_tag = pm.find('kml:name', ns)
+        if name_tag is not None and '区' in name_tag.text:
+             linestring_placemarks.append(pm)
+
+    linestring_placemarks.sort(key=lambda pm: get_leg_number_from_name(pm.find('kml:name', ns).text))
+
+    # 3. 全ての座標を一つのリストに結合
+    all_points = []
+    for pm in linestring_placemarks:
+        coord_tag = pm.find('.//kml:coordinates', ns)
+        if coord_tag is not None:
+            coord_text = coord_tag.text.strip()
+            points_str = re.split(r'\s+', coord_text)
+            for p_str in points_str:
+                if p_str:
+                    lon, lat, _ = map(float, p_str.split(','))
+                    all_points.append({'lat': lat, 'lon': lon})
+
+    if not all_points:
+        print("エラー: KMLファイル内にコースの座標データが見つかりませんでした。")
+        return
+
+    # 4. 各チームの距離に基づいて座標を特定
+    runner_locations = []
+    print("各チームの現在位置を計算中...")
+
+    for team in teams_data:
+        target_distance_km = team.get('totalDistance', 0)
+        cumulative_distance_km = 0.0
+        team_lat, team_lon = all_points[0]['lat'], all_points[0]['lon']
+
+        for i in range(1, len(all_points)):
+            p1 = (all_points[i-1]['lat'], all_points[i-1]['lon'])
+            p2 = (all_points[i]['lat'], all_points[i]['lon'])
+            segment_distance_km = geodesic(p1, p2).kilometers
+
+            if cumulative_distance_km <= target_distance_km < cumulative_distance_km + segment_distance_km:
+                distance_into_segment = target_distance_km - cumulative_distance_km
+                fraction = distance_into_segment / segment_distance_km if segment_distance_km > 0 else 0
+                team_lat = p1[0] + fraction * (p2[0] - p1[0])
+                team_lon = p1[1] + fraction * (p2[1] - p1[1])
+                break
+            cumulative_distance_km += segment_distance_km
+        
+        runner_locations.append({
+            "rank": team.get('overallRank'), "team_name": team.get('name'),
+            "runner_name": team.get('runner'), "total_distance_km": team.get('totalDistance'),
+            "latitude": team_lat, "longitude": team_lon
+        })
+        print(f"  {team.get('overallRank')}位 {team.get('name'):<10} @ {team.get('totalDistance'):.1f} km -> ({team_lat:.6f}, {team_lon:.6f})")
+
+    # 5. 結果をJSONファイルに保存
+    with open(RUNNER_LOCATIONS_OUTPUT_FILE, 'w', encoding='utf-8') as f:
+        json.dump(runner_locations, f, indent=2, ensure_ascii=False)
+
+    print(f"\n計算完了: {len(runner_locations)}チームの位置を特定しました。")
+    print(f"結果を {RUNNER_LOCATIONS_OUTPUT_FILE} に保存しました。")
+
 def main():
     """メイン処理"""
     parser = argparse.ArgumentParser(description='高温大学駅伝のレポートを生成します。')
@@ -630,14 +717,18 @@ def main():
         update_rank_history(results, race_day, args.history_file)
         update_leg_rank_history(results, current_state, args.leg_history_file)
         save_individual_results(individual_results, args.individual_state_file)
-        print(f"\n--- [Realtime Mode] Saved report data to {realtime_report_file}, {args.history_file}, {args.leg_history_file}, and {args.individual_state_file} ---")
+        if results:
+            calculate_and_save_runner_locations(results)
+        print(f"\n--- [Realtime Mode] Saved report data to {realtime_report_file}, {args.history_file}, {args.leg_history_file}, {args.individual_state_file}, and {RUNNER_LOCATIONS_OUTPUT_FILE} ---")
 
     if args.commit:
         save_ekiden_state(results, args.state_file)
         update_rank_history(results, race_day, args.history_file)
         update_leg_rank_history(results, current_state, args.leg_history_file, is_commit_mode=True)
         save_individual_results(individual_results, args.individual_state_file)
-        print(f"\n--- [Commit Mode] Saved final results to {args.state_file}, {args.individual_state_file}, {args.history_file}, and {args.leg_history_file} ---")
+        if results:
+            calculate_and_save_runner_locations(results)
+        print(f"\n--- [Commit Mode] Saved final results to {args.state_file}, {args.individual_state_file}, {args.history_file}, {args.leg_history_file}, and {RUNNER_LOCATIONS_OUTPUT_FILE} ---")
     elif not args.realtime:
         print("\n--- [Preview Mode] To save results, run `python generate_report.py --commit` ---")
 
