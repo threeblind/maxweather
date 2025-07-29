@@ -469,7 +469,7 @@ function updateRunnerMarkers(runnerLocations) {
         }
     } else {
         // --- Track the lead group (default behavior) ---
-        const leadGroup = runnerLocations.slice(0, 2);
+        const leadGroup = runnerLocations.slice(0, 3);
         if (leadGroup.length > 1) {
             const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
             const bounds = L.latLngBounds(leadGroupLatLngs);
