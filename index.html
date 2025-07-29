@@ -494,18 +494,34 @@
         }
         /* Custom Runner Marker Styles */
         .runner-icon .runner-marker {
+            position: relative;
             display: flex;
             justify-content: center;
             align-items: center;
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            border: 2px solid #ffffff;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+            /* JSで設定されるチームカラーを枠線にも適用 */
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
             color: white;
             font-weight: bold;
             font-size: 14px;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .runner-icon .runner-marker::after {
+            content: '';
+            position: absolute;
+            bottom: -12px; /* 円の下に配置 */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            /* JSで設定された親要素のborder-colorを継承して三角形を描画 */
+            border-top: 12px solid;
+            border-top-color: inherit;
         }
         .runner-icon .rank-number {
             line-height: 1; /* Vertically center the number */

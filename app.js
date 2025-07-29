@@ -382,16 +382,16 @@ async function initializeMap() {
  */
 function createRunnerIcon(teamInitial, color) {
     const iconHtml = `
-        <div class="runner-marker" style="background-color: ${color};">
+        <div class="runner-marker" style="background-color: ${color}; border-color: ${color};">
             <span class="rank-number">${teamInitial}</span>
         </div>
     `;
     return L.divIcon({
         html: iconHtml,
         className: 'runner-icon',
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
-        popupAnchor: [0, -14]
+        iconSize: [32, 44], // アイコン全体のサイズ (幅, 高さ)
+        iconAnchor: [16, 44], // アイコンの先端の位置 (X, Y)
+        popupAnchor: [0, -46] // ポップアップの表示位置
     });
 }
 
