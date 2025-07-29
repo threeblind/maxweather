@@ -407,7 +407,6 @@ function updateRunnerMarkers(runnerLocations) {
         return; // 表示するランナーがいない場合は何もしない
     }
 
-    const runnerLatLngs = [];
     runnerLocations.forEach(runner => {
         const color = teamColorMap.get(runner.team_name) || '#808080'; // Default to grey
         const teamInitial = runner.team_name ? runner.team_name.substring(0, 1) : '?';
@@ -423,17 +422,18 @@ function updateRunnerMarkers(runnerLocations) {
         marker.bindPopup(popupContent);
 
         runnerMarkersLayer.addLayer(marker);
-        runnerLatLngs.push(latLng);
     });
 
-    // 全てのランナーが表示されるように地図の表示領域を調整
-    if (runnerLatLngs.length > 1) {
-        const bounds = L.latLngBounds(runnerLatLngs);
+    // 先頭集団（例: トップ5）にズームを合わせる
+    const leadGroup = runnerLocations.slice(0, 10);
+    if (leadGroup.length > 1) {
+        const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
+        const bounds = L.latLngBounds(leadGroupLatLngs);
         // マーカーが見切れないように少し余白(padding)を持たせ、過度なズームインを防ぐ
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
-    } else if (runnerLatLngs.length === 1) {
+    } else if (leadGroup.length === 1) {
         // ランナーが1人だけの場合は、その位置にズーム
-        map.setView(runnerLatLngs[0], 13);
+        map.setView([leadGroup[0].latitude, leadGroup[0].longitude], 13);
     }
 }
 
