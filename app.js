@@ -408,20 +408,27 @@ function setupTeamTracker(teams) {
     const selectEl = document.getElementById('team-tracker-select');
     if (!selectEl) return;
 
-    // Add default options
-    selectEl.innerHTML = `
-        <option value="lead_group">先頭集団を追跡</option>
-        <option value="all_teams">全大学を表示</option>
-        <option value="full_course">コース全体を表示</option>
-    `;
+    // 1. 最初に「先頭集団を追跡」オプションのみを設定
+    selectEl.innerHTML = `<option value="lead_group">先頭集団を追跡</option>`;
 
-    // Add each team as an option
+    // 2. 各大学をオプションとして追加
     teams.forEach(team => {
         const option = document.createElement('option');
         option.value = team.name;
         option.textContent = team.name;
         selectEl.appendChild(option);
     });
+
+    // 3. 全体表示オプションを最後に追加
+    const allTeamsOption = document.createElement('option');
+    allTeamsOption.value = 'all_teams';
+    allTeamsOption.textContent = '全大学を表示';
+    selectEl.appendChild(allTeamsOption);
+
+    const courseOption = document.createElement('option');
+    courseOption.value = 'full_course';
+    courseOption.textContent = 'コース全体を表示';
+    selectEl.appendChild(courseOption);
 
     // Add event listener
     selectEl.addEventListener('change', (event) => {
