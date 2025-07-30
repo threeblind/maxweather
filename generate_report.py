@@ -227,6 +227,7 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
         report_data["teams"].append({
             "id": r["id"],
             "name": r["name"],
+            "short_name": team_info.get("short_name", r["name"]),
             "currentLeg": r["currentLegNumber"],
             "runner": f"{r['currentLegNumber']}{r['runner']}",
             "todayDistance": r["todayDistance"],
@@ -618,6 +619,8 @@ def calculate_and_save_runner_locations(teams_data):
     runner_locations = []
     print("各チームの現在位置を計算中...")
 
+    team_info_map = {t['id']: t for t in ekiden_data['teams']}
+
     for team in teams_data:
         target_distance_km = team.get('totalDistance', 0)
         cumulative_distance_km = 0.0
@@ -636,8 +639,12 @@ def calculate_and_save_runner_locations(teams_data):
                 break
             cumulative_distance_km += segment_distance_km
         
+        team_info = team_info_map.get(team.get('id'))
+        short_name = team_info.get('short_name', team.get('name')) if team_info else team.get('name')
+
         runner_locations.append({
             "rank": team.get('overallRank'), "team_name": team.get('name'),
+            "team_short_name": short_name,
             "runner_name": team.get('runner'), "total_distance_km": team.get('totalDistance'),
             "latitude": team_lat, "longitude": team_lon
         })
@@ -667,13 +674,16 @@ def main():
     # Copy the previous report for comparison
     previous_report_file = 'realtime_report_previous.json'
     realtime_report_file = 'realtime_report.json'
+    previous_report_data = None # 変数を初期化
     if os.path.exists(realtime_report_file):
         shutil.copy(realtime_report_file, previous_report_file)
-        with open(previous_report_file, 'r', encoding='utf-8') as f:
-            # previous_report_data はこの後の速報コメント生成で利用される
-            previous_report_data = json.load(f)
-    else:
-        previous_report_file = ''
+        try:
+            with open(previous_report_file, 'r', encoding='utf-8') as f:
+                # previous_report_data はこの後の速報コメント生成で利用される
+                previous_report_data = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            print(f"警告: {previous_report_file} の読み込みに失敗しました。")
+            previous_report_data = None # 読み込み失敗時も変数をNoneに設定
 
     start_date = datetime.strptime(EKIDEN_START_DATE, '%Y-%m-%d')
     race_day = (datetime.now().date() - start_date.date()).days + 1
@@ -811,8 +821,8 @@ def main():
                 print(f"Generated breaking news from manager comment: '{comment_to_save}'")
 
         # 2. 監督コメントがない場合、通常の速報生成ロジックを実行
-        if not comment_to_save and previous_report_file:
-            new_comment_text = generate_breaking_news_comment(results, previous_report_file)
+        if not comment_to_save and previous_report_data:
+            new_comment_text = generate_breaking_news_comment(results, previous_report_data)
             if new_comment_text:
                 comment_to_save = new_comment_text
                 full_text_to_save = "" # 通常の速報には全文はない
@@ -820,7 +830,7 @@ def main():
                 print(f"Generated breaking news: '{comment_to_save}'")
 
         # 3. 新しい速報がない場合、古いコメントを1時間維持するか検討
-        if not comment_to_save and previous_report_file:
+        if not comment_to_save and previous_report_data:
             old_comment, old_timestamp = previous_report_data.get('breakingNewsComment', ""), previous_report_data.get('breakingNewsTimestamp', "")
             old_full_text = previous_report_data.get('breakingNewsFullText', "")
             if old_timestamp and (datetime.now() - datetime.fromisoformat(old_timestamp)) < timedelta(hours=1):

@@ -449,7 +449,7 @@ function updateRunnerMarkers(runnerLocations) {
 
     runnerLocations.forEach(runner => {
         const color = teamColorMap.get(runner.team_name) || '#808080'; // Default to grey
-        const teamInitial = runner.team_name ? runner.team_name.substring(0, 2) : '??';
+        const teamInitial = runner.team_short_name || (runner.team_name ? runner.team_name.substring(0, 2) : '??');
         const icon = createRunnerIcon(teamInitial, color);
         const latLng = [runner.latitude, runner.longitude];
         const marker = L.marker(latLng, { icon: icon });
@@ -569,7 +569,7 @@ const createPrizeTable = (records) => {
         row.innerHTML = `
             <td>${lastRank}</td>
             <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${medal} ${formattedRunnerName}</td>
-            <td class="team-name">${record.teamName}</td>
+            <td class="team-name"><span class="full-name">${record.teamName}</span><span class="short-name">${record.teamShortName}</span></td>
             <td>${record.averageDistance.toFixed(3)} km</td>
         `;
         tbody.appendChild(row);
@@ -606,9 +606,11 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap)
             const recordsForLeg = runnerData.records.filter(r => r.leg === legNumber);
             if (recordsForLeg.length > 0) {
                 const legTotalDistance = recordsForLeg.reduce((sum, record) => sum + record.distance, 0);
+                const teamInfo = teamsMap.get(runnerData.teamId) || { name: 'N/A', short_name: 'N/A' };
                 runnersToShow.push({
                     runnerName,
-                    teamName: teamsMap.get(runnerData.teamId) || 'N/A',
+                    teamName: teamInfo.name,
+                    teamShortName: teamInfo.short_name,
                     legDistance: legTotalDistance
                 });
             }
@@ -634,7 +636,7 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap)
             row.innerHTML = `
                 <td>${lastRank}</td>
                 <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
-                <td class="team-name">${record.teamName}</td>
+                <td class="team-name"><span class="full-name">${record.teamName}</span><span class="short-name">${record.teamShortName}</span></td>
                 <td>${record.legDistance.toFixed(1)} km</td>
             `;
             legRankingBody.appendChild(row);
@@ -666,7 +668,7 @@ const switchLegTab = (legNumber, realtimeData, individualData, teamsMap) => {
  * @param {object} individualData - individual_results.json のデータ
  */
 const updateIndividualSections = (realtimeData, individualData) => {
-    const teamsMap = new Map(realtimeData.teams.map(t => [t.id, t.name]));
+    const teamsMap = new Map(realtimeData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name || t.name }]));
     const legPrizeWinnerDiv = document.getElementById('legPrizeWinner');
     const tabsContainer = document.getElementById('leg-tabs-container');
 
@@ -729,10 +731,11 @@ const updateIndividualSections = (realtimeData, individualData) => {
             if (recordsForLeg.length > 0) {
                 const totalDistance = recordsForLeg.reduce((sum, r) => sum + r.distance, 0);
                 const averageDistance = totalDistance / recordsForLeg.length;
-
+                const teamInfo = teamsMap.get(runnerData.teamId) || { name: 'N/A', short_name: 'N/A' };
                 legPerformances.push({
                     runnerName,
-                    teamName: teamsMap.get(runnerData.teamId) || 'N/A',
+                    teamName: teamInfo.name,
+                    teamShortName: teamInfo.short_name,
                     averageDistance: averageDistance
                 });
             }
@@ -825,11 +828,14 @@ async function displayRankHistoryChart() {
         }
 
         // Create a map of team IDs to colors
+        const isMobile = window.innerWidth <= 768;
         const teamColorMap = new Map(ekidenData.teams.map(t => [t.id, t.color]));
+        const teamInfoMap = new Map(ekidenData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name || t.name }]));
 
         const datasets = historyData.teams.map(team => {
+            const teamInfo = teamInfoMap.get(team.id) || { name: team.name, short_name: team.name };
             return {
-                label: team.name,
+                label: isMobile ? teamInfo.short_name : teamInfo.name,
                 data: team.ranks,
                 borderColor: teamColorMap.get(team.id) || '#cccccc',
                 backgroundColor: (teamColorMap.get(team.id) || '#cccccc') + '33', // Add transparency
@@ -1003,18 +1009,20 @@ async function displayLegRankHistoryTable() {
         headEl.innerHTML = headerHtml;
 
         // 現在の総合順位でチームをソートするためのMapを作成
+        const teamInfoMap = new Map(ekidenData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name || t.name }]));
         const rankMap = new Map(realtimeData.teams.map(t => [t.id, t.overallRank]));
         const sortedTeams = [...historyData.teams].sort((a, b) => (rankMap.get(a.id) || 999) - (rankMap.get(b.id) || 999));
 
         // テーブルボディを生成
         bodyEl.innerHTML = sortedTeams.map(team => {
+            const teamInfo = teamInfoMap.get(team.id) || { name: team.name, short_name: team.name };
             const cellsHtml = team.leg_ranks.map(rank => {
                 const isFirst = rank === 1;
                 const cellClass = isFirst ? 'class="rank-first"' : '';
                 const displayRank = rank !== null ? rank : '-';
                 return `<td ${cellClass}>${displayRank}</td>`;
             }).join('');
-            return `<tr><td class="team-name">${team.name}</td>${cellsHtml}</tr>`;
+            return `<tr><td class="team-name"><span class="full-name">${teamInfo.name}</span><span class="short-name">${teamInfo.short_name}</span></td>${cellsHtml}</tr>`;
         }).join('');
 
         statusEl.style.display = 'none';
@@ -1081,6 +1089,7 @@ function showTeamDetailsModal(team, topDistance) {
  * @param {object} data - realtime_report.json から取得したデータ
  */
 const updateEkidenRankingTable = (data) => {
+    const isMobile = window.innerWidth <= 768;
     const rankingBody = document.getElementById('ekidenRankingBody');
     const rankingStatus = document.getElementById('ekidenRankingStatus');
     if (!rankingBody || !rankingStatus) return;
@@ -1139,15 +1148,22 @@ const updateEkidenRankingTable = (data) => {
 
         row.appendChild(createCell(team.overallRank, 'rank'));
         
-        const teamNameCell = createCell(team.name, 'team-name');
+        const teamNameCell = document.createElement('td');
+        teamNameCell.className = 'team-name';
+        // Use short_name if available, otherwise fall back to name.
+        const shortName = team.short_name || team.name;
+        const fullName = team.name;
+        teamNameCell.innerHTML = `<span class="short-name">${shortName}</span><span class="full-name">${fullName}</span>`;
+
         teamNameCell.addEventListener('click', () => {
-            if (window.innerWidth <= 768) {
+            if (isMobile) {
                 showTeamDetailsModal(team, topDistance);
             }
         });
         row.appendChild(teamNameCell);
+        
         row.appendChild(createCell(formatRunnerName(team.runner), 'runner'));
-
+        
         // 本日距離セル。スマホでは単位(km)を非表示
         const todayCell = document.createElement('td');
         todayCell.className = 'today-distance';
@@ -1690,6 +1706,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // --- 総合順位テーブルの表示切替（モバイル用） ---
+    const toggleRankingBtn = document.getElementById('toggle-ranking-view-btn');
+    const rankingContainer = document.querySelector('#section-overall-ranking .ekiden-ranking-container');
+
+    if (toggleRankingBtn && rankingContainer) {
+        toggleRankingBtn.addEventListener('click', () => {
+            const isFullView = rankingContainer.classList.toggle('show-full-view');
+            if (isFullView) {
+                toggleRankingBtn.textContent = 'SP版表示';
+            } else {
+                toggleRankingBtn.textContent = 'PC版表示';
+            }
+        });
+    }
 
     // --- Mobile Navigation Logic ---
     const hamburgerBtn = document.getElementById('hamburger-btn');

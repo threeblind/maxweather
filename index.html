@@ -336,6 +336,16 @@
             text-align: left;
             font-weight: bold;
         }
+        /* By default, show full name on desktop */
+        #ekidenRankingTable .team-name .short-name {
+            display: none;
+        }
+        /* Desktop defaults for other tables */
+        #legRankHistoryTable .team-name .short-name,
+        #legRankingTable .team-name .short-name,
+        .leg-prize-table .team-name .short-name {
+            display: none;
+        }
         #legRankHistoryTable td.rank-first {
             background-color: #ffe5e5; /* 薄い赤色の背景 */
             color: #d90000; /* 濃い赤色の文字 */
@@ -353,6 +363,9 @@
         }
         .header-button {
             padding: 6px 12px; font-size: 14px; background-color: #6c757d;
+        }
+        #toggle-ranking-view-btn {
+            display: none; /* デスクトップでは非表示 */
         }
         #rankingTable td.location {
             text-align: left;
@@ -666,6 +679,7 @@
         .leaflet-popup-content-wrapper {
             border-radius: 5px;
         }
+        @media (max-width: 768px) {
             /* スマホ表示ではナビゲーションを折り返し表示にする */
             .page-nav ul {
                 flex-wrap: wrap;
@@ -692,6 +706,43 @@
             }
             #ekidenRankingTable td.team-name:hover {
                 text-decoration: underline;
+            }
+            /* スマホ表示で長い大学名や選手名が折り返すようにする */
+            #ekidenRankingTable td.team-name,
+            #ekidenRankingTable td.runner {
+                white-space: normal;
+            }
+            /* By default, show short name on mobile */
+            #ekidenRankingTable .team-name .full-name { display: none; }
+            #ekidenRankingTable .team-name .short-name { display: inline; }
+
+            /* Apply short name display to other tables on mobile */
+            #legRankHistoryTable .team-name .full-name,
+            #legRankingTable .team-name .full-name,
+            .leg-prize-table .team-name .full-name {
+                display: none;
+            }
+            #legRankHistoryTable .team-name .short-name,
+            #legRankingTable .team-name .short-name,
+            .leg-prize-table .team-name .short-name {
+                display: inline;
+            }
+            #toggle-ranking-view-btn {
+                display: inline-block; /* スマホでは表示 */
+            }
+            .hide-on-mobile {
+                display: none;
+            }
+            /* フル表示モードの時に非表示セルを表示する */
+            .ekiden-ranking-container.show-full-view .hide-on-mobile {
+                display: table-cell;
+            }
+            /* When full view is toggled on mobile, show full name */
+            .ekiden-ranking-container.show-full-view .team-name .full-name {
+                display: inline;
+            }
+            .ekiden-ranking-container.show-full-view .team-name .short-name {
+                display: none;
             }
         }
         /* --- 機能の表示/非表示を制御 --- */
@@ -853,7 +904,10 @@
         </div>
 
         <div id="section-overall-ranking" class="ekiden-section-wrapper">
-            <h2 id="ekidenRankingTitle">🏆 総合順位</h2>
+            <div class="section-header">
+                <h2 id="ekidenRankingTitle">🏆 総合順位</h2>
+                <button id="toggle-ranking-view-btn" class="header-button">PC版表示</button>
+            </div>
             <p id="ekidenRankingUpdateTime" class="ranking-update-time"></p>
             <div class="ekiden-ranking-container">
             <table id="ekidenRankingTable">
