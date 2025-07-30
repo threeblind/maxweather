@@ -236,7 +236,7 @@ async function fetchRankingData() {
         const locationLink = cells[1]?.querySelector('a');
         const rank = cells[0]?.textContent.trim();
         const location = locationLink?.textContent.trim().replace(/\s+/g, ' ');
-        const locationUrl = locationLink?.href;
+        const locationUrl = locationLink?.href;X
         const temperature = cells[2]?.textContent.trim();
         const time = cells[3]?.textContent.trim();
 
@@ -323,7 +323,6 @@ let map = null;
 let runnerMarkersLayer = null;
 let teamColorMap = new Map();
 let trackedTeamName = "lead_group"; // デフォルトは先頭集団を追跡
-let courseBounds = null; // コース全体の境界を保持する変数
 
 /**
  * Initializes the interactive map, draws the course, and places relay point markers.
@@ -359,11 +358,12 @@ async function initializeMap() {
         if (coursePath && coursePath.length > 0) {
             const latlngs = coursePath.map(p => [p.lat, p.lon]);
             L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
-            // Store the bounds of the entire course
-            courseBounds = L.latLngBounds(latlngs);
-            // 初期表示ではコース全体ではなく、日本全体をデフォルトビューとする
+            // 初期表示では、日本全体ではなくスタート地点にズームします。
             // 実際の先頭集団へのズームは、この後の fetchEkidenData -> updateRunnerMarkers で行われる
-            map.setView([36, 138], 5); // 日本の中心あたり
+            const startPoint = latlngs[0];
+            if (startPoint) {
+                map.setView(startPoint, 13); // スタート地点をズームレベル13で表示
+            }
         }
 
         // 6. Draw relay point markers
@@ -409,7 +409,7 @@ function setupTeamTracker(teams) {
     const selectEl = document.getElementById('team-tracker-select');
     if (!selectEl) return;
 
-    // Add default option first
+    // Add default option
     selectEl.innerHTML = `<option value="lead_group">先頭集団を追跡</option>`;
 
     // Add each team as an option
@@ -419,12 +419,6 @@ function setupTeamTracker(teams) {
         option.textContent = team.name;
         selectEl.appendChild(option);
     });
-
-    // Add static view options at the end
-    selectEl.innerHTML += `
-        <option value="all_runners">全選手を表示</option>
-        <option value="course_view">コース全体を表示</option>
-    `;
 
     // Add event listener
     selectEl.addEventListener('change', (event) => {
@@ -449,7 +443,7 @@ function updateRunnerMarkers(runnerLocations) {
 
     runnerLocations.forEach(runner => {
         const color = teamColorMap.get(runner.team_name) || '#808080'; // Default to grey
-        const teamInitial = runner.team_short_name || (runner.team_name ? runner.team_name.substring(0, 2) : '??');
+        const teamInitial = runner.team_name ? runner.team_name.substring(0, 2) : '??';
         const icon = createRunnerIcon(teamInitial, color);
         const latLng = [runner.latitude, runner.longitude];
         const marker = L.marker(latLng, { icon: icon });
@@ -465,37 +459,27 @@ function updateRunnerMarkers(runnerLocations) {
     });
 
     // --- Map View Update Logic ---
-    switch (trackedTeamName) {
-        case "all_runners":
-            if (runnerLocations.length > 0) {
-                const allRunnersBounds = L.latLngBounds(runnerLocations.map(r => [r.latitude, r.longitude]));
-                map.fitBounds(allRunnersBounds, { padding: [50, 50] });
-            }
-            break;
-        case "course_view":
-            if (courseBounds) {
-                map.fitBounds(courseBounds, { padding: [20, 20] });
-            }
-            break;
-        case "lead_group":
-            const leadGroup = runnerLocations.slice(0, 3);
-            if (leadGroup.length > 1) {
-                const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
-                const bounds = L.latLngBounds(leadGroupLatLngs);
-                map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
-            } else if (leadGroup.length === 1) {
-                map.setView([leadGroup[0].latitude, leadGroup[0].longitude], 13);
-            }
-            break;
-        default: // A specific team is selected
-            const trackedRunner = runnerLocations.find(r => r.team_name === trackedTeamName);
-            if (trackedRunner) {
-                map.setView([trackedRunner.latitude, trackedRunner.longitude], 14, {
-                    animate: true,
-                    pan: { duration: 1 }
-                });
-            }
-            break;
+    if (trackedTeamName && trackedTeamName !== "lead_group") {
+        // --- Track a specific team ---
+        const trackedRunner = runnerLocations.find(r => r.team_name === trackedTeamName);
+        if (trackedRunner) {
+            map.setView([trackedRunner.latitude, trackedRunner.longitude], 14, {
+                animate: true,
+                pan: {
+                    duration: 1
+                }
+            });
+        }
+    } else {
+        // --- Track the lead group (default behavior) ---
+        const leadGroup = runnerLocations.slice(0, 3);
+        if (leadGroup.length > 1) {
+            const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
+            const bounds = L.latLngBounds(leadGroupLatLngs);
+            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+        } else if (leadGroup.length === 1) {
+            map.setView([leadGroup[0].latitude, leadGroup[0].longitude], 13);
+        }
     }
 }
 
@@ -569,7 +553,7 @@ const createPrizeTable = (records) => {
         row.innerHTML = `
             <td>${lastRank}</td>
             <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${medal} ${formattedRunnerName}</td>
-            <td class="team-name"><span class="full-name">${record.teamName}</span><span class="short-name">${record.teamShortName}</span></td>
+            <td class="team-name">${record.teamName}</td>
             <td>${record.averageDistance.toFixed(3)} km</td>
         `;
         tbody.appendChild(row);
@@ -606,11 +590,9 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap)
             const recordsForLeg = runnerData.records.filter(r => r.leg === legNumber);
             if (recordsForLeg.length > 0) {
                 const legTotalDistance = recordsForLeg.reduce((sum, record) => sum + record.distance, 0);
-                const teamInfo = teamsMap.get(runnerData.teamId) || { name: 'N/A', short_name: 'N/A' };
                 runnersToShow.push({
                     runnerName,
-                    teamName: teamInfo.name,
-                    teamShortName: teamInfo.short_name,
+                    teamName: teamsMap.get(runnerData.teamId) || 'N/A',
                     legDistance: legTotalDistance
                 });
             }
@@ -636,7 +618,7 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap)
             row.innerHTML = `
                 <td>${lastRank}</td>
                 <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
-                <td class="team-name"><span class="full-name">${record.teamName}</span><span class="short-name">${record.teamShortName}</span></td>
+                <td class="team-name">${record.teamName}</td>
                 <td>${record.legDistance.toFixed(1)} km</td>
             `;
             legRankingBody.appendChild(row);
@@ -668,7 +650,7 @@ const switchLegTab = (legNumber, realtimeData, individualData, teamsMap) => {
  * @param {object} individualData - individual_results.json のデータ
  */
 const updateIndividualSections = (realtimeData, individualData) => {
-    const teamsMap = new Map(realtimeData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name || t.name }]));
+    const teamsMap = new Map(realtimeData.teams.map(t => [t.id, t.name]));
     const legPrizeWinnerDiv = document.getElementById('legPrizeWinner');
     const tabsContainer = document.getElementById('leg-tabs-container');
 
@@ -731,11 +713,10 @@ const updateIndividualSections = (realtimeData, individualData) => {
             if (recordsForLeg.length > 0) {
                 const totalDistance = recordsForLeg.reduce((sum, r) => sum + r.distance, 0);
                 const averageDistance = totalDistance / recordsForLeg.length;
-                const teamInfo = teamsMap.get(runnerData.teamId) || { name: 'N/A', short_name: 'N/A' };
+
                 legPerformances.push({
                     runnerName,
-                    teamName: teamInfo.name,
-                    teamShortName: teamInfo.short_name,
+                    teamName: teamsMap.get(runnerData.teamId) || 'N/A',
                     averageDistance: averageDistance
                 });
             }
@@ -828,14 +809,11 @@ async function displayRankHistoryChart() {
         }
 
         // Create a map of team IDs to colors
-        const isMobile = window.innerWidth <= 768;
         const teamColorMap = new Map(ekidenData.teams.map(t => [t.id, t.color]));
-        const teamInfoMap = new Map(ekidenData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name || t.name }]));
 
         const datasets = historyData.teams.map(team => {
-            const teamInfo = teamInfoMap.get(team.id) || { name: team.name, short_name: team.name };
             return {
-                label: isMobile ? teamInfo.short_name : teamInfo.name,
+                label: team.name,
                 data: team.ranks,
                 borderColor: teamColorMap.get(team.id) || '#cccccc',
                 backgroundColor: (teamColorMap.get(team.id) || '#cccccc') + '33', // Add transparency
@@ -1009,20 +987,18 @@ async function displayLegRankHistoryTable() {
         headEl.innerHTML = headerHtml;
 
         // 現在の総合順位でチームをソートするためのMapを作成
-        const teamInfoMap = new Map(ekidenData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name || t.name }]));
         const rankMap = new Map(realtimeData.teams.map(t => [t.id, t.overallRank]));
         const sortedTeams = [...historyData.teams].sort((a, b) => (rankMap.get(a.id) || 999) - (rankMap.get(b.id) || 999));
 
         // テーブルボディを生成
         bodyEl.innerHTML = sortedTeams.map(team => {
-            const teamInfo = teamInfoMap.get(team.id) || { name: team.name, short_name: team.name };
             const cellsHtml = team.leg_ranks.map(rank => {
                 const isFirst = rank === 1;
                 const cellClass = isFirst ? 'class="rank-first"' : '';
                 const displayRank = rank !== null ? rank : '-';
                 return `<td ${cellClass}>${displayRank}</td>`;
             }).join('');
-            return `<tr><td class="team-name"><span class="full-name">${teamInfo.name}</span><span class="short-name">${teamInfo.short_name}</span></td>${cellsHtml}</tr>`;
+            return `<tr><td class="team-name">${team.name}</td>${cellsHtml}</tr>`;
         }).join('');
 
         statusEl.style.display = 'none';
@@ -1089,7 +1065,6 @@ function showTeamDetailsModal(team, topDistance) {
  * @param {object} data - realtime_report.json から取得したデータ
  */
 const updateEkidenRankingTable = (data) => {
-    const isMobile = window.innerWidth <= 768;
     const rankingBody = document.getElementById('ekidenRankingBody');
     const rankingStatus = document.getElementById('ekidenRankingStatus');
     if (!rankingBody || !rankingStatus) return;
@@ -1148,22 +1123,15 @@ const updateEkidenRankingTable = (data) => {
 
         row.appendChild(createCell(team.overallRank, 'rank'));
         
-        const teamNameCell = document.createElement('td');
-        teamNameCell.className = 'team-name';
-        // Use short_name if available, otherwise fall back to name.
-        const shortName = team.short_name || team.name;
-        const fullName = team.name;
-        teamNameCell.innerHTML = `<span class="short-name">${shortName}</span><span class="full-name">${fullName}</span>`;
-
+        const teamNameCell = createCell(team.name, 'team-name');
         teamNameCell.addEventListener('click', () => {
-            if (isMobile) {
+            if (window.innerWidth <= 768) {
                 showTeamDetailsModal(team, topDistance);
             }
         });
         row.appendChild(teamNameCell);
-        
         row.appendChild(createCell(formatRunnerName(team.runner), 'runner'));
-        
+
         // 本日距離セル。スマホでは単位(km)を非表示
         const todayCell = document.createElement('td');
         todayCell.className = 'today-distance';
@@ -1244,6 +1212,8 @@ const fetchEkidenData = async () => {
             const date = new Date(realtimeData.breakingNewsTimestamp);
             const timeStr = date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
             newsContainer.textContent = `${comment} (${timeStr}時点)`;
+            newsContainer.style.display = 'block';
+
             // Check for full text and make it clickable
             if (realtimeData.breakingNewsFullText) {
                 newsContainer.classList.add('clickable');
@@ -1517,53 +1487,15 @@ async function displayManagerComments() {
     if (!loungeContent || !statusEl || !navLink) return;
 
     try {
-        // 監督判定のために、コメントデータと駅伝データを並行して取得
-        const [commentsRes, ekidenDataRes] = await Promise.all([
-            fetch(`manager_comments.json?_=${new Date().getTime()}`),
-            fetch(`ekiden_data.json?_=${new Date().getTime()}`)
-        ]);
-
-        // コメントデータの処理
-        if (!commentsRes.ok) {
-            if (commentsRes.status === 404) {
+        const response = await fetch(`manager_comments.json?_=${new Date().getTime()}`);
+        if (!response.ok) {
+            // 404 Not Foundはファイルがまだない場合なので、静かに処理
+            if (response.status === 404) {
                 throw new Error('コメントファイルがまだ生成されていません。');
             }
-            throw new Error(`HTTP error! status: ${commentsRes.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const comments = await commentsRes.json();
-
-        // 駅伝データの処理
-        const ekidenData = ekidenDataRes.ok ? await ekidenDataRes.json() : { teams: [] };
-        if (!ekidenDataRes.ok) {
-            console.warn('監督判定のためのekiden_data.jsonの読み込みに失敗しました。');
-        }
-
-        // トリップコードと大学名を紐付けるマップを作成
-        const tripcodeToTeamNameMap = new Map();
-        const officialManagerNames = new Set(); // 完全一致判定用の監督名セット
-        if (ekidenData.teams) {
-            ekidenData.teams.forEach(team => {
-                const managerStr = team.manager;
-                if (managerStr) {
-                    // ◆で分割し、名前部分だけをセットに追加する
-                    const officialNameOnly = managerStr.split('◆')[0].trim();
-                    officialManagerNames.add(officialNameOnly);
-                    const match = managerStr.match(/◆\s?([a-zA-Z0-9./]+)/);
-                    if (match) {
-                        const tripcode = `◆${match[1].trim()}`;
-                        // 同じトリップコードで複数のチームを監督している場合を考慮
-                        if (!tripcodeToTeamNameMap.has(tripcode)) {
-                            tripcodeToTeamNameMap.set(tripcode, []);
-                        }
-                        // フルネームと短縮名の両方を格納
-                        tripcodeToTeamNameMap.get(tripcode).push({
-                            fullName: team.name,
-                            shortName: team.short_name || team.name
-                        });
-                    }
-                }
-            });
-        }
+        const comments = await response.json();
 
         if (comments.length === 0) {
             statusEl.textContent = '現在、表示できる監督コメントはありません。';
@@ -1582,35 +1514,32 @@ async function displayManagerComments() {
             comments.reverse().forEach(comment => {
                 const postDiv = document.createElement('div');
                 
-                // Determine the name to display, supporting old and new JSON formats.
-                const displayName = comment.posted_name || comment.manager_name || '名無し監督';
-                const tripcode = comment.tripcode;
+                // Normalize names for comparison: remove leading '■', trim whitespace,
+                // and convert full-width parentheses to half-width.
+                const normalizeName = (name) => {
+                    if (!name) return '';
+                    return name
+                        .replace(/^■/, '')
+                        .replace(/（/g, '(')
+                        .replace(/）/g, ')')
+                        .trim();
+                };
 
-                // --- 新しい監督判定ロジック ---
-                let isManager = false;
-                // 第1判定: 公式監督名と完全一致するか
-                if (officialManagerNames.has(displayName)) {
-                    isManager = true;
-                }
-                // 第2判定: 投稿者名に、トリップコードに紐づく大学名が含まれるか
-                else if (tripcode && tripcodeToTeamNameMap.has(tripcode)) {
-                    const associatedTeams = tripcodeToTeamNameMap.get(tripcode);
-                    // 関連する大学名のフルネームまたは短縮名のいずれかが投稿者名に含まれていればOK
-                    if (associatedTeams.some(team => displayName.includes(team.fullName) || displayName.includes(team.shortName))) {
-                        isManager = true;
-                    }
-                }
+                const normalizedPostedName = normalizeName(comment.posted_name);
+                const normalizedOfficialName = normalizeName(comment.official_name);
 
-                // isManagerがtrueなら監督、falseならアナウンサー
-                const postClass = isManager ? 'manager' : 'announcer';
-                postDiv.className = `lounge-post ${postClass}`;
+                // 正規化された名前が異なる場合のみ、実況担当者とみなす
+                const isAnnouncer = normalizedPostedName !== normalizedOfficialName;
+
+                postDiv.className = isAnnouncer ? 'lounge-post announcer' : 'lounge-post manager';
 
                 const postDate = new Date(comment.timestamp);
                 const timeStr = postDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
 
+                // 表示には投稿された名前(posted_name)を使用する
                 postDiv.innerHTML = `
                     <div class="lounge-post-header">
-                        <span class="manager-name">${displayName}</span>
+                        <span class="manager-name">${comment.posted_name}</span>
                         <span class="manager-tripcode">${comment.tripcode}</span>
                     </div>
                     <div class="lounge-post-bubble">
@@ -1658,9 +1587,9 @@ document.addEventListener('DOMContentLoaded', function() {
     displayEntryList(); // エントリーリスト
     displayLegRankHistoryTable(); // 順位推移テーブル
     displayOutline(); // 大会概要
-    // 1分ごとにデータを自動更新
-    setInterval(fetchEkidenData, 90000);
-    // setInterval(displayManagerComments, 30000); // 談話室の自動更新を停止
+    // 30秒ごとにデータを自動更新
+    setInterval(fetchEkidenData, 30000);
+    setInterval(displayManagerComments, 30000); // 談話室も30秒ごとに更新
 
     // モーダルを閉じるイベントリスナーを設定
     const modal = document.getElementById('playerRecordsModal');
@@ -1753,53 +1682,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-
-    // --- 総合順位テーブルの表示切替（モバイル用） ---
-    const toggleRankingBtn = document.getElementById('toggle-ranking-view-btn');
-    const rankingContainer = document.querySelector('#section-overall-ranking .ekiden-ranking-container');
-
-    if (toggleRankingBtn && rankingContainer) {
-        toggleRankingBtn.addEventListener('click', () => {
-            const isFullView = rankingContainer.classList.toggle('show-full-view');
-            if (isFullView) {
-                toggleRankingBtn.textContent = 'SP版表示';
-            } else {
-                toggleRankingBtn.textContent = 'PC版表示';
-            }
-        });
-    }
-
-    // --- Mobile Navigation Logic ---
-    const hamburgerBtn = document.getElementById('hamburger-btn');
-    const mainNavList = document.getElementById('main-nav-list');
-
-    if (hamburgerBtn && mainNavList) {
-        hamburgerBtn.addEventListener('click', () => {
-            hamburgerBtn.classList.toggle('active');
-            mainNavList.classList.toggle('active');
-        });
-
-        // Close menu when a link is clicked
-        mainNavList.querySelectorAll('a').forEach(link => {
-            // Don't add listener to dropdown toggles
-            if (!link.classList.contains('dropbtn')) {
-                link.addEventListener('click', () => {
-                    hamburgerBtn.classList.remove('active');
-                    mainNavList.classList.remove('active');
-                });
-            }
-        });
-
-        // Handle dropdowns on mobile (on click, not hover)
-        mainNavList.querySelectorAll('.dropdown .dropbtn').forEach(dropbtn => {
-            dropbtn.addEventListener('click', (e) => {
-                if (window.innerWidth <= 768) {
-                    e.preventDefault(); // Prevent scrolling
-                    e.currentTarget.parentElement.classList.toggle('open');
-                }
-            });
-        });
-    }
 
     // --- Back to Top Button ---
     const backToTopButton = document.getElementById('back-to-top');
