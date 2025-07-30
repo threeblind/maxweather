@@ -1517,15 +1517,53 @@ async function displayManagerComments() {
     if (!loungeContent || !statusEl || !navLink) return;
 
     try {
-        const response = await fetch(`manager_comments.json?_=${new Date().getTime()}`);
-        if (!response.ok) {
-            // 404 Not Foundはファイルがまだない場合なので、静かに処理
-            if (response.status === 404) {
+        // 監督判定のために、コメントデータと駅伝データを並行して取得
+        const [commentsRes, ekidenDataRes] = await Promise.all([
+            fetch(`manager_comments.json?_=${new Date().getTime()}`),
+            fetch(`ekiden_data.json?_=${new Date().getTime()}`)
+        ]);
+
+        // コメントデータの処理
+        if (!commentsRes.ok) {
+            if (commentsRes.status === 404) {
                 throw new Error('コメントファイルがまだ生成されていません。');
             }
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`HTTP error! status: ${commentsRes.status}`);
         }
-        const comments = await response.json();
+        const comments = await commentsRes.json();
+
+        // 駅伝データの処理
+        const ekidenData = ekidenDataRes.ok ? await ekidenDataRes.json() : { teams: [] };
+        if (!ekidenDataRes.ok) {
+            console.warn('監督判定のためのekiden_data.jsonの読み込みに失敗しました。');
+        }
+
+        // トリップコードと大学名を紐付けるマップを作成
+        const tripcodeToTeamNameMap = new Map();
+        const officialManagerNames = new Set(); // 完全一致判定用の監督名セット
+        if (ekidenData.teams) {
+            ekidenData.teams.forEach(team => {
+                const managerStr = team.manager;
+                if (managerStr) {
+                    // ◆で分割し、名前部分だけをセットに追加する
+                    const officialNameOnly = managerStr.split('◆')[0].trim();
+                    officialManagerNames.add(officialNameOnly);
+                    const match = managerStr.match(/◆\s?([a-zA-Z0-9./]+)/);
+                    if (match) {
+                        const tripcode = `◆${match[1].trim()}`;
+                        // 同じトリップコードで複数のチームを監督している場合を考慮
+                        if (!tripcodeToTeamNameMap.has(tripcode)) {
+                            tripcodeToTeamNameMap.set(tripcode, []);
+                        }
+                        // フルネームと短縮名の両方を格納
+                        tripcodeToTeamNameMap.get(tripcode).push({
+                            fullName: team.name,
+                            shortName: team.short_name || team.name
+                        });
+                    }
+                }
+            });
+        }
 
         if (comments.length === 0) {
             statusEl.textContent = '現在、表示できる監督コメントはありません。';
@@ -1556,9 +1594,9 @@ async function displayManagerComments() {
                 }
                 // 第2判定: 投稿者名に、トリップコードに紐づく大学名が含まれるか
                 else if (tripcode && tripcodeToTeamNameMap.has(tripcode)) {
-                    const associatedTeamNames = tripcodeToTeamNameMap.get(tripcode);
-                    // 関連する大学名のいずれかが投稿者名に含まれていればOK
-                    if (associatedTeamNames.some(teamName => displayName.includes(teamName))) {
+                    const associatedTeams = tripcodeToTeamNameMap.get(tripcode);
+                    // 関連する大学名のフルネームまたは短縮名のいずれかが投稿者名に含まれていればOK
+                    if (associatedTeams.some(team => displayName.includes(team.fullName) || displayName.includes(team.shortName))) {
                         isManager = true;
                     }
                 }
