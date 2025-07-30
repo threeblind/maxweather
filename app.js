@@ -236,7 +236,7 @@ async function fetchRankingData() {
         const locationLink = cells[1]?.querySelector('a');
         const rank = cells[0]?.textContent.trim();
         const location = locationLink?.textContent.trim().replace(/\s+/g, ' ');
-        const locationUrl = locationLink?.href;X
+        const locationUrl = locationLink?.href;
         const temperature = cells[2]?.textContent.trim();
         const time = cells[3]?.textContent.trim();
 
@@ -323,6 +323,7 @@ let map = null;
 let runnerMarkersLayer = null;
 let teamColorMap = new Map();
 let trackedTeamName = "lead_group"; // デフォルトは先頭集団を追跡
+let courseBounds = null; // コース全体の境界を保持する変数
 
 /**
  * Initializes the interactive map, draws the course, and places relay point markers.
@@ -358,6 +359,8 @@ async function initializeMap() {
         if (coursePath && coursePath.length > 0) {
             const latlngs = coursePath.map(p => [p.lat, p.lon]);
             L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
+            // Store the bounds of the entire course
+            courseBounds = L.latLngBounds(latlngs);
             // 初期表示ではコース全体ではなく、日本全体をデフォルトビューとする
             // 実際の先頭集団へのズームは、この後の fetchEkidenData -> updateRunnerMarkers で行われる
             map.setView([36, 138], 5); // 日本の中心あたり
@@ -406,7 +409,7 @@ function setupTeamTracker(teams) {
     const selectEl = document.getElementById('team-tracker-select');
     if (!selectEl) return;
 
-    // Add default option
+    // Add default option first
     selectEl.innerHTML = `<option value="lead_group">先頭集団を追跡</option>`;
 
     // Add each team as an option
@@ -416,6 +419,12 @@ function setupTeamTracker(teams) {
         option.textContent = team.name;
         selectEl.appendChild(option);
     });
+
+    // Add static view options at the end
+    selectEl.innerHTML += `
+        <option value="all_runners">全選手を表示</option>
+        <option value="course_view">コース全体を表示</option>
+    `;
 
     // Add event listener
     selectEl.addEventListener('change', (event) => {
@@ -456,27 +465,37 @@ function updateRunnerMarkers(runnerLocations) {
     });
 
     // --- Map View Update Logic ---
-    if (trackedTeamName && trackedTeamName !== "lead_group") {
-        // --- Track a specific team ---
-        const trackedRunner = runnerLocations.find(r => r.team_name === trackedTeamName);
-        if (trackedRunner) {
-            map.setView([trackedRunner.latitude, trackedRunner.longitude], 14, {
-                animate: true,
-                pan: {
-                    duration: 1
-                }
-            });
-        }
-    } else {
-        // --- Track the lead group (default behavior) ---
-        const leadGroup = runnerLocations.slice(0, 3);
-        if (leadGroup.length > 1) {
-            const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
-            const bounds = L.latLngBounds(leadGroupLatLngs);
-            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
-        } else if (leadGroup.length === 1) {
-            map.setView([leadGroup[0].latitude, leadGroup[0].longitude], 13);
-        }
+    switch (trackedTeamName) {
+        case "all_runners":
+            if (runnerLocations.length > 0) {
+                const allRunnersBounds = L.latLngBounds(runnerLocations.map(r => [r.latitude, r.longitude]));
+                map.fitBounds(allRunnersBounds, { padding: [50, 50] });
+            }
+            break;
+        case "course_view":
+            if (courseBounds) {
+                map.fitBounds(courseBounds, { padding: [20, 20] });
+            }
+            break;
+        case "lead_group":
+            const leadGroup = runnerLocations.slice(0, 3);
+            if (leadGroup.length > 1) {
+                const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
+                const bounds = L.latLngBounds(leadGroupLatLngs);
+                map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+            } else if (leadGroup.length === 1) {
+                map.setView([leadGroup[0].latitude, leadGroup[0].longitude], 13);
+            }
+            break;
+        default: // A specific team is selected
+            const trackedRunner = runnerLocations.find(r => r.team_name === trackedTeamName);
+            if (trackedRunner) {
+                map.setView([trackedRunner.latitude, trackedRunner.longitude], 14, {
+                    animate: true,
+                    pan: { duration: 1 }
+                });
+            }
+            break;
     }
 }
 
@@ -1210,8 +1229,20 @@ const fetchEkidenData = async () => {
             const timeStr = date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
             newsContainer.textContent = `${comment} (${timeStr}時点)`;
             newsContainer.style.display = 'block';
+
+            // Check for full text and make it clickable
+            if (realtimeData.breakingNewsFullText) {
+                newsContainer.classList.add('clickable');
+                newsContainer.onclick = () => showBreakingNewsModal(realtimeData.breakingNewsFullText);
+            } else {
+                newsContainer.classList.remove('clickable');
+                newsContainer.onclick = null; // Remove click listener if no full text
+            }
+
         } else if (newsContainer) {
             newsContainer.style.display = 'none';
+            newsContainer.classList.remove('clickable');
+            newsContainer.onclick = null;
         }
 
         updateEkidenRankingTable(realtimeData);
@@ -1228,6 +1259,19 @@ const fetchEkidenData = async () => {
 };
 
 // --- ポップアップ（モーダル）機能 ---
+
+/**
+ * Displays the full breaking news text in a modal.
+ * @param {string} fullText - The full text of the breaking news comment.
+ */
+function showBreakingNewsModal(fullText) {
+    const modal = document.getElementById('breakingNewsModal');
+    const modalBody = document.getElementById('modalBreakingNewsBody');
+    if (modal && modalBody) {
+        modalBody.textContent = fullText;
+        modal.style.display = 'block';
+    }
+}
 
 /**
  * 選手名がクリックされたときに、その選手の全記録をポップアップで表示します。
@@ -1448,6 +1492,81 @@ async function displayOutline() {
     }
 }
 
+/**
+ * 監督の夜間コメントを談話室形式で表示します。
+ */
+async function displayManagerComments() {
+    const loungeContent = document.getElementById('manager-lounge-content');
+    const statusEl = document.getElementById('manager-lounge-status');
+    const navLink = document.querySelector('a[href="#section-manager-lounge"]');
+
+    if (!loungeContent || !statusEl || !navLink) return;
+
+    try {
+        const response = await fetch(`manager_comments.json?_=${new Date().getTime()}`);
+        if (!response.ok) {
+            // 404 Not Foundはファイルがまだない場合なので、静かに処理
+            if (response.status === 404) {
+                throw new Error('コメントファイルがまだ生成されていません。');
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const comments = await response.json();
+
+        if (comments.length === 0) {
+            statusEl.textContent = '現在、表示できる監督コメントはありません。';
+            statusEl.className = 'result loading';
+            statusEl.style.display = 'block';
+            loungeContent.style.display = 'none';
+            navLink.parentElement.style.display = 'none'; // コメントがなければナビゲーションリンクも非表示
+        } else {
+            statusEl.style.display = 'none';
+            loungeContent.style.display = 'flex';
+            navLink.parentElement.style.display = ''; // コメントがあれば表示
+
+            loungeContent.innerHTML = ''; // 以前のコメントをクリア
+            
+            // 時系列（古い順）で表示するため、取得した配列（新しい順）を逆順にする
+            comments.reverse().forEach(comment => {
+                const postDiv = document.createElement('div');
+                
+                // Determine the name to display, supporting old and new JSON formats.
+                const displayName = comment.posted_name || comment.manager_name || '名無し監督';
+
+                // Determine if the post is from an announcer.
+                // If official_name exists, compare it with posted_name.
+                // Otherwise, fall back to the old logic of checking for a keyword.
+                const isAnnouncer = (comment.official_name !== undefined)
+                    ? (comment.posted_name !== comment.official_name)
+                    : displayName.includes('風光来夫');
+
+                postDiv.className = isAnnouncer ? 'lounge-post announcer' : 'lounge-post manager';
+
+                const postDate = new Date(comment.timestamp);
+                const timeStr = postDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+
+                postDiv.innerHTML = `
+                    <div class="lounge-post-header">
+                        <span class="manager-name">${displayName}</span>
+                        <span class="manager-tripcode">${comment.tripcode}</span>
+                    </div>
+                    <div class="lounge-post-bubble">
+                        <div class="lounge-post-content">${comment.content_html}</div>
+                        <div class="lounge-post-time">${timeStr}</div>
+                    </div>
+                `;
+                loungeContent.appendChild(postDiv);
+            });
+            // 自動で一番下の最新コメントまでスクロール
+            loungeContent.scrollTop = loungeContent.scrollHeight;
+        }
+    } catch (error) {
+        // エラー時やファイルがない場合はセクション全体を非表示にする
+        statusEl.style.display = 'none';
+        loungeContent.style.display = 'none';
+        navLink.parentElement.style.display = 'none';
+    }
+}
 // --- 初期化処理 ---
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1472,11 +1591,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // 2. 最も重要な速報データを最初に取得して表示（マップのズームもここで行われる）
     fetchEkidenData();
     // 3. その他のコンテンツを読み込む
+    displayManagerComments(); // 監督談話室
     displayEntryList(); // エントリーリスト
     displayLegRankHistoryTable(); // 順位推移テーブル
     displayOutline(); // 大会概要
     // 30秒ごとにデータを自動更新
     setInterval(fetchEkidenData, 30000);
+    setInterval(displayManagerComments, 30000); // 談話室も30秒ごとに更新
 
     // モーダルを閉じるイベントリスナーを設定
     const modal = document.getElementById('playerRecordsModal');
@@ -1499,6 +1620,18 @@ document.addEventListener('DOMContentLoaded', function() {
         window.addEventListener('click', (event) => {
             if (event.target == teamModal) {
                 teamModal.style.display = 'none';
+            }
+        });
+    }
+
+    // Breaking Newsモーダルを閉じるイベントリスナー
+    const breakingNewsModal = document.getElementById('breakingNewsModal');
+    const closeBreakingNewsBtn = document.getElementById('closeBreakingNewsModal');
+    if (breakingNewsModal && closeBreakingNewsBtn) {
+        closeBreakingNewsBtn.onclick = () => breakingNewsModal.style.display = 'none';
+        window.addEventListener('click', (event) => {
+            if (event.target == breakingNewsModal) {
+                breakingNewsModal.style.display = 'none';
             }
         });
     }
@@ -1557,6 +1690,38 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // --- Mobile Navigation Logic ---
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const mainNavList = document.getElementById('main-nav-list');
+
+    if (hamburgerBtn && mainNavList) {
+        hamburgerBtn.addEventListener('click', () => {
+            hamburgerBtn.classList.toggle('active');
+            mainNavList.classList.toggle('active');
+        });
+
+        // Close menu when a link is clicked
+        mainNavList.querySelectorAll('a').forEach(link => {
+            // Don't add listener to dropdown toggles
+            if (!link.classList.contains('dropbtn')) {
+                link.addEventListener('click', () => {
+                    hamburgerBtn.classList.remove('active');
+                    mainNavList.classList.remove('active');
+                });
+            }
+        });
+
+        // Handle dropdowns on mobile (on click, not hover)
+        mainNavList.querySelectorAll('.dropdown .dropbtn').forEach(dropbtn => {
+            dropbtn.addEventListener('click', (e) => {
+                if (window.innerWidth <= 768) {
+                    e.preventDefault(); // Prevent scrolling
+                    e.currentTarget.parentElement.classList.toggle('open');
+                }
+            });
+        });
+    }
 
     // --- Back to Top Button ---
     const backToTopButton = document.getElementById('back-to-top');
