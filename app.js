@@ -1244,8 +1244,6 @@ const fetchEkidenData = async () => {
             const date = new Date(realtimeData.breakingNewsTimestamp);
             const timeStr = date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
             newsContainer.textContent = `${comment} (${timeStr}時点)`;
-            newsContainer.style.display = 'block';
-
             // Check for full text and make it clickable
             if (realtimeData.breakingNewsFullText) {
                 newsContainer.classList.add('clickable');
@@ -1548,15 +1546,26 @@ async function displayManagerComments() {
                 
                 // Determine the name to display, supporting old and new JSON formats.
                 const displayName = comment.posted_name || comment.manager_name || '名無し監督';
+                const tripcode = comment.tripcode;
 
-                // Determine if the post is from an announcer.
-                // If official_name exists, compare it with posted_name.
-                // Otherwise, fall back to the old logic of checking for a keyword.
-                const isAnnouncer = (comment.official_name !== undefined)
-                    ? (comment.posted_name !== comment.official_name)
-                    : displayName.includes('風光来夫');
+                // --- 新しい監督判定ロジック ---
+                let isManager = false;
+                // 第1判定: 公式監督名と完全一致するか
+                if (officialManagerNames.has(displayName)) {
+                    isManager = true;
+                }
+                // 第2判定: 投稿者名に、トリップコードに紐づく大学名が含まれるか
+                else if (tripcode && tripcodeToTeamNameMap.has(tripcode)) {
+                    const associatedTeamNames = tripcodeToTeamNameMap.get(tripcode);
+                    // 関連する大学名のいずれかが投稿者名に含まれていればOK
+                    if (associatedTeamNames.some(teamName => displayName.includes(teamName))) {
+                        isManager = true;
+                    }
+                }
 
-                postDiv.className = isAnnouncer ? 'lounge-post announcer' : 'lounge-post manager';
+                // isManagerがtrueなら監督、falseならアナウンサー
+                const postClass = isManager ? 'manager' : 'announcer';
+                postDiv.className = `lounge-post ${postClass}`;
 
                 const postDate = new Date(comment.timestamp);
                 const timeStr = postDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
