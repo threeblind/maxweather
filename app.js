@@ -357,13 +357,11 @@ async function initializeMap() {
         // 5. Draw the course path
         if (coursePath && coursePath.length > 0) {
             const latlngs = coursePath.map(p => [p.lat, p.lon]);
-            L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
-            // 初期表示では、日本全体ではなくスタート地点にズームします。
-            // 実際の先頭集団へのズームは、この後の fetchEkidenData -> updateRunnerMarkers で行われる
-            const startPoint = latlngs[0];
-            if (startPoint) {
-                map.setView(startPoint, 13); // スタート地点をズームレベル13で表示
-            }
+            const coursePolyline = L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
+            // 初期表示では、コース全体が収まるようにズームします。
+            // これにより、データ取得までの間、ユーザーはコースの全体像を把握できます。
+            // 実際の先頭集団へのズームは、この後の fetchEkidenData -> updateRunnerMarkers で行われます。
+            map.fitBounds(coursePolyline.getBounds().pad(0.1)); // .pad(0.1)で少し余白を持たせる
         }
 
         // 6. Draw relay point markers
