@@ -323,6 +323,7 @@ let map = null;
 let runnerMarkersLayer = null;
 let teamColorMap = new Map();
 let trackedTeamName = "lead_group"; // デフォルトは先頭集団を追跡
+let coursePolyline = null; // コースのポリラインをグローバルに保持
 
 /**
  * Initializes the interactive map, draws the course, and places relay point markers.
@@ -357,7 +358,7 @@ async function initializeMap() {
         // 5. Draw the course path
         if (coursePath && coursePath.length > 0) {
             const latlngs = coursePath.map(p => [p.lat, p.lon]);
-            const coursePolyline = L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
+            coursePolyline = L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
             // 初期表示では、コース全体が収まるようにズームします。
             // これにより、データ取得までの間、ユーザーはコースの全体像を把握できます。
             // 実際の先頭集団へのズームは、この後の fetchEkidenData -> updateRunnerMarkers で行われます。
@@ -407,8 +408,12 @@ function setupTeamTracker(teams) {
     const selectEl = document.getElementById('team-tracker-select');
     if (!selectEl) return;
 
-    // Add default option
-    selectEl.innerHTML = `<option value="lead_group">先頭集団を追跡</option>`;
+    // Add default options
+    selectEl.innerHTML = `
+        <option value="lead_group">先頭集団を追跡</option>
+        <option value="all_teams">全大学を表示</option>
+        <option value="full_course">コース全体を表示</option>
+    `;
 
     // Add each team as an option
     teams.forEach(team => {
@@ -457,7 +462,17 @@ function updateRunnerMarkers(runnerLocations) {
     });
 
     // --- Map View Update Logic ---
-    if (trackedTeamName && trackedTeamName !== "lead_group") {
+    if (trackedTeamName === "full_course") {
+        // --- Show the entire course ---
+        if (coursePolyline) {
+            map.fitBounds(coursePolyline.getBounds().pad(0.1));
+        }
+    } else if (trackedTeamName === "all_teams") {
+        // --- Show all teams ---
+        const allRunnerLatLngs = runnerLocations.map(r => [r.latitude, r.longitude]);
+        const bounds = L.latLngBounds(allRunnerLatLngs);
+        map.fitBounds(bounds.pad(0.1)); // .pad(0.1) for some margin
+    } else if (trackedTeamName && trackedTeamName !== "lead_group") {
         // --- Track a specific team ---
         const trackedRunner = runnerLocations.find(r => r.team_name === trackedTeamName);
         if (trackedRunner) {
@@ -468,7 +483,7 @@ function updateRunnerMarkers(runnerLocations) {
                 }
             });
         }
-    } else {
+    } else { // Default is "lead_group"
         // --- Track the lead group (default behavior) ---
         const leadGroup = runnerLocations.slice(0, 3);
         if (leadGroup.length > 1) {
