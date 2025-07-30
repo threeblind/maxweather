@@ -412,7 +412,7 @@ def generate_breaking_news_comment(current_results, previous_report_data):
             hottest_runners.append(r)
 
     if hottest_runners:
-        runner_details = [f"Runner {r['runner']} of {r['name']} ({r['todayDistance']:.1f}km)" for r in hottest_runners]
+        runner_details = [f"{r['name']}の{r['runner']}選手({r['todayDistance']:.1f}km)" for r in hottest_runners]
         runner_list_str = ', '.join(runner_details)
         return f"【酷暑】{runner_list_str}が脅威の走りで酷暑日超え、これは強烈な走り！！"
         
@@ -428,7 +428,7 @@ def generate_breaking_news_comment(current_results, previous_report_data):
             hotter_runners.append(r)
 
     if hotter_runners:
-        runner_details = [f"Runner {r['runner']} of {r['name']} ({r['todayDistance']:.1f}km)" for r in hotter_runners]
+        runner_details = [f"{r['name']}の{r['runner']}選手({r['todayDistance']:.1f}km)" for r in hotter_runners]
         runner_list_str = ', '.join(runner_details)
         return f"【猛暑】{runner_list_str}が39kmを超える走りをみせています！素晴らしい走りです！"
         
