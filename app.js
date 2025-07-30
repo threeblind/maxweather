@@ -1611,8 +1611,8 @@ document.addEventListener('DOMContentLoaded', function() {
     displayEntryList(); // エントリーリスト
     displayLegRankHistoryTable(); // 順位推移テーブル
     displayOutline(); // 大会概要
-    // 30秒ごとにデータを自動更新
-    setInterval(fetchEkidenData, 30000);
+    // 1分ごとにデータを自動更新
+    setInterval(fetchEkidenData, 90000);
     // setInterval(displayManagerComments, 30000); // 談話室の自動更新を停止
 
     // モーダルを閉じるイベントリスナーを設定
