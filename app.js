@@ -1597,7 +1597,7 @@ document.addEventListener('DOMContentLoaded', function() {
     displayOutline(); // 大会概要
     // 30秒ごとにデータを自動更新
     setInterval(fetchEkidenData, 30000);
-    setInterval(displayManagerComments, 30000); // 談話室も30秒ごとに更新
+    // setInterval(displayManagerComments, 30000); // 談話室の自動更新を停止
 
     // モーダルを閉じるイベントリスナーを設定
     const modal = document.getElementById('playerRecordsModal');
