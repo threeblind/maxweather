@@ -547,11 +547,12 @@ const createPrizeTable = (records) => {
         }
         const medal = getMedalEmoji(lastRank);
         const formattedRunnerName = formatRunnerName(record.runnerName);
+        const teamNameHtml = `<span class="full-name">${record.teamDetails.name}</span><span class="short-name">${record.teamDetails.short_name}</span>`;
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${lastRank}</td>
             <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${medal} ${formattedRunnerName}</td>
-            <td class="team-name">${record.teamName}</td>
+            <td class="team-name">${teamNameHtml}</td>
             <td>${record.averageDistance.toFixed(3)} km</td>
         `;
         tbody.appendChild(row);
@@ -567,9 +568,9 @@ const createPrizeTable = (records) => {
  * @param {number} legNumber - The leg to display rankings for.
  * @param {object} realtimeData - The data from realtime_report.json.
  * @param {object} individualData - The data from individual_results.json.
- * @param {Map<number, string>} teamsMap - A map of team IDs to team names.
+ * @param {Map<number, object>} teamsInfoMap - A map of team IDs to team details {name, short_name}.
  */
-const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap) => {
+const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfoMap) => {
     const legRankingBody = document.getElementById('legRankingBody');
     const legRankingTitle = document.getElementById('legRankingTitle');
     const legRankingStatus = document.getElementById('legRankingStatus');
@@ -588,9 +589,10 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap)
             const recordsForLeg = runnerData.records.filter(r => r.leg === legNumber);
             if (recordsForLeg.length > 0) {
                 const legTotalDistance = recordsForLeg.reduce((sum, record) => sum + record.distance, 0);
+                const teamDetails = teamsInfoMap.get(runnerData.teamId) || { name: 'N/A', short_name: 'N/A' };
                 runnersToShow.push({
                     runnerName,
-                    teamName: teamsMap.get(runnerData.teamId) || 'N/A',
+                    teamDetails: teamDetails,
                     legDistance: legTotalDistance
                 });
             }
@@ -612,11 +614,12 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap)
                 lastDistance = record.legDistance;
             }
             const formattedRunnerName = formatRunnerName(record.runnerName);
+            const teamNameHtml = `<span class="full-name">${record.teamDetails.name}</span><span class="short-name">${record.teamDetails.short_name}</span>`;
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${lastRank}</td>
                 <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
-                <td class="team-name">${record.teamName}</td>
+                <td class="team-name">${teamNameHtml}</td>
                 <td>${record.legDistance.toFixed(1)} km</td>
             `;
             legRankingBody.appendChild(row);
@@ -633,13 +636,13 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsMap)
  * @param {number} legNumber - The leg number of the clicked tab.
  * @param {object} realtimeData - The data from realtime_report.json.
  * @param {object} individualData - The data from individual_results.json.
- * @param {Map<number, string>} teamsMap - A map of team IDs to team names.
+ * @param {Map<number, object>} teamsInfoMap - A map of team IDs to team details {name, short_name}.
  */
-const switchLegTab = (legNumber, realtimeData, individualData, teamsMap) => {
+const switchLegTab = (legNumber, realtimeData, individualData, teamsInfoMap) => {
     document.querySelectorAll('.leg-tab').forEach(tab => {
         tab.classList.toggle('active', parseInt(tab.dataset.leg, 10) === legNumber);
     });
-    displayLegRankingFor(legNumber, realtimeData, individualData, teamsMap);
+    displayLegRankingFor(legNumber, realtimeData, individualData, teamsInfoMap);
 };
 
 /**
@@ -648,7 +651,7 @@ const switchLegTab = (legNumber, realtimeData, individualData, teamsMap) => {
  * @param {object} individualData - individual_results.json のデータ
  */
 const updateIndividualSections = (realtimeData, individualData) => {
-    const teamsMap = new Map(realtimeData.teams.map(t => [t.id, t.name]));
+    const teamsInfoMap = new Map(realtimeData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name }]));
     const legPrizeWinnerDiv = document.getElementById('legPrizeWinner');
     const tabsContainer = document.getElementById('leg-tabs-container');
 
@@ -667,13 +670,13 @@ const updateIndividualSections = (realtimeData, individualData) => {
         }
         tab.textContent = `${leg}区`;
         tab.dataset.leg = leg; // Store leg number in data attribute
-        tab.onclick = () => switchLegTab(leg, realtimeData, individualData, teamsMap);
+        tab.onclick = () => switchLegTab(leg, realtimeData, individualData, teamsInfoMap);
         tabsContainer.appendChild(tab);
     });
 
     // 3. Display the ranking for the default (leading) leg
     if (activeLegs.length > 0) {
-        displayLegRankingFor(activeLegs[0], realtimeData, individualData, teamsMap);
+        displayLegRankingFor(activeLegs[0], realtimeData, individualData, teamsInfoMap);
     }
 
     // 4. Handle Leg Prize
@@ -714,7 +717,7 @@ const updateIndividualSections = (realtimeData, individualData) => {
 
                 legPerformances.push({
                     runnerName,
-                    teamName: teamsMap.get(runnerData.teamId) || 'N/A',
+                    teamDetails: teamsInfoMap.get(runnerData.teamId) || { name: 'N/A', short_name: 'N/A' },
                     averageDistance: averageDistance
                 });
             }
@@ -986,17 +989,20 @@ async function displayLegRankHistoryTable() {
 
         // 現在の総合順位でチームをソートするためのMapを作成
         const rankMap = new Map(realtimeData.teams.map(t => [t.id, t.overallRank]));
+        const teamInfoMap = new Map(realtimeData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name }]));
         const sortedTeams = [...historyData.teams].sort((a, b) => (rankMap.get(a.id) || 999) - (rankMap.get(b.id) || 999));
 
         // テーブルボディを生成
         bodyEl.innerHTML = sortedTeams.map(team => {
+            const teamDetails = teamInfoMap.get(team.id) || { name: team.name, short_name: team.name }; // フォールバック
+            const teamNameHtml = `<span class="full-name">${teamDetails.name}</span><span class="short-name">${teamDetails.short_name}</span>`;
             const cellsHtml = team.leg_ranks.map(rank => {
                 const isFirst = rank === 1;
                 const cellClass = isFirst ? 'class="rank-first"' : '';
                 const displayRank = rank !== null ? rank : '-';
                 return `<td ${cellClass}>${displayRank}</td>`;
             }).join('');
-            return `<tr><td class="team-name">${team.name}</td>${cellsHtml}</tr>`;
+            return `<tr><td class="team-name">${teamNameHtml}</td>${cellsHtml}</tr>`;
         }).join('');
 
         statusEl.style.display = 'none';
