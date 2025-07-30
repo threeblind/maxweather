@@ -1121,13 +1121,20 @@ const updateEkidenRankingTable = (data) => {
 
         row.appendChild(createCell(team.overallRank, 'rank'));
         
-        const teamNameCell = createCell(team.name, 'team-name');
+        // 大学名セルは、フルネームと短縮名を切り替えるために特別なHTML構造を持つ
+        const teamNameCell = document.createElement('td');
+        teamNameCell.className = 'team-name';
+        // CSSで表示を切り替えるためのspanタグを埋め込む
+        teamNameCell.innerHTML = `<span class="full-name">${team.name}</span><span class="short-name">${team.short_name}</span>`;
+
+        // スマホ表示の時だけ、クリックで詳細モーダルを開くイベントリスナーを追加
         teamNameCell.addEventListener('click', () => {
             if (window.innerWidth <= 768) {
                 showTeamDetailsModal(team, topDistance);
             }
         });
         row.appendChild(teamNameCell);
+
         row.appendChild(createCell(formatRunnerName(team.runner), 'runner'));
 
         // 本日距離セル。スマホでは単位(km)を非表示
@@ -1587,6 +1594,21 @@ document.addEventListener('DOMContentLoaded', function() {
     displayOutline(); // 大会概要
     // 30秒ごとにデータを自動更新
     setInterval(fetchEkidenData, 30000);
+
+    // スマホ表示でのPC/SP版表示切り替えボタンのイベントリスナー
+    const toggleBtn = document.getElementById('toggle-ranking-view-btn');
+    const rankingContainer = document.querySelector('.ekiden-ranking-container');
+
+    if (toggleBtn && rankingContainer) {
+        toggleBtn.addEventListener('click', () => {
+            rankingContainer.classList.toggle('show-full-view');
+            if (rankingContainer.classList.contains('show-full-view')) {
+                toggleBtn.textContent = 'SP版表示';
+            } else {
+                toggleBtn.textContent = 'PC版表示';
+            }
+        });
+    }
 
     // モーダルを閉じるイベントリスナーを設定
     const modal = document.getElementById('playerRecordsModal');
