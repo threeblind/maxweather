@@ -1642,15 +1642,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // モーダルを閉じるイベントリスナーを設定
     const modal = document.getElementById('playerRecordsModal');
-    const closeButton = document.querySelector('.close-button');
+    const closeButton = modal.querySelector('.close-button'); // このモーダル内の閉じるボタンを特定
     if (modal && closeButton) {
         closeButton.onclick = closePlayerRecordsModal;
         // モーダルの外側をクリックしたときも閉じる
-        window.onclick = function(event) {
+        window.addEventListener('click', function(event) {
             if (event.target == modal) {
                 closePlayerRecordsModal();
             }
-        };
+        });
     }
 
     // チーム詳細モーダルを閉じるイベントリスナー
@@ -1790,4 +1790,18 @@ document.addEventListener('DOMContentLoaded', function() {
             navList.classList.toggle('active');
         });
     }
+
+    // --- Mobile Dropdown Menu in Navigation ---
+    document.querySelectorAll('.page-nav .dropbtn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            // <a>タグのデフォルト動作をキャンセル
+            e.preventDefault();
+
+            // ホバーが効かないモバイル表示の時だけ、クリックで開閉を制御
+            if (window.innerWidth <= 768) {
+                const dropdown = this.parentElement; // 親要素である li.dropdown を取得
+                dropdown.classList.toggle('open'); // openクラスを付け外しする
+            }
+        });
+    });
 });
