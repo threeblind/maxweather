@@ -453,13 +453,13 @@ function updateRunnerMarkers(runnerLocations) {
 
     runnerLocations.forEach(runner => {
         const color = teamColorMap.get(runner.team_name) || '#808080'; // Default to grey
-        const teamInitial = runner.team_name ? runner.team_name.substring(0, 2) : '??';
+        const teamInitial = runner.team_short_name || '??';
         const icon = createRunnerIcon(teamInitial, color);
         const latLng = [runner.latitude, runner.longitude];
         const marker = L.marker(latLng, { icon: icon });
 
         const popupContent = `
-            <b>${runner.rank}位: ${runner.team_name}</b><br>
+            <b>${runner.rank}位: ${runner.team_short_name} (${runner.team_name})</b><br>
             走者: ${formatRunnerName(runner.runner_name)}<br>
             総距離: ${runner.total_distance_km.toFixed(1)} km
         `;
