@@ -1633,9 +1633,9 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleBtn.addEventListener('click', () => {
             rankingContainer.classList.toggle('show-full-view');
             if (rankingContainer.classList.contains('show-full-view')) {
-                toggleBtn.textContent = 'SP版表示';
+                toggleBtn.textContent = 'SP版';
             } else {
-                toggleBtn.textContent = 'PC版表示';
+                toggleBtn.textContent = 'PC版';
             }
         });
     }
