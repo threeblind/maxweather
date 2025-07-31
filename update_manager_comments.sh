@@ -4,7 +4,10 @@
 set -euo pipefail
 
 # --- 設定 ---
-PROJECT_DIR="/Users/t28k2/prj/weather"
+# Pythonの実行可能ファイルへのフルパスを指定します。
+# `which python3.9` コマンドで確認したパスに置き換えてください。
+PYTHON_CMD="/Users/t28k2/prj/weather/venv/bin/python"
+GIT_BRANCH="main"
 
 # --- スクリプト本体 ---
 
@@ -14,41 +17,18 @@ cd "$(dirname "$0")"
 echo "--- $(date +'%Y-%m-%d %H:%M:%S') ---"
 echo "監督談話室のコメント更新を開始します..."
 
+# 1. Pythonスクリプトを実行して manager_comments.json を更新
+${PYTHON_CMD} fetch_manager_comments.py
 
-    # 変更をステージング
+# 2. manager_comments.json に変更があったかを確認
+if ! git diff --quiet --exit-code manager_comments.json; then
+    echo "manager_comments.json に変更を検出しました。コミットしてプッシュします。"
+
+    # 3. 変更をコミットしてプッシュ
     git add manager_comments.json
-
-    # コミットメッセージを作成
-    COMMIT_MESSAGE="[Auto] Update manager comments - $(date '+%Y-%m-%d %H:%M:%S')"
-    git commit -m "$COMMIT_MESSAGE"
-
-    # 他の未コミットの変更があった場合に備えて一時的に退避
-    STASH_RESULT=$(git stash)
-
-    # リモートの変更を取り込んでからプッシュ (non-fast-forwardエラー対策)
-    echo "リモートの変更を取り込んでいます (git pull --rebase)..."
-    git pull --rebase origin main
-    # 他の未コミットの変更があった場合に備えて一時的に退避
-    STASH_RESULT=$(git stash)
-
-    # リモートの変更を取り込んでからプッシュ (non-fast-forwardエラー対策)
-    echo "リモートの変更を取り込んでいます (git pull --rebase)..."
-    git pull --rebase origin main
-
-
+    git commit -m "[Auto] Update manager comments - $(date '+%Y-%m-%d %H:%M:%S')"
     echo "GitHubにプッシュしています..."
-    git push origin main
-    # 退避していた変更を元に戻す
-    if [[ "$STASH_RESULT" != "No local changes to save" ]]; then
-        git stash pop
-    fi
-
-
-    # 退避していた変更を元に戻す
-    if [[ "$STASH_RESULT" != "No local changes to save" ]]; then
-        git stash pop
-    fi
-
+    git push origin ${GIT_BRANCH}
     echo "プッシュが完了しました。"
 else
     echo "manager_comments.json に変更はありませんでした。"
