@@ -1717,10 +1717,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- Smooth Scrolling for Page Navigation ---
-    document.querySelectorAll('.page-nav a').forEach(anchor => {
+    // href属性を持つリンクのみを対象にし、ドロップダウンのトグルボタンなどを除外
+    document.querySelectorAll('.page-nav a[href]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
             const targetId = this.getAttribute('href');
+
             try {
                 const targetElement = document.querySelector(targetId);
                 if (targetElement) {
@@ -1728,6 +1730,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } catch (error) {
                 console.error(`Smooth scroll target not found for ${targetId}`, error);
+            }
+
+            // モバイル表示でメニューが開いている場合、リンククリック後に閉じる
+            const hamburgerBtn = document.getElementById('hamburger-btn');
+            const navList = document.getElementById('main-nav-list');
+            if (hamburgerBtn && navList && hamburgerBtn.classList.contains('active')) {
+                hamburgerBtn.classList.remove('active');
+                navList.classList.remove('active');
             }
         });
     });
