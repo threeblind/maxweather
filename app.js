@@ -1769,4 +1769,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // --- Hamburger Menu for Mobile ---
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const navList = document.getElementById('main-nav-list');
+
+    if (hamburgerBtn && navList) {
+        hamburgerBtn.addEventListener('click', () => {
+            hamburgerBtn.classList.toggle('active');
+            navList.classList.toggle('active');
+        });
+    }
 });
