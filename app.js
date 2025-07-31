@@ -1620,6 +1620,8 @@ document.addEventListener('DOMContentLoaded', function() {
     displayEntryList(); // エントリーリスト
     displayLegRankHistoryTable(); // 順位推移テーブル
     displayOutline(); // 大会概要
+    // ページ読み込み時に一度、即座にデータを取得して表示
+    fetchEkidenData();
     // 30秒ごとにデータを自動更新
     setInterval(fetchEkidenData, 30000);
 
