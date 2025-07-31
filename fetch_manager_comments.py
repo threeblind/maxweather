@@ -70,12 +70,11 @@ def fetch_and_process_comments():
         end_time = datetime.combine(today, time(7, 0))
     # それ以外の時間帯（7:00〜18:59）は対象外
     else:
-        print("対象時間外です。当日のコメントは0件として処理します。")
-        # 空のJSONファイルを作成して終了
-        with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-            json.dump([], f, indent=2, ensure_ascii=False)
-        print(f"処理完了: 0件の監督コメントを {OUTPUT_FILE} に保存しました。")
-        return
+        # [テスト用] 日中の時間帯でも、直前の夜間コメントを取得するように変更
+        print("[テストモード] 日中のため、昨晩19:00から今朝7:00までのコメントを取得します。")
+        yesterday = today - timedelta(days=1)
+        start_time = datetime.combine(yesterday, time(19, 0))
+        end_time = datetime.combine(today, time(7, 0))
 
     thread_url = get_thread_url()
     if not thread_url:
