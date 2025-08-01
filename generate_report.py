@@ -382,7 +382,7 @@ def generate_breaking_news_comment(current_results, previous_report_data):
 
         if prev_dist_1 is not None and prev_dist_2 is not None:
             previous_gap_lead = prev_dist_1 - prev_dist_2
-            if 0 <= current_gap_lead < 0.5: # 差が0.5km未満であれば常に表示
+            if 0 <= current_gap_lead < 1.0: # 差が1.0km未満であれば常に表示
                 return f"【首位争い】トップ{team_1['name']}に2位{team_2['name']}が肉薄！その差わずか{current_gap_lead:.1f}km！"
 
 
