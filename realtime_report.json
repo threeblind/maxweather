@@ -1,51 +1,37 @@
 {
-  "updateTime": "2025/08/02 00:05",
+  "updateTime": "2025/08/02 00:15",
   "raceDay": 11,
   "breakingNewsComment": "",
   "breakingNewsTimestamp": "",
   "breakingNewsFullText": "",
   "teams": [
     {
-      "id": 14,
-      "name": "立命館大学",
-      "short_name": "立命",
-      "currentLeg": 4,
-      "runner": "4米原",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 376.8,
-      "overallRank": 1,
-      "previousRank": 1,
-      "nextRunner": "5今津",
-      "error": "気温が数値でない"
-    },
-    {
       "id": 15,
       "name": "福島大学",
       "short_name": "福島",
       "currentLeg": 4,
       "runner": "4長岡",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 376.4,
-      "overallRank": 2,
+      "todayDistance": 28.1,
+      "todayRank": 5,
+      "totalDistance": 404.5,
+      "overallRank": 1,
       "previousRank": 2,
       "nextRunner": "5三条",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
-      "id": 11,
-      "name": "鳥取大学",
-      "short_name": "鳥取",
+      "id": 14,
+      "name": "立命館大学",
+      "short_name": "立命",
       "currentLeg": 4,
-      "runner": "4防府",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 373.7,
-      "overallRank": 3,
-      "previousRank": 3,
-      "nextRunner": "5境",
-      "error": "気温が数値でない"
+      "runner": "4米原",
+      "todayDistance": 27.1,
+      "todayRank": 9,
+      "totalDistance": 403.9,
+      "overallRank": 2,
+      "previousRank": 1,
+      "nextRunner": "5今津",
+      "error": null
     },
     {
       "id": 1,
@@ -53,27 +39,27 @@
       "short_name": "名大",
       "currentLeg": 4,
       "runner": "4愛西",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 373.6,
-      "overallRank": 4,
+      "todayDistance": 28.3,
+      "todayRank": 4,
+      "totalDistance": 401.9,
+      "overallRank": 3,
       "previousRank": 4,
       "nextRunner": "5多治見",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
-      "id": 3,
-      "name": "福岡大学",
-      "short_name": "福岡",
+      "id": 11,
+      "name": "鳥取大学",
+      "short_name": "鳥取",
       "currentLeg": 4,
-      "runner": "4朝倉",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 369.7,
-      "overallRank": 5,
-      "previousRank": 5,
-      "nextRunner": "5島原",
-      "error": "気温が数値でない"
+      "runner": "4防府",
+      "todayDistance": 27.2,
+      "todayRank": 8,
+      "totalDistance": 400.9,
+      "overallRank": 4,
+      "previousRank": 3,
+      "nextRunner": "5境",
+      "error": null
     },
     {
       "id": 8,
@@ -81,13 +67,13 @@
       "short_name": "広経",
       "currentLeg": 4,
       "runner": "4大竹",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 368.8,
-      "overallRank": 6,
+      "todayDistance": 28.0,
+      "todayRank": 6,
+      "totalDistance": 396.8,
+      "overallRank": 5,
       "previousRank": 6,
       "nextRunner": "5高梁",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 13,
@@ -95,13 +81,27 @@
       "short_name": "日大",
       "currentLeg": 4,
       "runner": "4小田原",
-      "todayDistance": 0,
+      "todayDistance": 29.5,
       "todayRank": 1,
-      "totalDistance": 366.7,
-      "overallRank": 7,
+      "totalDistance": 396.2,
+      "overallRank": 6,
       "previousRank": 7,
       "nextRunner": "5牛久",
-      "error": "気温が数値でない"
+      "error": null
+    },
+    {
+      "id": 3,
+      "name": "福岡大学",
+      "short_name": "福岡",
+      "currentLeg": 4,
+      "runner": "4朝倉",
+      "todayDistance": 25.8,
+      "todayRank": 12,
+      "totalDistance": 395.5,
+      "overallRank": 7,
+      "previousRank": 5,
+      "nextRunner": "5島原",
+      "error": null
     },
     {
       "id": 5,
@@ -109,13 +109,13 @@
       "short_name": "関大",
       "currentLeg": 4,
       "runner": "4柏原",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 366.4,
+      "todayDistance": 25.5,
+      "todayRank": 13,
+      "totalDistance": 391.9,
       "overallRank": 8,
       "previousRank": 8,
       "nextRunner": "5枚方",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 18,
@@ -123,13 +123,13 @@
       "short_name": "東北",
       "currentLeg": 4,
       "runner": "4大館",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 365.2,
+      "todayDistance": 25.5,
+      "todayRank": 13,
+      "totalDistance": 390.7,
       "overallRank": 9,
       "previousRank": 9,
       "nextRunner": "5一関",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 4,
@@ -137,13 +137,13 @@
       "short_name": "上武",
       "currentLeg": 4,
       "runner": "4寄居",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 364.8,
+      "todayDistance": 25.2,
+      "todayRank": 17,
+      "totalDistance": 390.0,
       "overallRank": 10,
       "previousRank": 10,
       "nextRunner": "5桐生",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 6,
@@ -151,13 +151,13 @@
       "short_name": "熊学",
       "currentLeg": 4,
       "runner": "4人吉",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 363.4,
+      "todayDistance": 26.4,
+      "todayRank": 11,
+      "totalDistance": 389.8,
       "overallRank": 11,
       "previousRank": 11,
       "nextRunner": "5熊本",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 9,
@@ -165,13 +165,13 @@
       "short_name": "学連",
       "currentLeg": 4,
       "runner": "4上",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 361.8,
+      "todayDistance": 25.4,
+      "todayRank": 15,
+      "totalDistance": 387.2,
       "overallRank": 12,
       "previousRank": 12,
       "nextRunner": "5久世",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 17,
@@ -179,13 +179,13 @@
       "short_name": "金沢",
       "currentLeg": 4,
       "runner": "4志賀",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 359.9,
+      "todayDistance": 26.6,
+      "todayRank": 10,
+      "totalDistance": 386.5,
       "overallRank": 13,
       "previousRank": 13,
       "nextRunner": "5福井",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 10,
@@ -193,13 +193,13 @@
       "short_name": "山学",
       "currentLeg": 4,
       "runner": "4浜松",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 354.4,
+      "todayDistance": 28.4,
+      "todayRank": 3,
+      "totalDistance": 382.8,
       "overallRank": 14,
       "previousRank": 14,
       "nextRunner": "5甲府",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 2,
@@ -207,13 +207,13 @@
       "short_name": "三重",
       "currentLeg": 4,
       "runner": "4風屋",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 351.6,
+      "todayDistance": 25.4,
+      "todayRank": 15,
+      "totalDistance": 377.0,
       "overallRank": 15,
       "previousRank": 15,
       "nextRunner": "5奈良",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 12,
@@ -221,13 +221,13 @@
       "short_name": "四国",
       "currentLeg": 4,
       "runner": "4松山",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 347.5,
+      "todayDistance": 27.6,
+      "todayRank": 7,
+      "totalDistance": 375.1,
       "overallRank": 16,
       "previousRank": 16,
       "nextRunner": "5大洲",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 7,
@@ -235,13 +235,13 @@
       "short_name": "鹿大",
       "currentLeg": 4,
       "runner": "4肝付前田",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 331.1,
+      "todayDistance": 25.2,
+      "todayRank": 17,
+      "totalDistance": 356.3,
       "overallRank": 17,
       "previousRank": 17,
       "nextRunner": "5都城",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 16,
@@ -249,13 +249,13 @@
       "short_name": "琉球",
       "currentLeg": 4,
       "runner": "4名護",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 315.2,
+      "todayDistance": 28.5,
+      "todayRank": 2,
+      "totalDistance": 343.7,
       "overallRank": 18,
       "previousRank": 18,
       "nextRunner": "5波照間",
-      "error": "気温が数値でない"
+      "error": null
     }
   ]
 }
