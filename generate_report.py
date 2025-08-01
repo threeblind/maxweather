@@ -370,6 +370,22 @@ def generate_breaking_news_comment(current_results, previous_report_data):
             current_leader_name = current_results[0]['name']
             return f"【速報】首位交代！ {current_leader_name}がトップに浮上しました！"
 
+    previous_distances = {team['id']: team['totalDistance'] for team in previous_report_data.get('teams', [])}
+   # 2. 首位争い (0.5km差以内で、差が縮まっている場合)
+    if len(current_results) > 1:
+        team_1 = current_results[0]
+        team_2 = current_results[1]
+        current_gap_lead = team_1['totalDistance'] - team_2['totalDistance']
+
+        prev_dist_1 = previous_distances.get(team_1['id'])
+        prev_dist_2 = previous_distances.get(team_2['id'])
+
+        if prev_dist_1 is not None and prev_dist_2 is not None:
+            previous_gap_lead = prev_dist_1 - prev_dist_2
+            if 0 <= current_gap_lead < 0.5: # 差が0.5km未満であれば常に表示
+                return f"【首位争い】トップ{team_1['name']}に2位{team_2['name']}が肉薄！その差わずか{current_gap_lead:.1f}km！"
+
+
     # 2. 区間走破
     previous_teams_map = {team['id']: team for team in previous_report_data.get('teams', [])}
     previous_distances = {team['id']: team['totalDistance'] for team in previous_report_data.get('teams', [])}
@@ -493,7 +509,6 @@ def generate_breaking_news_comment(current_results, previous_report_data):
         return f"【追い上げ】{best_closer['name']}が猛追！前のチームとの差を{best_closer['gap_closed']:.1f}km縮めました！"
 
     # 8. 接戦 (表彰台、トップ5、シード権)
-    previous_distances = {team['id']: team['totalDistance'] for team in previous_report_data.get('teams', [])}
 
     if len(current_results) > 3:
         team_3 = current_results[2]
