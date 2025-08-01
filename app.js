@@ -465,6 +465,15 @@ function updateRunnerMarkers(runnerLocations) {
         `;
         marker.bindPopup(popupContent);
 
+        // Add click event to scroll to the ranking table and highlight the row
+        marker.on('click', () => {
+            const teamRow = document.getElementById(`team-rank-row-${runner.rank}`);
+            if (teamRow) {
+                teamRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                highlightRow(teamRow);
+            }
+        });
+
         runnerMarkersLayer.addLayer(marker);
     });
 
@@ -1110,6 +1119,7 @@ const updateEkidenRankingTable = (data) => {
 
     data.teams.forEach(team => {
         const row = document.createElement('tr');
+        row.id = `team-rank-row-${team.overallRank}`; // Add a unique ID for each row
 
         const createCell = (text, className = '') => {
             const cell = document.createElement('td');
@@ -1274,6 +1284,25 @@ const fetchEkidenData = async () => {
         bodyEl.innerHTML = '';
     }
 };
+
+/**
+ * Highlights a table row for a short duration.
+ * @param {HTMLElement} row - The table row element to highlight.
+ */
+function highlightRow(row) {
+    // Remove highlight from any other row first
+    document.querySelectorAll('#ekidenRankingTable tr.highlighted').forEach(r => {
+        r.classList.remove('highlighted');
+    });
+
+    // Add highlight to the target row
+    row.classList.add('highlighted');
+
+    // Remove the highlight after 2.5 seconds
+    setTimeout(() => {
+        row.classList.remove('highlighted');
+    }, 2500);
+}
 
 // --- ポップアップ（モーダル）機能 ---
 
