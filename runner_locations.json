@@ -1,6 +1,15 @@
 [
   {
     "rank": 1,
+    "team_name": "名古屋大学",
+    "team_short_name": "名大",
+    "runner_name": "愛西",
+    "total_distance_km": 408.8,
+    "latitude": 34.851962039370584,
+    "longitude": 136.47005341550116
+  },
+  {
+    "rank": 2,
     "team_name": "福島大学",
     "team_short_name": "福島",
     "runner_name": "長岡",
@@ -9,31 +18,31 @@
     "longitude": 136.47689417166643
   },
   {
-    "rank": 2,
-    "team_name": "名古屋大学",
-    "team_short_name": "名大",
-    "runner_name": "愛西",
-    "total_distance_km": 408.0,
-    "latitude": 34.855114629373205,
-    "longitude": 136.47782697295807
-  },
-  {
     "rank": 3,
     "team_name": "立命館大学",
     "team_short_name": "立命",
     "runner_name": "米原",
-    "total_distance_km": 407.0,
-    "latitude": 34.86113299563931,
-    "longitude": 136.4855268362355
+    "total_distance_km": 407.1,
+    "latitude": 34.86034919134231,
+    "longitude": 136.4849867525619
   },
   {
     "rank": 4,
     "team_name": "鳥取大学",
     "team_short_name": "鳥取",
     "runner_name": "防府",
-    "total_distance_km": 406.1,
-    "latitude": 34.8681145836448,
-    "longitude": 136.4904440209181
+    "total_distance_km": 406.2,
+    "latitude": 34.86730044563502,
+    "longitude": 136.4899745634921
+  },
+  {
+    "rank": 5,
+    "team_name": "広島経済大学",
+    "team_short_name": "広経",
+    "runner_name": "大竹",
+    "total_distance_km": 400.6,
+    "latitude": 34.890131091318935,
+    "longitude": 136.53836763765014
   },
   {
     "rank": 5,
@@ -43,15 +52,6 @@
     "total_distance_km": 400.6,
     "latitude": 34.890131091318935,
     "longitude": 136.53836763765014
-  },
-  {
-    "rank": 6,
-    "team_name": "広島経済大学",
-    "team_short_name": "広経",
-    "runner_name": "大竹",
-    "total_distance_km": 400.2,
-    "latitude": 34.89148289940073,
-    "longitude": 136.54229373312558
   },
   {
     "rank": 7,
@@ -67,63 +67,63 @@
     "team_name": "東北大学",
     "team_short_name": "東北",
     "runner_name": "大館",
-    "total_distance_km": 398.4,
-    "latitude": 34.90578461975191,
-    "longitude": 136.55004342988101
+    "total_distance_km": 398.8,
+    "latitude": 34.90239757784658,
+    "longitude": 136.54856035365816
   },
   {
     "rank": 9,
     "team_name": "日本大学",
     "team_short_name": "日大",
     "runner_name": "小田原",
-    "total_distance_km": 398.3,
-    "latitude": 34.90664976715593,
-    "longitude": 136.5503371695817
+    "total_distance_km": 398.6,
+    "latitude": 34.90410794748853,
+    "longitude": 136.54923931155062
   },
   {
     "rank": 10,
     "team_name": "関西大学",
     "team_short_name": "関大",
     "runner_name": "柏原",
-    "total_distance_km": 397.4,
-    "latitude": 34.91332623762191,
-    "longitude": 136.55471340469623
+    "total_distance_km": 398.0,
+    "latitude": 34.909337899939054,
+    "longitude": 136.5506204066231
   },
   {
     "rank": 11,
     "team_name": "熊本学園大学",
     "team_short_name": "熊学",
     "runner_name": "人吉",
-    "total_distance_km": 392.8,
-    "latitude": 34.933159106966535,
-    "longitude": 136.59350469955993
+    "total_distance_km": 393.7,
+    "latitude": 34.927309042634704,
+    "longitude": 136.587118583025
   },
   {
     "rank": 12,
-    "team_name": "金沢大学",
-    "team_short_name": "金沢",
-    "runner_name": "志賀",
-    "total_distance_km": 390.9,
-    "latitude": 34.94636575699355,
-    "longitude": 136.60555398263105
-  },
-  {
-    "rank": 13,
     "team_name": "学連選抜",
     "team_short_name": "学連",
     "runner_name": "上",
-    "total_distance_km": 390.6,
-    "latitude": 34.94867288218464,
-    "longitude": 136.60726705934292
+    "total_distance_km": 391.5,
+    "latitude": 34.94175150661137,
+    "longitude": 136.6021278292073
+  },
+  {
+    "rank": 13,
+    "team_name": "金沢大学",
+    "team_short_name": "金沢",
+    "runner_name": "志賀",
+    "total_distance_km": 391.3,
+    "latitude": 34.94328959007209,
+    "longitude": 136.60326988034853
   },
   {
     "rank": 14,
     "team_name": "山梨学院大学",
     "team_short_name": "山学",
     "runner_name": "浜松",
-    "total_distance_km": 387.5,
-    "latitude": 34.971805824695046,
-    "longitude": 136.62491013269434
+    "total_distance_km": 388.1,
+    "latitude": 34.966688742634354,
+    "longitude": 136.6228574168929
   },
   {
     "rank": 15,
@@ -148,9 +148,9 @@
     "team_name": "鹿児島大学",
     "team_short_name": "鹿大",
     "runner_name": "西米良",
-    "total_distance_km": 360.5,
-    "latitude": 35.1259860400383,
-    "longitude": 136.80670902546322
+    "total_distance_km": 361.5,
+    "latitude": 35.12521642527598,
+    "longitude": 136.7957780108524
   },
   {
     "rank": 18,
