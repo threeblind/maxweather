@@ -60,13 +60,13 @@ def fetch_and_process_comments():
     end_time = None
 
     # 実行時刻が夜19時以降の場合 -> 当日19:00から翌日7:00までが対象
-    if now.hour >= 19:
-        start_time = datetime.combine(today, time(19, 0))
+    if now.hour >= 18:
+        start_time = datetime.combine(today, time(18, 0))
         end_time = datetime.combine(today + timedelta(days=1), time(7, 0))
     # 実行時刻が朝7時より前の場合 -> 前日19:00から当日7:00までが対象
     elif now.hour < 7:
         yesterday = today - timedelta(days=1)
-        start_time = datetime.combine(yesterday, time(19, 0))
+        start_time = datetime.combine(yesterday, time(18, 0))
         end_time = datetime.combine(today, time(7, 0))
     # それ以外の時間帯（7:00〜18:59）は対象外
     else:
