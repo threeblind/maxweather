@@ -1,5 +1,5 @@
 {
-  "updateTime": "2025/08/02 11:45",
+  "updateTime": "2025/08/02 11:55",
   "raceDay": 11,
   "breakingNewsComment": "【表彰台争い】3位立命館大学と4位鳥取大学が激しく競り合っています！",
   "breakingNewsTimestamp": "2025-08-02T11:45:03.757701",
@@ -12,7 +12,7 @@
       "currentLeg": 4,
       "runner": "4愛西",
       "todayDistance": 37.5,
-      "todayRank": 1,
+      "todayRank": 2,
       "totalDistance": 411.1,
       "overallRank": 1,
       "previousRank": 4,
@@ -62,6 +62,20 @@
       "error": null
     },
     {
+      "id": 3,
+      "name": "福岡大学",
+      "short_name": "福岡",
+      "currentLeg": 4,
+      "runner": "4朝倉",
+      "todayDistance": 34.3,
+      "todayRank": 11,
+      "totalDistance": 404.0,
+      "overallRank": 5,
+      "previousRank": 5,
+      "nextRunner": "5島原",
+      "error": null
+    },
+    {
       "id": 8,
       "name": "広島経済大学",
       "short_name": "広経",
@@ -70,23 +84,9 @@
       "todayDistance": 34.8,
       "todayRank": 9,
       "totalDistance": 403.6,
-      "overallRank": 5,
+      "overallRank": 6,
       "previousRank": 6,
       "nextRunner": "5高梁",
-      "error": null
-    },
-    {
-      "id": 3,
-      "name": "福岡大学",
-      "short_name": "福岡",
-      "currentLeg": 4,
-      "runner": "4朝倉",
-      "todayDistance": 33.8,
-      "todayRank": 11,
-      "totalDistance": 403.5,
-      "overallRank": 6,
-      "previousRank": 5,
-      "nextRunner": "5島原",
       "error": null
     },
     {
@@ -95,9 +95,9 @@
       "short_name": "上武",
       "currentLeg": 4,
       "runner": "4寄居",
-      "todayDistance": 37.5,
+      "todayDistance": 37.7,
       "todayRank": 1,
-      "totalDistance": 402.3,
+      "totalDistance": 402.5,
       "overallRank": 7,
       "previousRank": 10,
       "nextRunner": "5桐生",
@@ -123,12 +123,26 @@
       "short_name": "東北",
       "currentLeg": 4,
       "runner": "4大館",
-      "todayDistance": 36.1,
+      "todayDistance": 36.6,
       "todayRank": 4,
-      "totalDistance": 401.3,
+      "totalDistance": 401.8,
       "overallRank": 9,
       "previousRank": 9,
       "nextRunner": "5一関",
+      "error": null
+    },
+    {
+      "id": 6,
+      "name": "熊本学園大学",
+      "short_name": "熊学",
+      "currentLeg": 4,
+      "runner": "4人吉",
+      "todayDistance": 35.5,
+      "todayRank": 7,
+      "totalDistance": 398.9,
+      "overallRank": 10,
+      "previousRank": 11,
+      "nextRunner": "5熊本",
       "error": null
     },
     {
@@ -146,20 +160,6 @@
       "error": null
     },
     {
-      "id": 6,
-      "name": "熊本学園大学",
-      "short_name": "熊学",
-      "currentLeg": 4,
-      "runner": "4人吉",
-      "todayDistance": 34.9,
-      "todayRank": 8,
-      "totalDistance": 398.3,
-      "overallRank": 11,
-      "previousRank": 11,
-      "nextRunner": "5熊本",
-      "error": null
-    },
-    {
       "id": 9,
       "name": "学連選抜",
       "short_name": "学連",
@@ -174,6 +174,20 @@
       "error": null
     },
     {
+      "id": 10,
+      "name": "山梨学院大学",
+      "short_name": "山学",
+      "currentLeg": 4,
+      "runner": "4浜松",
+      "todayDistance": 37.4,
+      "todayRank": 3,
+      "totalDistance": 391.8,
+      "overallRank": 13,
+      "previousRank": 14,
+      "nextRunner": "5甲府",
+      "error": null
+    },
+    {
       "id": 17,
       "name": "金沢大学",
       "short_name": "金沢",
@@ -185,20 +199,6 @@
       "overallRank": 13,
       "previousRank": 13,
       "nextRunner": "5福井",
-      "error": null
-    },
-    {
-      "id": 10,
-      "name": "山梨学院大学",
-      "short_name": "山学",
-      "currentLeg": 4,
-      "runner": "4浜松",
-      "todayDistance": 36.7,
-      "todayRank": 3,
-      "totalDistance": 391.1,
-      "overallRank": 14,
-      "previousRank": 14,
-      "nextRunner": "5甲府",
       "error": null
     },
     {
@@ -236,7 +236,7 @@
       "currentLeg": 4,
       "runner": "4西米良",
       "todayDistance": 36.1,
-      "todayRank": 4,
+      "todayRank": 5,
       "totalDistance": 367.2,
       "overallRank": 17,
       "previousRank": 17,
