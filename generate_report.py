@@ -22,6 +22,7 @@ LEG_RANK_HISTORY_FILE = 'leg_rank_history.json'
 EKIDEN_START_DATE = '2025-07-23'
 KML_FILE = 'ekiden_map.kml'
 RUNNER_LOCATIONS_OUTPUT_FILE = 'runner_locations.json'
+COURSE_PATH_FILE = 'course_path.json'
 
 # 5chからスクレイピングする際のリクエストヘッダー
 HEADERS = {
@@ -593,44 +594,22 @@ def get_leg_number_from_name(name):
 
 def calculate_and_save_runner_locations(teams_data):
     """
-    KMLファイルとリアルタイムレポートから、各チームの現在位置（緯度経度）を計算する。
+    course_path.jsonとリアルタイムレポートから、各チームの現在位置（緯度経度）を計算する。
     """
-    # 1. KMLファイルを解析
+    # 1. 事前に生成されたコースパスファイルを読み込む
     try:
-        tree = ET.parse(KML_FILE)
-        root = tree.getroot()
-        ns = {'kml': 'http://www.opengis.net/kml/2.2'}
-    except (FileNotFoundError, ET.ParseError) as e:
-        print(f"エラー: {KML_FILE} の解析に失敗しました: {e}")
+        with open(COURSE_PATH_FILE, 'r', encoding='utf-8') as f:
+            all_points = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"エラー: {COURSE_PATH_FILE} の読み込みに失敗しました: {e}")
+        print("ヒント: `python process_kml.py` を実行して、コースファイルを生成してください。")
         return
-
-    # 2. LineStringを持つPlacemarkを抽出し、区間番号でソート
-    placemarks = root.findall('.//kml:Placemark', ns)
-    linestring_placemarks = []
-    for pm in placemarks:
-        name_tag = pm.find('kml:name', ns)
-        if name_tag is not None and '区' in name_tag.text:
-             linestring_placemarks.append(pm)
-
-    linestring_placemarks.sort(key=lambda pm: get_leg_number_from_name(pm.find('kml:name', ns).text))
-
-    # 3. 全ての座標を一つのリストに結合
-    all_points = []
-    for pm in linestring_placemarks:
-        coord_tag = pm.find('.//kml:coordinates', ns)
-        if coord_tag is not None:
-            coord_text = coord_tag.text.strip()
-            points_str = re.split(r'\s+', coord_text)
-            for p_str in points_str:
-                if p_str:
-                    lon, lat, _ = map(float, p_str.split(','))
-                    all_points.append({'lat': lat, 'lon': lon})
 
     if not all_points:
-        print("エラー: KMLファイル内にコースの座標データが見つかりませんでした。")
+        print(f"エラー: {COURSE_PATH_FILE} にコースの座標データが見つかりませんでした。")
         return
 
-    # 4. 各チームの距離に基づいて座標を特定
+    # 2. 各チームの距離に基づいて座標を特定
     runner_locations = []
     print("各チームの現在位置を計算中...")
 
@@ -639,20 +618,28 @@ def calculate_and_save_runner_locations(teams_data):
     for team in teams_data:
         target_distance_km = team.get('totalDistance', 0)
         cumulative_distance_km = 0.0
+        # デフォルトはコースのスタート地点に設定
         team_lat, team_lon = all_points[0]['lat'], all_points[0]['lon']
+        location_found = False
 
         for i in range(1, len(all_points)):
             p1 = (all_points[i-1]['lat'], all_points[i-1]['lon'])
             p2 = (all_points[i]['lat'], all_points[i]['lon'])
             segment_distance_km = geodesic(p1, p2).kilometers
 
-            if cumulative_distance_km <= target_distance_km < cumulative_distance_km + segment_distance_km:
+            # ターゲット距離が現在のセグメント内にあるかチェック
+            if segment_distance_km > 0 and cumulative_distance_km <= target_distance_km < cumulative_distance_km + segment_distance_km:
                 distance_into_segment = target_distance_km - cumulative_distance_km
-                fraction = distance_into_segment / segment_distance_km if segment_distance_km > 0 else 0
+                fraction = distance_into_segment / segment_distance_km
                 team_lat = p1[0] + fraction * (p2[0] - p1[0])
                 team_lon = p1[1] + fraction * (p2[1] - p1[1])
+                location_found = True
                 break
             cumulative_distance_km += segment_distance_km
+        
+        # ループ内で位置が見つからず、かつ総距離がコース長以上の場合（＝完走後）はゴール地点に配置
+        if not location_found and target_distance_km >= cumulative_distance_km:
+            team_lat, team_lon = all_points[-1]['lat'], all_points[-1]['lon']
         
         team_info = team_info_map.get(team.get('id'))
         short_name = team_info.get('short_name', team.get('name')) if team_info else team.get('name')
@@ -665,7 +652,7 @@ def calculate_and_save_runner_locations(teams_data):
         })
         print(f"  {team.get('overallRank')}位 {team.get('name'):<10} @ {team.get('totalDistance'):.1f} km -> ({team_lat:.6f}, {team_lon:.6f})")
 
-    # 5. 結果をJSONファイルに保存
+    # 3. 結果をJSONファイルに保存
     with open(RUNNER_LOCATIONS_OUTPUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(runner_locations, f, indent=2, ensure_ascii=False)
 
