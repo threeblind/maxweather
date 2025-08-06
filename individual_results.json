@@ -2185,9 +2185,15 @@
     "records": []
   },
   "丸森": {
-    "totalDistance": 0,
+    "totalDistance": 26.2,
     "teamId": 18,
-    "records": []
+    "records": [
+      {
+        "day": 16,
+        "leg": 6,
+        "distance": 26.2
+      }
+    ]
   },
   "山形（山形）": {
     "totalDistance": 110.1,
@@ -2549,6 +2555,17 @@
         "day": 16,
         "leg": 6,
         "distance": 32.1
+      }
+    ]
+  },
+  "浪江": {
+    "totalDistance": 26.7,
+    "teamId": 15,
+    "records": [
+      {
+        "day": 16,
+        "leg": 6,
+        "distance": 26.7
       }
     ]
   }
