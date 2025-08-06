@@ -365,9 +365,15 @@
     "records": []
   },
   "博多": {
-    "totalDistance": 0,
+    "totalDistance": 31.1,
     "teamId": 3,
-    "records": []
+    "records": [
+      {
+        "day": 16,
+        "leg": 6,
+        "distance": 31.1
+      }
+    ]
   },
   "佐野": {
     "totalDistance": 112.5,
@@ -1120,9 +1126,15 @@
     "records": []
   },
   "多度津": {
-    "totalDistance": 0,
+    "totalDistance": 32.0,
     "teamId": 9,
-    "records": []
+    "records": [
+      {
+        "day": 16,
+        "leg": 6,
+        "distance": 32.0
+      }
+    ]
   },
   "長野": {
     "totalDistance": 108.5,
@@ -1485,9 +1497,15 @@
     "records": []
   },
   "徳島": {
-    "totalDistance": 0,
+    "totalDistance": 29.9,
     "teamId": 12,
-    "records": []
+    "records": [
+      {
+        "day": 16,
+        "leg": 6,
+        "distance": 29.9
+      }
+    ]
   },
   "高知": {
     "totalDistance": 0,
@@ -1591,13 +1609,13 @@
     ]
   },
   "八王子": {
-    "totalDistance": 28.8,
+    "totalDistance": 29.2,
     "teamId": 13,
     "records": [
       {
         "day": 16,
         "leg": 6,
-        "distance": 28.8
+        "distance": 29.2
       }
     ]
   },
@@ -1929,7 +1947,7 @@
     ]
   },
   "波照間": {
-    "totalDistance": 94.6,
+    "totalDistance": 94.7,
     "teamId": 16,
     "records": [
       {
@@ -1945,7 +1963,7 @@
       {
         "day": 16,
         "leg": 5,
-        "distance": 29.4
+        "distance": 29.5
       }
     ]
   },
@@ -2161,13 +2179,13 @@
     ]
   },
   "横手": {
-    "totalDistance": 24.7,
+    "totalDistance": 25.0,
     "teamId": 18,
     "records": [
       {
         "day": 16,
         "leg": 6,
-        "distance": 24.7
+        "distance": 25.0
       }
     ]
   },
@@ -2491,7 +2509,7 @@
     ]
   },
   "西都": {
-    "totalDistance": 138.9,
+    "totalDistance": 139.4,
     "teamId": 7,
     "records": [
       {
@@ -2512,7 +2530,7 @@
       {
         "day": 16,
         "leg": 5,
-        "distance": 30.7
+        "distance": 31.2
       }
     ]
   },
