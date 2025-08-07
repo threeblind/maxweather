@@ -366,6 +366,15 @@
         .section-header h2 {
             margin: 0; /* h2のデフォルトマージンをリセット */
         }
+        .section-footer-controls {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+        .header-controls {
+            display: flex;
+            gap: 10px;
+        }
         .header-button {
             padding: 6px 12px; font-size: 14px; background-color: #6c757d;
         }
@@ -924,6 +933,9 @@
                 </tbody>
             </table>
             </div>
+            <div class="section-footer-controls">
+                <button id="capture-ranking-btn" class="header-button">📷 キャプチャ</button>
+            </div>
             <div id="ekidenRankingStatus" class="result loading" style="display: none;"></div>
         </div>
 
@@ -1064,6 +1076,8 @@
 
     <!-- Back to Top Button -->
     <a href="#page-top" id="back-to-top" class="back-to-top-btn" title="トップに戻る">↑</a>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <footer class="site-footer">
         <p>このサイトは個人の趣味で開発・運営されています。</p>
