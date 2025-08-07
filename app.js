@@ -1844,24 +1844,14 @@ document.addEventListener('DOMContentLoaded', function() {
             captureBtn.textContent = '処理中...';
             captureBtn.disabled = true;
 
-            // スマホ表示の場合、一時的にフルビュー（PC版表示）にしてからキャプチャする
-            const rankingContainer = document.querySelector('.ekiden-ranking-container');
-            const isMobile = window.innerWidth <= 768;
-            const needsToggle = isMobile && !rankingContainer.classList.contains('show-full-view');
-
-            if (needsToggle) {
-                rankingContainer.classList.add('show-full-view');
-                // スタイルが適用されるのを少し待つ
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-
             try {
                 const canvas = await html2canvas(rankingSection, {
                     useCORS: true,
                     backgroundColor: '#f5f5f5', // 背景色を指定
-                    // キャプチャ範囲が画面外に及ぶ場合でも全体を撮る設定
-                    windowWidth: rankingSection.scrollWidth,
-                    windowHeight: rankingSection.scrollHeight
+                    // ブラウザの実際のウィンドウ幅を渡すことで、PC/スマホの表示分け（メディアクエリ）を正しく適用させる
+                    windowWidth: window.innerWidth,
+                    // キャプチャ対象の要素が画面外にはみ出ていても全体を撮るための設定
+                    windowHeight: rankingSection.scrollHeight // 縦方向のスクロール全体をキャプチャ
                 });
 
                 const response = await fetch(`realtime_report.json?_=${new Date().getTime()}`);
@@ -1878,7 +1868,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('キャプチャに失敗しました:', error);
                 alert('キャプチャに失敗しました。');
             } finally {
-                if (needsToggle) { rankingContainer.classList.remove('show-full-view'); }
                 captureBtn.textContent = '📷 キャプチャ';
                 captureBtn.disabled = false;
             }
