@@ -758,6 +758,10 @@
             .ekiden-ranking-container.show-full-view .team-name .short-name {
                 display: none;
             }
+            /* PC版のみキャプチャボタンを表示するため、スマホでは非表示にする */
+            #capture-ranking-btn {
+                display: none;
+            }
         }
         /* --- 機能の表示/非表示を制御 --- */
         .feature-hidden {
@@ -920,21 +924,19 @@
         <div id="section-overall-ranking" class="ekiden-section-wrapper">
             <div class="section-header">
                 <h2 id="ekidenRankingTitle">🏆 総合順位</h2>
-                <button id="toggle-ranking-view-btn" class="header-button">PC版</button>
+                <div class="header-controls">
+                    <button id="capture-ranking-btn" class="header-button">📷 キャプチャ</button>
+                    <button id="toggle-ranking-view-btn" class="header-button">PC版</button>
+                </div>
             </div>
             <p id="ekidenRankingUpdateTime" class="ranking-update-time"></p>
             <div class="ekiden-ranking-container">
             <table id="ekidenRankingTable">
                 <thead id="ekidenRankingHead">
-                    <!-- 駅伝ランキングヘッダーは app.js によって動的に生成されます -->
                 </thead>
                 <tbody id="ekidenRankingBody">
-                    <!-- 駅伝ランキングは app.js によって動的に生成されます -->
                 </tbody>
             </table>
-            </div>
-            <div class="section-footer-controls">
-                <button id="capture-ranking-btn" class="header-button">📷 キャプチャ</button>
             </div>
             <div id="ekidenRankingStatus" class="result loading" style="display: none;"></div>
         </div>

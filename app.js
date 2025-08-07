@@ -1841,16 +1841,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const rankingSection = document.getElementById('section-overall-ranking');
             if (!rankingSection) return;
 
+            // キャプチャ画像にボタンが写り込まないように、処理中は非表示にする
             captureBtn.textContent = '処理中...';
             captureBtn.disabled = true;
+            captureBtn.style.visibility = 'hidden';
 
             try {
                 const canvas = await html2canvas(rankingSection, {
                     useCORS: true,
                     backgroundColor: '#f5f5f5', // 背景色を指定
-                    // ブラウザの実際のウィンドウ幅を渡すことで、PC/スマホの表示分け（メディアクエリ）を正しく適用させる
                     windowWidth: window.innerWidth,
-                    // キャプチャ対象の要素が画面外にはみ出ていても全体を撮るための設定
                     windowHeight: rankingSection.scrollHeight // 縦方向のスクロール全体をキャプチャ
                 });
 
@@ -1868,6 +1868,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('キャプチャに失敗しました:', error);
                 alert('キャプチャに失敗しました。');
             } finally {
+                // ボタンを元に戻す
+                captureBtn.style.visibility = 'visible';
                 captureBtn.textContent = '📷 キャプチャ';
                 captureBtn.disabled = false;
             }
