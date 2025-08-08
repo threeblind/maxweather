@@ -192,6 +192,9 @@ def process_substitutions():
                 log_processed_post(post_id)
                 continue
 
+            # 大学名からチームオブジェクトを先に取得
+            team = teams_map[uni_name]
+
             # ★★★ 監督のトリップコードを検証 ★★★
             official_trip = manager_tripcodes.get(uni_name)
             posted_trip = posted_trip_match.group(1)
@@ -207,7 +210,6 @@ def process_substitutions():
                 current_state_data = json.load(f)
             team_state = next((s for s in current_state_data if s['id'] == team['id']), None)
 
-            team = teams_map[uni_name]
             leg_index = leg_num - 1
 
             if not (0 <= leg_index < len(team['runners'])):
