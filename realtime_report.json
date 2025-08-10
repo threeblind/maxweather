@@ -1,5 +1,5 @@
 {
-  "updateTime": "2025/08/11 00:05",
+  "updateTime": "2025/08/11 00:15",
   "raceDay": 20,
   "breakingNewsComment": "",
   "breakingNewsTimestamp": "",
@@ -11,13 +11,13 @@
       "short_name": "名大",
       "currentLeg": 7,
       "runner": "7名古屋",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 698.1,
+      "todayDistance": 26.8,
+      "todayRank": 7,
+      "totalDistance": 724.9,
       "overallRank": 1,
       "previousRank": 1,
       "nextRunner": "8大府",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 4,
@@ -25,13 +25,13 @@
       "short_name": "上武",
       "currentLeg": 7,
       "runner": "7小山",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 689.6,
+      "todayDistance": 25.4,
+      "todayRank": 11,
+      "totalDistance": 715.0,
       "overallRank": 2,
       "previousRank": 2,
       "nextRunner": "8前橋",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 5,
@@ -39,13 +39,13 @@
       "short_name": "関大",
       "currentLeg": 7,
       "runner": "7八尾（大阪）",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 681.1,
+      "todayDistance": 26.9,
+      "todayRank": 6,
+      "totalDistance": 708.0,
       "overallRank": 3,
       "previousRank": 3,
       "nextRunner": "8郡家",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 8,
@@ -53,13 +53,13 @@
       "short_name": "広経",
       "currentLeg": 7,
       "runner": "7福山",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 679.5,
+      "todayDistance": 24.4,
+      "todayRank": 13,
+      "totalDistance": 703.9,
       "overallRank": 4,
       "previousRank": 4,
       "nextRunner": "8引田",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 14,
@@ -67,55 +67,13 @@
       "short_name": "立命",
       "currentLeg": 7,
       "runner": "7長浜（滋賀）",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 678.3,
+      "todayDistance": 25.0,
+      "todayRank": 12,
+      "totalDistance": 703.3,
       "overallRank": 5,
       "previousRank": 5,
       "nextRunner": "8土山",
-      "error": "気温が数値でない"
-    },
-    {
-      "id": 11,
-      "name": "鳥取大学",
-      "short_name": "鳥取",
-      "currentLeg": 7,
-      "runner": "7米子",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 676.8,
-      "overallRank": 6,
-      "previousRank": 6,
-      "nextRunner": "8玖珂",
-      "error": "気温が数値でない"
-    },
-    {
-      "id": 10,
-      "name": "山梨学院大学",
-      "short_name": "山学",
-      "currentLeg": 7,
-      "runner": "7切石",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 674.4,
-      "overallRank": 7,
-      "previousRank": 7,
-      "nextRunner": "8天竜",
-      "error": "気温が数値でない"
-    },
-    {
-      "id": 13,
-      "name": "日本大学",
-      "short_name": "日大",
-      "currentLeg": 7,
-      "runner": "7船橋",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 673.1,
-      "overallRank": 8,
-      "previousRank": 8,
-      "nextRunner": "8青梅",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 9,
@@ -123,13 +81,27 @@
       "short_name": "学連",
       "currentLeg": 7,
       "runner": "7加世田",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 672.8,
-      "overallRank": 9,
+      "todayDistance": 29.3,
+      "todayRank": 2,
+      "totalDistance": 702.1,
+      "overallRank": 6,
       "previousRank": 9,
       "nextRunner": "8飯塚",
-      "error": "気温が数値でない"
+      "error": null
+    },
+    {
+      "id": 11,
+      "name": "鳥取大学",
+      "short_name": "鳥取",
+      "currentLeg": 7,
+      "runner": "7米子",
+      "todayDistance": 24.4,
+      "todayRank": 13,
+      "totalDistance": 701.2,
+      "overallRank": 7,
+      "previousRank": 6,
+      "nextRunner": "8玖珂",
+      "error": null
     },
     {
       "id": 3,
@@ -137,13 +109,41 @@
       "short_name": "福岡",
       "currentLeg": 7,
       "runner": "7口之津",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 672.0,
-      "overallRank": 10,
+      "todayDistance": 28.6,
+      "todayRank": 4,
+      "totalDistance": 700.6,
+      "overallRank": 8,
       "previousRank": 10,
       "nextRunner": "8大牟田",
-      "error": "気温が数値でない"
+      "error": null
+    },
+    {
+      "id": 13,
+      "name": "日本大学",
+      "short_name": "日大",
+      "currentLeg": 7,
+      "runner": "7船橋",
+      "todayDistance": 27.5,
+      "todayRank": 5,
+      "totalDistance": 700.6,
+      "overallRank": 8,
+      "previousRank": 8,
+      "nextRunner": "8青梅",
+      "error": null
+    },
+    {
+      "id": 10,
+      "name": "山梨学院大学",
+      "short_name": "山学",
+      "currentLeg": 7,
+      "runner": "7切石",
+      "todayDistance": 26.1,
+      "todayRank": 10,
+      "totalDistance": 700.5,
+      "overallRank": 10,
+      "previousRank": 7,
+      "nextRunner": "8天竜",
+      "error": null
     },
     {
       "id": 2,
@@ -151,13 +151,13 @@
       "short_name": "三重",
       "currentLeg": 7,
       "runner": "7津",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 667.0,
+      "todayDistance": 26.3,
+      "todayRank": 9,
+      "totalDistance": 693.3,
       "overallRank": 11,
       "previousRank": 11,
       "nextRunner": "8和歌山",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 15,
@@ -165,27 +165,13 @@
       "short_name": "福島",
       "currentLeg": 7,
       "runner": "7寺泊",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 665.7,
+      "todayDistance": 23.9,
+      "todayRank": 17,
+      "totalDistance": 689.6,
       "overallRank": 12,
       "previousRank": 12,
       "nextRunner": "8小出",
-      "error": "気温が数値でない"
-    },
-    {
-      "id": 6,
-      "name": "熊本学園大学",
-      "short_name": "熊学",
-      "currentLeg": 7,
-      "runner": "7犬飼",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 661.7,
-      "overallRank": 13,
-      "previousRank": 13,
-      "nextRunner": "8院内",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 17,
@@ -193,13 +179,27 @@
       "short_name": "金沢",
       "currentLeg": 7,
       "runner": "7敦賀",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 660.3,
-      "overallRank": 14,
+      "todayDistance": 26.8,
+      "todayRank": 7,
+      "totalDistance": 687.1,
+      "overallRank": 13,
       "previousRank": 14,
       "nextRunner": "8小松",
-      "error": "気温が数値でない"
+      "error": null
+    },
+    {
+      "id": 6,
+      "name": "熊本学園大学",
+      "short_name": "熊学",
+      "currentLeg": 7,
+      "runner": "7犬飼",
+      "todayDistance": 23.9,
+      "todayRank": 17,
+      "totalDistance": 685.6,
+      "overallRank": 14,
+      "previousRank": 13,
+      "nextRunner": "8院内",
+      "error": null
     },
     {
       "id": 18,
@@ -207,27 +207,13 @@
       "short_name": "東北",
       "currentLeg": 7,
       "runner": "7秋田",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 655.6,
+      "todayDistance": 24.4,
+      "todayRank": 13,
+      "totalDistance": 680.0,
       "overallRank": 15,
       "previousRank": 15,
       "nextRunner": "8東根",
-      "error": "気温が数値でない"
-    },
-    {
-      "id": 12,
-      "name": "四国大学",
-      "short_name": "四国",
-      "currentLeg": 7,
-      "runner": "7新居浜",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 646.4,
-      "overallRank": 16,
-      "previousRank": 16,
-      "nextRunner": "8江川崎",
-      "error": "気温が数値でない"
+      "error": null
     },
     {
       "id": 7,
@@ -235,13 +221,27 @@
       "short_name": "鹿大",
       "currentLeg": 7,
       "runner": "7鹿児島",
-      "todayDistance": 0,
+      "todayDistance": 29.7,
       "todayRank": 1,
-      "totalDistance": 645.6,
-      "overallRank": 17,
+      "totalDistance": 675.3,
+      "overallRank": 16,
       "previousRank": 17,
       "nextRunner": "8さつま柏原",
-      "error": "気温が数値でない"
+      "error": null
+    },
+    {
+      "id": 12,
+      "name": "四国大学",
+      "short_name": "四国",
+      "currentLeg": 7,
+      "runner": "7新居浜",
+      "todayDistance": 24.3,
+      "todayRank": 16,
+      "totalDistance": 670.7,
+      "overallRank": 17,
+      "previousRank": 16,
+      "nextRunner": "8江川崎",
+      "error": null
     },
     {
       "id": 16,
@@ -249,13 +249,13 @@
       "short_name": "琉球",
       "currentLeg": 6,
       "runner": "6久米島",
-      "todayDistance": 0,
-      "todayRank": 1,
-      "totalDistance": 611.8,
+      "todayDistance": 28.9,
+      "todayRank": 3,
+      "totalDistance": 640.7,
       "overallRank": 18,
       "previousRank": 18,
       "nextRunner": "7那覇",
-      "error": "気温が数値でない"
+      "error": null
     }
   ]
 }
