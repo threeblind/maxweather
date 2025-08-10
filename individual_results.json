@@ -1078,7 +1078,7 @@
     "records": []
   },
   "福山": {
-    "totalDistance": 52.2,
+    "totalDistance": 52.3,
     "teamId": 8,
     "records": [
       {
@@ -1089,7 +1089,7 @@
       {
         "day": 20,
         "leg": 7,
-        "distance": 25.5
+        "distance": 25.6
       }
     ]
   },
@@ -1351,7 +1351,12 @@
     "records": []
   },
   "切石": {
-    "totalDistance": 55.3,
+    "totalDistance": 0,
+    "teamId": 10,
+    "records": []
+  },
+  "三島": {
+    "totalDistance": 57.4,
     "teamId": 10,
     "records": [
       {
@@ -1359,17 +1364,6 @@
         "leg": 7,
         "distance": 29.0
       },
-      {
-        "day": 20,
-        "leg": 7,
-        "distance": 26.3
-      }
-    ]
-  },
-  "三島": {
-    "totalDistance": 28.4,
-    "teamId": 10,
-    "records": [
       {
         "day": 20,
         "leg": 7,
@@ -1795,20 +1789,9 @@
     ]
   },
   "船橋": {
-    "totalDistance": 55.7,
+    "totalDistance": 0,
     "teamId": 13,
-    "records": [
-      {
-        "day": 19,
-        "leg": 7,
-        "distance": 28.2
-      },
-      {
-        "day": 20,
-        "leg": 7,
-        "distance": 27.5
-      }
-    ]
+    "records": []
   },
   "府中（東京）": {
     "totalDistance": 0,
@@ -1821,9 +1804,14 @@
     "records": []
   },
   "練馬": {
-    "totalDistance": 26.1,
+    "totalDistance": 53.0,
     "teamId": 13,
     "records": [
+      {
+        "day": 19,
+        "leg": 7,
+        "distance": 26.9
+      },
       {
         "day": 20,
         "leg": 7,
