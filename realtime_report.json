@@ -1,9 +1,9 @@
 {
-  "updateTime": "2025/08/12 12:35",
+  "updateTime": "2025/08/12 12:45",
   "raceDay": 21,
-  "breakingNewsComment": "【■○○(立命館大学監督）監督コメント】（関西大学） 関西大学、明日からの８区ですが、正選手の郡家に託そうと思います 郡家は６区７区の悪路の…",
-  "breakingNewsTimestamp": "2025-08-12T11:35:05.526919",
-  "breakingNewsFullText": "【■○○(立命館大学監督）監督コメント】\n\n（関西大学） 関西大学、明日からの８区ですが、正選手の郡家に託そうと思います 郡家は６区７区の悪路の中で好走を続けており、今日も好走です 明日からの８区、状況が変わり高温たたき合いになりそうです この中での郡家の走りはどうなるでしょうか？ ところで、午前１１時に気象庁の週間天気予報が更新されました そこで、全般的な傾向を見て、終盤の戦い方を考えると・・・ とても判断しづらいです こんなことになるのなら・・・やはり序盤１区２区の戦い方が根本的に間違っておりました >>547 の一部を再掲載 そして関西大学では、補欠カードをまだ使っておりません この補欠カードの使い時、使う選手の選択、これがまた悩み大です やはり序盤の１区２区の戦い方が悔やまれます（泣） ２０２３年の立命館の１区２区のトラウマにとらわれてしまって、対策をとったらその対策がよりによって・・・になってしまいました 今になって思うのは「序盤で失敗しても、後で少しずつでも取り返す」これを考えるべきだった、です（泣） まずは明日からの８区は、正選手の郡家に託します",
+  "breakingNewsComment": "【定時速報】本日のトップは八尾（大阪）選手！33.9kmと素晴らしい走りです！",
+  "breakingNewsTimestamp": "2025-08-12T12:45:06.026493",
+  "breakingNewsFullText": "",
   "teams": [
     {
       "id": 1,
@@ -12,7 +12,7 @@
       "currentLeg": 7,
       "runner": "7名古屋",
       "todayDistance": 33.0,
-      "todayRank": 4,
+      "todayRank": 5,
       "totalDistance": 760.5,
       "overallRank": 1,
       "previousRank": 1,
@@ -48,6 +48,20 @@
       "error": null
     },
     {
+      "id": 9,
+      "name": "学連選抜",
+      "short_name": "学連",
+      "currentLeg": 7,
+      "runner": "7加世田",
+      "todayDistance": 33.2,
+      "todayRank": 4,
+      "totalDistance": 737.3,
+      "overallRank": 4,
+      "previousRank": 7,
+      "nextRunner": "8飯塚",
+      "error": null
+    },
+    {
       "id": 8,
       "name": "広島経済大学",
       "short_name": "広経",
@@ -59,20 +73,6 @@
       "overallRank": 4,
       "previousRank": 5,
       "nextRunner": "8引田",
-      "error": null
-    },
-    {
-      "id": 9,
-      "name": "学連選抜",
-      "short_name": "学連",
-      "currentLeg": 7,
-      "runner": "7加世田",
-      "todayDistance": 32.9,
-      "todayRank": 5,
-      "totalDistance": 737.0,
-      "overallRank": 5,
-      "previousRank": 7,
-      "nextRunner": "8飯塚",
       "error": null
     },
     {
@@ -151,9 +151,9 @@
       "short_name": "三重",
       "currentLeg": 7,
       "runner": "7津",
-      "todayDistance": 30.1,
+      "todayDistance": 30.2,
       "todayRank": 12,
-      "totalDistance": 729.3,
+      "totalDistance": 729.4,
       "overallRank": 11,
       "previousRank": 11,
       "nextRunner": "8和歌山",
