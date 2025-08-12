@@ -1,8 +1,8 @@
 {
-  "updateTime": "2025/08/12 12:55",
+  "updateTime": "2025/08/12 13:05",
   "raceDay": 21,
-  "breakingNewsComment": "【定時速報】本日のトップは八尾（大阪）選手！33.9kmと素晴らしい走りです！",
-  "breakingNewsTimestamp": "2025-08-12T12:45:06.026493",
+  "breakingNewsComment": "【奮起】福島大学の寺泊選手(24.2km)、ここからの追い上げに期待がかかります！",
+  "breakingNewsTimestamp": "2025-08-12T13:05:04.709584",
   "breakingNewsFullText": "",
   "teams": [
     {
@@ -26,7 +26,7 @@
       "currentLeg": 7,
       "runner": "7小山",
       "todayDistance": 30.4,
-      "todayRank": 10,
+      "todayRank": 11,
       "totalDistance": 752.0,
       "overallRank": 2,
       "previousRank": 2,
@@ -48,6 +48,20 @@
       "error": null
     },
     {
+      "id": 8,
+      "name": "広島経済大学",
+      "short_name": "広経",
+      "currentLeg": 7,
+      "runner": "7福山",
+      "todayDistance": 31.5,
+      "todayRank": 9,
+      "totalDistance": 737.5,
+      "overallRank": 4,
+      "previousRank": 5,
+      "nextRunner": "8引田",
+      "error": null
+    },
+    {
       "id": 9,
       "name": "学連選抜",
       "short_name": "学連",
@@ -56,23 +70,9 @@
       "todayDistance": 33.2,
       "todayRank": 4,
       "totalDistance": 737.3,
-      "overallRank": 4,
+      "overallRank": 5,
       "previousRank": 7,
       "nextRunner": "8飯塚",
-      "error": null
-    },
-    {
-      "id": 8,
-      "name": "広島経済大学",
-      "short_name": "広経",
-      "currentLeg": 7,
-      "runner": "7福山",
-      "todayDistance": 31.3,
-      "todayRank": 9,
-      "totalDistance": 737.3,
-      "overallRank": 4,
-      "previousRank": 5,
-      "nextRunner": "8引田",
       "error": null
     },
     {
@@ -138,7 +138,7 @@
       "currentLeg": 7,
       "runner": "7練馬",
       "todayDistance": 30.4,
-      "todayRank": 10,
+      "todayRank": 11,
       "totalDistance": 732.3,
       "overallRank": 10,
       "previousRank": 9,
@@ -151,9 +151,9 @@
       "short_name": "三重",
       "currentLeg": 7,
       "runner": "7津",
-      "todayDistance": 30.3,
-      "todayRank": 12,
-      "totalDistance": 729.5,
+      "todayDistance": 31.4,
+      "todayRank": 10,
+      "totalDistance": 730.6,
       "overallRank": 11,
       "previousRank": 11,
       "nextRunner": "8和歌山",
