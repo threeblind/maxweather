@@ -38,41 +38,33 @@ def log_processed_post(post_id):
         f.write(f"{post_id}\n")
 
 def parse_substitution_post(content):
-    """選手交代の投稿内容を解析し、詳細を抽出します。"""
-    # 投稿から大学名、区間、交代選手を抽出する正規表現
-    # DOTALLフラグで改行を含むブロックに対応
-    pattern = re.compile(
-        r"大学名:\s*(?P<university>.+?)\s*"
-        r"区間:\s*(?P<leg>[0-9０-９]+)区\s*"
-        r"交代:\s*(?P<runner_out>.+?)\s*→\s*(?P<runner_in>.+)",
-        re.DOTALL
-    )
-    match = pattern.search(content)
-    if not match:
+    """選手交代の投稿内容を解析し、詳細を抽出します。
+    
+    修正点:
+    - 選手交代の行を独立して抽出し、その行内で完結するように正規表現を修正。
+    - これにより、行末に続く余分なテキストを誤って選手名として認識する問題を解決。
+    """
+    
+    # 選手交代の行を独立して見つけ、その行内の情報を抽出
+    sub_line_match = re.search(r'交代:\s*(.+?)\s*→\s*([^\n]+)', content)
+    if not sub_line_match:
         return None
 
-    details = match.groupdict()
-    # 全角数字を半角に変換
-    details['leg'] = int(details['leg'].translate(str.maketrans('０１２３４５６７８９', '0123456789')))
-    return details
-
-    """選手交代の投稿内容を解析し、詳細を抽出します。"""
-    details = {}
-    # 各情報を抽出するための正規表現パターンを定義
-    patterns = {
-        'university': r'大学名:\s*(.+)',
-        'leg': r'区間:\s*([0-9０-９]+)区', # 半角・全角両方の数字に対応
-        'substitution': r'交代:\s*(.+?)\s*→\s*(.+)'
+    details = {
+        'runner_out': sub_line_match.group(1).strip(),
+        'runner_in': sub_line_match.group(2).strip()
     }
     
+    # 他の情報を抽出するための正規表現パターン
+    patterns = {
+        'university': r'大学名:\s*(.+)',
+        'leg': r'区間:\s*([0-9０-９]+)区',
+    }
+
     for key, pattern in patterns.items():
         match = re.search(pattern, content)
         if match:
-            if key == 'substitution':
-                details['runner_out'] = match.group(1).strip()
-                details['runner_in'] = match.group(2).strip()
-            else:
-                details[key] = match.group(1).strip()
+            details[key] = match.group(1).strip()
     
     if 'university' in details and 'leg' in details and 'runner_out' in details and 'runner_in' in details:
         # 全角数字を半角に変換してから整数に変換
@@ -80,6 +72,7 @@ def parse_substitution_post(content):
         details['leg'] = int(leg_str)
         return details
     return None
+
 
 def get_manager_tripcodes():
     """ekiden_data.jsonから監督のトリップコードを抽出し、大学名をキーにした辞書で返す"""
@@ -101,12 +94,6 @@ def get_manager_tripcodes():
 
 def process_substitutions():
     """選手交代を処理するメイン関数。"""
-    # 実行時間をチェックし、18:00から23:59の間でなければ処理を終了
-    now = datetime.now()
-    if not (18 <= now.hour <= 23):
-        print(f"実行時間外です ({now.strftime('%H:%M:%S')})。交代処理をスキップします。")
-        return
-
     # スレッドURLをoutline.jsonから取得します。
     thread_url = get_thread_url()
     if not thread_url:
