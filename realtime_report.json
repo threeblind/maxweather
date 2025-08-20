@@ -1,8 +1,8 @@
 {
-  "updateTime": "2025/08/20 14:05",
+  "updateTime": "2025/08/20 14:15",
   "raceDay": 29,
-  "breakingNewsComment": "【定時速報】本日のトップは鳩山選手！38.1kmと素晴らしい走りです！",
-  "breakingNewsTimestamp": "2025-08-20T13:45:04.242691",
+  "breakingNewsComment": "【定時速報】現在トップは名古屋大学！総合距離1049.2kmです！",
+  "breakingNewsTimestamp": "2025-08-20T14:15:05.173220",
   "breakingNewsFullText": "",
   "teams": [
     {
@@ -12,7 +12,7 @@
       "currentLeg": 10,
       "runner": "10岐阜",
       "todayDistance": 36.7,
-      "todayRank": 3,
+      "todayRank": 4,
       "totalDistance": 1049.2,
       "overallRank": 1,
       "previousRank": 1,
@@ -90,6 +90,20 @@
       "error": null
     },
     {
+      "id": 3,
+      "name": "福岡大学",
+      "short_name": "福岡",
+      "currentLeg": 10,
+      "runner": "10太宰府",
+      "todayDistance": 37.3,
+      "todayRank": 2,
+      "totalDistance": 1017.5,
+      "overallRank": 7,
+      "previousRank": 9,
+      "nextRunner": "ゴール",
+      "error": null
+    },
+    {
       "id": 8,
       "name": "広島経済大学",
       "short_name": "広経",
@@ -98,22 +112,8 @@
       "todayDistance": 35.0,
       "todayRank": 13,
       "totalDistance": 1017.4,
-      "overallRank": 7,
-      "previousRank": 7,
-      "nextRunner": "ゴール",
-      "error": null
-    },
-    {
-      "id": 3,
-      "name": "福岡大学",
-      "short_name": "福岡",
-      "currentLeg": 10,
-      "runner": "10太宰府",
-      "todayDistance": 36.6,
-      "todayRank": 4,
-      "totalDistance": 1016.8,
       "overallRank": 8,
-      "previousRank": 9,
+      "previousRank": 7,
       "nextRunner": "ゴール",
       "error": null
     },
@@ -152,7 +152,7 @@
       "currentLeg": 10,
       "runner": "10青梅",
       "todayDistance": 36.8,
-      "todayRank": 2,
+      "todayRank": 3,
       "totalDistance": 1010.0,
       "overallRank": 11,
       "previousRank": 11,
