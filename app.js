@@ -441,15 +441,19 @@ function setupTeamTracker(teams) {
 
 /**
  * Updates the runner markers on the map with the latest locations.
- * @param {Array} runnerLocations - Data from runner_locations.json.
+ * @param {Array} runnerLocations - runner_locations.json のデータ。rankでソート済み。
+ * @param {object} ekidenData - ekiden_data.json のデータ。ゴール距離の判定に使用。
  */
-function updateRunnerMarkers(runnerLocations) {
+function updateRunnerMarkers(runnerLocations, ekidenData) {
     if (!map || !runnerMarkersLayer) return;
     runnerMarkersLayer.clearLayers(); // Remove old markers
 
     if (!runnerLocations || runnerLocations.length === 0) {
         return; // 表示するランナーがいない場合は何もしない
     }
+
+    // ゴール距離を特定
+    const finalGoalDistance = ekidenData.leg_boundaries[ekidenData.leg_boundaries.length - 1];
 
     runnerLocations.forEach(runner => {
         const color = teamColorMap.get(runner.team_name) || '#808080'; // Default to grey
@@ -500,14 +504,29 @@ function updateRunnerMarkers(runnerLocations) {
             });
         }
     } else { // Default is "lead_group"
-        // --- Track the lead group (default behavior) ---
-        const leadGroup = runnerLocations.slice(0, 2);
-        if (leadGroup.length > 1) {
-            const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
-            const bounds = L.latLngBounds(leadGroupLatLngs);
-            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
-        } else if (leadGroup.length === 1) {
-            map.setView([leadGroup[0].latitude, leadGroup[0].longitude], 13);
+        // --- 先頭集団を追跡（動的ロジック） ---
+
+        // 「走行中」の選手を、最終ゴール距離に到達していない選手として定義する
+        // リストは既に順位でソート済み
+        const activeRunners = runnerLocations.filter(runner => {
+            return runner.total_distance_km < finalGoalDistance;
+        });
+
+        // 走行中の選手がいる場合、先頭の1〜2名に焦点を当てる
+        if (activeRunners.length > 0) {
+            const leadGroup = activeRunners.slice(0, 2);
+            if (leadGroup.length > 1) {
+                const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
+                const bounds = L.latLngBounds(leadGroupLatLngs);
+                map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+            } else { // 走行中の選手が残り1人の場合
+                map.setView([leadGroup[0].latitude, leadGroup[0].longitude], 13);
+            }
+        } else {
+            // 全選手がゴールした場合、コース全体を表示
+            if (coursePolyline) {
+                map.fitBounds(coursePolyline.getBounds().pad(0.1));
+            }
         }
     }
 }
@@ -1228,7 +1247,10 @@ const fetchEkidenData = async () => {
         const individualData = await individualRes.json();
         const runnerLocations = await runnerLocationsRes.json();
         const ekidenData = await ekidenDataRes.json();
-        
+
+        // データソースの順序に依存しないように、ここで必ずランク順にソートする
+        runnerLocations.sort((a, b) => a.rank - b.rank);
+
         allIndividualData = individualData; // Store data in global variable
 
         // Populate team tracker dropdown if it hasn't been initialized
@@ -1274,7 +1296,7 @@ const fetchEkidenData = async () => {
 
         updateEkidenRankingTable(realtimeData);
         updateIndividualSections(realtimeData, individualData);
-        updateRunnerMarkers(runnerLocations); // Update map markers
+        updateRunnerMarkers(runnerLocations, ekidenData); // Update map markers
 
     } catch (error) {
         console.error('Error fetching ekiden data:', error);
