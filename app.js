@@ -1150,7 +1150,6 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         row.id = `team-rank-row-${team.overallRank}`; // Add a unique ID for each row
 
         const isFinishedPreviously = team.finishDay && team.finishDay < currentRaceDay;
-        const hasReachedGoal = team.totalDistance >= finalGoalDistance;
         let finishIcon = '';
 
         if (isFinishedPreviously) { // 昨日までにゴール（順位確定）
@@ -1158,20 +1157,18 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
             else if (team.overallRank === 2) finishIcon = '🥈 ';
             else if (team.overallRank === 3) finishIcon = '🥉 ';
             else finishIcon = '🏁 ';
-        } else if (hasReachedGoal) { // 本日ゴール（順位未確定）
-            finishIcon = '🏁 ';
         }
 
         const createCell = (text, className = '') => {
             const cell = document.createElement('td');
             cell.className = className;
-            cell.textContent = text;
+            cell.innerHTML = text; // Allow HTML content like spans
             return cell;
         };
 
         // トップとの差を計算
         const gap = topDistance - team.totalDistance;
-        const gapDisplay = team.overallRank === 1 ? '----' : `-${gap.toFixed(1)}km`;
+        const gapDisplay = (team.overallRank === 1 || isFinishedPreviously) ? '----' : `-${gap.toFixed(1)}km`;
 
         const createRankChangeCell = (team) => {
             const cell = document.createElement('td');
@@ -1218,7 +1215,11 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         // 本日距離セル。スマホでは単位(km)を非表示
         const todayCell = document.createElement('td');
         todayCell.className = 'today-distance';
-        todayCell.innerHTML = `${team.todayDistance.toFixed(1)}<span class="hide-on-mobile">km</span> (${team.todayRank})`;
+        if (isFinishedPreviously) {
+            todayCell.innerHTML = '-';
+        } else {
+            todayCell.innerHTML = `${team.todayDistance.toFixed(1)}<span class="hide-on-mobile">km</span> (${team.todayRank})`;
+        }
         row.appendChild(todayCell);
 
         // 総合距離セル。スマホでは単位(km)を非表示
