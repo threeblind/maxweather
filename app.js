@@ -1233,7 +1233,12 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         // 総合距離セル。スマホでは単位(km)を非表示
         const totalCell = document.createElement('td');
         totalCell.className = 'distance';
-        totalCell.innerHTML = `${team.totalDistance.toFixed(1)}<span class="hide-on-mobile">km</span>`;
+        if (isFinishedPreviously) {
+            const finishScore = team.finishDay - (team.totalDistance - finalGoalDistance) / 100;
+            totalCell.textContent = finishScore.toFixed(3);
+        } else {
+            totalCell.innerHTML = `${team.totalDistance.toFixed(1)}<span class="hide-on-mobile">km</span>`;
+        }
         row.appendChild(totalCell);
 
         row.appendChild(createCell(gapDisplay, 'gap hide-on-mobile'));
