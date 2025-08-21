@@ -86,7 +86,7 @@ def load_ekiden_state(file_path):
         return [
             {
                 "id": team["id"], "name": team["name"],
-                "totalDistance": 0, "currentLeg": 1, "overallRank": 0
+                "totalDistance": 0, "currentLeg": 1, "overallRank": 0, "finishDay": None
             } for team in ekiden_data['teams']
         ]
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -114,7 +114,8 @@ def save_ekiden_state(state, file_path):
     data_to_save = [
         {
             "id": s["id"], "name": s["name"], "totalDistance": s["totalDistance"],
-            "currentLeg": s["newCurrentLeg"], "overallRank": s["overallRank"]
+            "currentLeg": s["newCurrentLeg"], "overallRank": s["overallRank"],
+            "finishDay": s.get("finishDay")
         } for s in state
     ]
     with open(file_path, 'w', encoding='utf-8') as f:
@@ -222,6 +223,8 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
     # resultsは既に総合順位でソートされている想定
     for r in results:
         team_info = next(t for t in ekiden_data['teams'] if t['id'] == r['id'])
+        # ゴール済みの場合は区間番号を付けずに「ゴール」と表示
+        runner_display = "ゴール" if r['runner'] == 'ゴール' else f"{r['currentLegNumber']}{r['runner']}"
         next_runner_name = team_info['runners'][r['currentLegNumber']] if r['currentLegNumber'] < len(team_info['runners']) else '----'
         next_runner_str = 'ゴール' if next_runner_name == '----' else f"{r['currentLegNumber'] + 1}{next_runner_name}"
 
@@ -230,14 +233,15 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
             "name": r["name"],
             "short_name": team_info.get("short_name", r["name"]),
             "currentLeg": r["currentLegNumber"],
-            "runner": f"{r['currentLegNumber']}{r['runner']}",
+            "runner": runner_display,
             "todayDistance": r["todayDistance"],
             "todayRank": r["todayRank"],
             "totalDistance": r["totalDistance"],
             "overallRank": r["overallRank"],
             "previousRank": r["previousRank"],
             "nextRunner": next_runner_str,
-            "error": r['rawTempResult']['error']
+            "error": r['rawTempResult']['error'],
+            "finishDay": r.get("finishDay")
         })
 
     with open('realtime_report.json', 'w', encoding='utf-8') as f:
@@ -698,53 +702,62 @@ def main():
     print("速報を生成中... 全チームの気温データを取得しています。")
     for team_state in current_state:
         team_data = next(t for t in ekiden_data['teams'] if t['id'] == team_state['id'])
-        runner_index = team_state['currentLeg'] - 1
         
-        print(f"  {team_data['name']} のデータを取得中...")
+        finish_day = team_state.get("finishDay")
+        is_finished_yesterday = finish_day is not None and finish_day < race_day
 
-        # 現在の区間の選手のみを処理対象とする
+        if is_finished_yesterday:
+            print(f"  {team_data['name']} (順位確定済み)")
+            results.append({
+                "id": team_state["id"], "name": team_state["name"], "runner": "ゴール",
+                "currentLegNumber": team_state["currentLeg"], "newCurrentLeg": team_state["currentLeg"],
+                "todayDistance": 0.0, "totalDistance": team_state["totalDistance"],
+                "previousRank": previous_rank_map.get(team_state["id"], 0),
+                "rawTempResult": {'temperature': 0, 'error': None},
+                "finishDay": finish_day,
+                "group_id": 1 # 順位確定グループ
+            })
+            continue
+
+        # --- 走行中または本日ゴールのチーム ---
+        print(f"  {team_data['name']} のデータを取得中...")
+        runner_index = team_state['currentLeg'] - 1
+        runner_name, temp_result, today_distance = "ゴール", {'temperature': 0, 'error': None}, 0.0
+
         if runner_index < len(team_data['runners']):
             runner_name = team_data['runners'][runner_index]
             station = find_station_by_name(runner_name)
+            temp_result = fetch_max_temperature(station['pref_code'], station['code']) if station else {'temperature': 0, 'error': '地点不明'}
+            today_distance = temp_result.get('temperature') or 0.0
 
-            if not station:
-                temp_result = {'temperature': 0, 'error': '地点不明'}
-            else:
-                temp_result = fetch_max_temperature(station['pref_code'], station['code'])
-
-            if temp_result.get('temperature'):
-                today_distance = temp_result['temperature']
-
-                runner_info = individual_results.setdefault(runner_name, {
-                    "totalDistance": 0, "teamId": team_data['id'], "records": []
-                })
-
+            if today_distance > 0:
+                runner_info = individual_results.setdefault(runner_name, {"totalDistance": 0, "teamId": team_data['id'], "records": []})
                 record_for_today = next((r for r in runner_info['records'] if r.get('day') == race_day), None)
-
                 if record_for_today:
                     record_for_today['distance'] = today_distance
                 else:
                     runner_info['records'].append({"day": race_day, "leg": team_state["currentLeg"], "distance": today_distance})
-
                 runner_info['totalDistance'] = round(sum(r['distance'] for r in runner_info['records']), 1)
-        else:
-            runner_name, temp_result = 'ゴール', {'temperature': 0, 'error': None}
 
-        today_distance = temp_result['temperature'] or 0
         new_total_distance = round(team_state['totalDistance'] + today_distance, 1)
-
         new_current_leg = team_state['currentLeg']
-        if team_state['currentLeg'] <= len(ekiden_data['leg_boundaries']):
-            boundary = ekiden_data['leg_boundaries'][team_state['currentLeg'] - 1]
+        finish_day_today = finish_day # 前日のゴール情報を引き継ぐ
+
+        if new_current_leg <= len(ekiden_data['leg_boundaries']):
+            boundary = ekiden_data['leg_boundaries'][new_current_leg - 1]
             if new_total_distance >= boundary:
-                new_current_leg = team_state['currentLeg'] + 1
+                new_current_leg += 1
+                if new_current_leg > len(ekiden_data['leg_boundaries']) and finish_day_today is None:
+                    finish_day_today = race_day
 
         results.append({
             "id": team_state["id"], "name": team_state["name"], "runner": runner_name,
             "currentLegNumber": team_state["currentLeg"], "newCurrentLeg": new_current_leg,
             "todayDistance": today_distance, "totalDistance": new_total_distance,
             "previousRank": previous_rank_map.get(team_state["id"], 0),
-            "rawTempResult": temp_result
+            "rawTempResult": temp_result,
+            "finishDay": finish_day_today,
+            "group_id": 0 # 順位変動グループ
         })
 
     # 今日の順位を計算 (Standard competition ranking)
@@ -757,8 +770,8 @@ def main():
             last_score = r['todayDistance']
         r['todayRank'] = last_rank
 
-    # 総合順位を計算 (Standard competition ranking)
-    results.sort(key=lambda x: x['totalDistance'], reverse=True)
+    # 総合順位を計算 (新しいルール)
+    results.sort(key=lambda x: (x.get('group_id', 0), x['totalDistance']), reverse=True)
     last_score = -1
     last_rank = 0
     for i, r in enumerate(results):

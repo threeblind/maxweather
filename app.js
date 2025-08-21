@@ -1136,20 +1136,24 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
     rankingBody.innerHTML = ''; // テーブルをクリア
 
     const topDistance = realtimeData.teams[0]?.totalDistance || 0;
+    const currentRaceDay = realtimeData.raceDay;
     const finalGoalDistance = ekidenData.leg_boundaries[ekidenData.leg_boundaries.length - 1];
 
     realtimeData.teams.forEach(team => {
         const row = document.createElement('tr');
         row.id = `team-rank-row-${team.overallRank}`; // Add a unique ID for each row
 
-        const isFinished = team.totalDistance >= finalGoalDistance;
+        const isFinishedPreviously = team.finishDay && team.finishDay < currentRaceDay;
+        const hasReachedGoal = team.totalDistance >= finalGoalDistance;
         let finishIcon = '';
 
-        if (isFinished) {
+        if (isFinishedPreviously) { // 昨日までにゴール（順位確定）
             if (team.overallRank === 1) finishIcon = '🏆 ';
             else if (team.overallRank === 2) finishIcon = '🥈 ';
             else if (team.overallRank === 3) finishIcon = '🥉 ';
             else finishIcon = '🏁 ';
+        } else if (hasReachedGoal) { // 本日ゴール（順位未確定）
+            finishIcon = '🏁 ';
         }
 
         const createCell = (text, className = '') => {
