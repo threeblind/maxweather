@@ -699,16 +699,22 @@ const switchLegTab = (legNumber, realtimeData, individualData, teamsInfoMap) => 
  * Updates the individual records section, including tabs and leg prize.
  * @param {object} realtimeData - realtime_report.json のデータ
  * @param {object} individualData - individual_results.json のデータ
+ * @param {object} ekidenData - ekiden_data.json のデータ
  */
-const updateIndividualSections = (realtimeData, individualData) => {
+const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
     const teamsInfoMap = new Map(realtimeData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name }]));
     const legPrizeWinnerDiv = document.getElementById('legPrizeWinner');
     const tabsContainer = document.getElementById('leg-tabs-container');
 
     if (!legPrizeWinnerDiv || !tabsContainer) return;
 
+    // ekiden_data.json から最大区間数を取得
+    const maxLegs = ekidenData.leg_boundaries.length;
+
     // 1. Identify and sort active legs
-    const activeLegs = [...new Set(realtimeData.teams.map(t => t.currentLeg))].sort((a, b) => b - a);
+    const activeLegs = [...new Set(realtimeData.teams.map(t => t.currentLeg))]
+        .filter(leg => leg <= maxLegs) // ゴール済み(11区)など、最大区間数より大きい区間を除外
+        .sort((a, b) => b - a);
 
     // 2. Generate and display tabs
     tabsContainer.innerHTML = ''; // Clear old tabs
@@ -1310,7 +1316,7 @@ const fetchEkidenData = async () => {
         }
 
         updateEkidenRankingTable(realtimeData, ekidenData);
-        updateIndividualSections(realtimeData, individualData);
+        updateIndividualSections(realtimeData, individualData, ekidenData);
         updateRunnerMarkers(runnerLocations, ekidenData); // Update map markers
 
     } catch (error) {
