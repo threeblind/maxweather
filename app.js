@@ -1141,9 +1141,17 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
     rankingStatus.style.display = 'none';
     rankingBody.innerHTML = ''; // テーブルをクリア
 
-    const topDistance = realtimeData.teams[0]?.totalDistance || 0;
     const currentRaceDay = realtimeData.raceDay;
     const finalGoalDistance = ekidenData.leg_boundaries[ekidenData.leg_boundaries.length - 1];
+
+    // トップ差の基準となるチームを決定する
+    // 1. まだ走行中のチーム（前日までにゴールしていない）のうち、最上位のチームを探す
+    const activeTopTeam = realtimeData.teams.find(t => !(t.finishDay && t.finishDay < currentRaceDay));
+
+    // 2. 基準となる距離と順位を設定
+    //    走行中のチームがいればそのチームを基準に、全員がゴール済みなら総合1位を基準にする
+    const referenceDistance = activeTopTeam ? activeTopTeam.totalDistance : (realtimeData.teams[0]?.totalDistance || 0);
+    const referenceTeamRank = activeTopTeam ? activeTopTeam.overallRank : 1;
 
     realtimeData.teams.forEach(team => {
         const row = document.createElement('tr');
@@ -1167,8 +1175,8 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         };
 
         // トップとの差を計算
-        const gap = topDistance - team.totalDistance;
-        const gapDisplay = (team.overallRank === 1 || isFinishedPreviously) ? '----' : `-${gap.toFixed(1)}km`;
+        const gap = referenceDistance - team.totalDistance;
+        const gapDisplay = (team.overallRank === referenceTeamRank || isFinishedPreviously) ? '----' : `-${gap.toFixed(1)}km`;
 
         const createRankChangeCell = (team) => {
             const cell = document.createElement('td');
