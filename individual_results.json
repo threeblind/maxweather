@@ -451,7 +451,7 @@
     "records": []
   },
   "太宰府": {
-    "totalDistance": 110.3,
+    "totalDistance": 135.2,
     "teamId": 3,
     "records": [
       {
@@ -468,6 +468,11 @@
         "day": 30,
         "leg": 10,
         "distance": 36.5
+      },
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 24.9
       }
     ]
   },
@@ -1028,7 +1033,7 @@
     ]
   },
   "日田": {
-    "totalDistance": 72.0,
+    "totalDistance": 96.0,
     "teamId": 6,
     "records": [
       {
@@ -1040,6 +1045,11 @@
         "day": 30,
         "leg": 10,
         "distance": 35.6
+      },
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 24.0
       }
     ]
   },
@@ -1247,7 +1257,7 @@
     ]
   },
   "指宿": {
-    "totalDistance": 58.3,
+    "totalDistance": 83.6,
     "teamId": 7,
     "records": [
       {
@@ -1259,6 +1269,11 @@
         "day": 30,
         "leg": 10,
         "distance": 28.2
+      },
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 25.3
       }
     ]
   },
@@ -1394,7 +1409,7 @@
     ]
   },
   "財田": {
-    "totalDistance": 107.3,
+    "totalDistance": 132.3,
     "teamId": 8,
     "records": [
       {
@@ -1411,6 +1426,11 @@
         "day": 30,
         "leg": 10,
         "distance": 37.2
+      },
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 25.0
       }
     ]
   },
@@ -1965,7 +1985,7 @@
     ]
   },
   "山口（山口）": {
-    "totalDistance": 105.7,
+    "totalDistance": 133.8,
     "teamId": 11,
     "records": [
       {
@@ -1982,6 +2002,11 @@
         "day": 30,
         "leg": 10,
         "distance": 34.6
+      },
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 28.1
       }
     ]
   },
@@ -2117,7 +2142,7 @@
     ]
   },
   "中村": {
-    "totalDistance": 67.8,
+    "totalDistance": 93.3,
     "teamId": 12,
     "records": [
       {
@@ -2129,6 +2154,11 @@
         "day": 30,
         "leg": 10,
         "distance": 32.6
+      },
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 25.5
       }
     ]
   },
@@ -2326,7 +2356,7 @@
     ]
   },
   "青梅": {
-    "totalDistance": 74.7,
+    "totalDistance": 101.5,
     "teamId": 13,
     "records": [
       {
@@ -2338,6 +2368,11 @@
         "day": 30,
         "leg": 10,
         "distance": 37.9
+      },
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 26.8
       }
     ]
   },
@@ -2572,13 +2607,18 @@
     "records": []
   },
   "若松": {
-    "totalDistance": 33.5,
+    "totalDistance": 57.6,
     "teamId": 15,
     "records": [
       {
         "day": 30,
         "leg": 10,
         "distance": 33.5
+      },
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 24.1
       }
     ]
   },
@@ -2760,9 +2800,15 @@
     ]
   },
   "石垣島": {
-    "totalDistance": 0,
+    "totalDistance": 29.3,
     "teamId": 16,
-    "records": []
+    "records": [
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 29.3
+      }
+    ]
   },
   "久米島": {
     "totalDistance": 98.6,
@@ -2937,7 +2983,7 @@
     ]
   },
   "加賀中津原": {
-    "totalDistance": 66.9,
+    "totalDistance": 91.1,
     "teamId": 17,
     "records": [
       {
@@ -2949,6 +2995,11 @@
         "day": 30,
         "leg": 10,
         "distance": 33.2
+      },
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 24.2
       }
     ]
   },
@@ -3141,7 +3192,7 @@
     ]
   },
   "米沢": {
-    "totalDistance": 66.6,
+    "totalDistance": 89.6,
     "teamId": 18,
     "records": [
       {
@@ -3153,6 +3204,11 @@
         "day": 30,
         "leg": 10,
         "distance": 33.3
+      },
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 23.0
       }
     ]
   },
@@ -3906,7 +3962,7 @@
     ]
   },
   "真岡": {
-    "totalDistance": 106.6,
+    "totalDistance": 131.1,
     "teamId": 9,
     "records": [
       {
@@ -3923,6 +3979,11 @@
         "day": 30,
         "leg": 10,
         "distance": 35.4
+      },
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 24.5
       }
     ]
   },
@@ -3948,7 +4009,7 @@
     ]
   },
   "桑名": {
-    "totalDistance": 73.5,
+    "totalDistance": 103.4,
     "teamId": 2,
     "records": [
       {
@@ -3960,6 +4021,11 @@
         "day": 30,
         "leg": 10,
         "distance": 37.3
+      },
+      {
+        "day": 31,
+        "leg": 10,
+        "distance": 29.9
       }
     ]
   }
