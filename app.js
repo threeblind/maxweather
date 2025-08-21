@@ -1146,7 +1146,7 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         let finishIcon = '';
 
         if (isFinished) {
-            if (team.overallRank === 1) finishIcon = '🥇 ';
+            if (team.overallRank === 1) finishIcon = '🏆 ';
             else if (team.overallRank === 2) finishIcon = '🥈 ';
             else if (team.overallRank === 3) finishIcon = '🥉 ';
             else finishIcon = '🏁 ';
