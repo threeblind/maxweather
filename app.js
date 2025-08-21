@@ -1116,14 +1116,15 @@ function showTeamDetailsModal(team, topDistance) {
 
 /**
  * 取得した駅伝データで順位表を更新します。
- * @param {object} data - realtime_report.json から取得したデータ
+ * @param {object} realtimeData - realtime_report.json から取得したデータ
+ * @param {object} ekidenData - ekiden_data.json から取得したデータ
  */
-const updateEkidenRankingTable = (data) => {
+const updateEkidenRankingTable = (realtimeData, ekidenData) => {
     const rankingBody = document.getElementById('ekidenRankingBody');
     const rankingStatus = document.getElementById('ekidenRankingStatus');
     if (!rankingBody || !rankingStatus) return;
 
-    if (!data || !data.teams || data.teams.length === 0) {
+    if (!realtimeData || !realtimeData.teams || !ekidenData || !ekidenData.leg_boundaries) {
         rankingStatus.textContent = '駅伝ランキングデータを読み込めませんでした。';
         rankingStatus.className = 'result error';
         rankingStatus.style.display = 'block';
@@ -1134,11 +1135,22 @@ const updateEkidenRankingTable = (data) => {
     rankingStatus.style.display = 'none';
     rankingBody.innerHTML = ''; // テーブルをクリア
 
-    const topDistance = data.teams[0]?.totalDistance || 0;
+    const topDistance = realtimeData.teams[0]?.totalDistance || 0;
+    const finalGoalDistance = ekidenData.leg_boundaries[ekidenData.leg_boundaries.length - 1];
 
-    data.teams.forEach(team => {
+    realtimeData.teams.forEach(team => {
         const row = document.createElement('tr');
         row.id = `team-rank-row-${team.overallRank}`; // Add a unique ID for each row
+
+        const isFinished = team.totalDistance >= finalGoalDistance;
+        let finishIcon = '';
+
+        if (isFinished) {
+            if (team.overallRank === 1) finishIcon = '🥇 ';
+            else if (team.overallRank === 2) finishIcon = '🥈 ';
+            else if (team.overallRank === 3) finishIcon = '🥉 ';
+            else finishIcon = '🏁 ';
+        }
 
         const createCell = (text, className = '') => {
             const cell = document.createElement('td');
@@ -1181,8 +1193,7 @@ const updateEkidenRankingTable = (data) => {
         // 大学名セルは、フルネームと短縮名を切り替えるために特別なHTML構造を持つ
         const teamNameCell = document.createElement('td');
         teamNameCell.className = 'team-name';
-        // CSSで表示を切り替えるためのspanタグを埋め込む
-        teamNameCell.innerHTML = `<span class="full-name">${team.name}</span><span class="short-name">${team.short_name}</span>`;
+        teamNameCell.innerHTML = `${finishIcon}<span class="full-name">${team.name}</span><span class="short-name">${team.short_name}</span>`;
 
         // スマホ表示の時だけ、クリックで詳細モーダルを開くイベントリスナーを追加
         teamNameCell.addEventListener('click', () => {
@@ -1294,7 +1305,7 @@ const fetchEkidenData = async () => {
             newsContainer.onclick = null;
         }
 
-        updateEkidenRankingTable(realtimeData);
+        updateEkidenRankingTable(realtimeData, ekidenData);
         updateIndividualSections(realtimeData, individualData);
         updateRunnerMarkers(runnerLocations, ekidenData); // Update map markers
 
