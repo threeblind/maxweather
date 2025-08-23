@@ -1,9 +1,9 @@
 {
-  "updateTime": "2025/08/23 10:25",
+  "updateTime": "2025/08/23 10:35",
   "raceDay": 32,
-  "breakingNewsComment": "【■熊本学園大学（風来の試練）監督コメント】>>697 〇〇さま 監督インタビュー楽しいです そして関大3位おめでとうございます サブでの采配を…",
-  "breakingNewsTimestamp": "2025-08-23T09:35:02.805327",
-  "breakingNewsFullText": "【■熊本学園大学（風来の試練）監督コメント】\n\n>>697 〇〇さま 監督インタビュー楽しいです そして関大3位おめでとうございます サブでの采配を迷いましたが、私がやっていたら表彰台はなかったと思います 柏原君の使い所は惜しかったと思いますが、随所にうなる采配があったと思います 立命も前半は素晴らしい走り、後半も落ちるかと思いながらもこちらも素晴らしい采配で首位と同日ゴール 福知山君はもちろんですが、京田辺君の走りが素晴らしかったです 三年間お疲れ様でした",
+  "breakingNewsComment": "",
+  "breakingNewsTimestamp": "",
+  "breakingNewsFullText": "",
   "teams": [
     {
       "id": 1,
@@ -201,6 +201,21 @@
       "finishDay": 32
     },
     {
+      "id": 18,
+      "name": "東北大学",
+      "short_name": "東北",
+      "currentLeg": 10,
+      "runner": "10米沢",
+      "todayDistance": 33.1,
+      "todayRank": 2,
+      "totalDistance": 1081.2,
+      "overallRank": 14,
+      "previousRank": 15,
+      "nextRunner": "ゴール",
+      "error": null,
+      "finishDay": 32
+    },
+    {
       "id": 12,
       "name": "四国大学",
       "short_name": "四国",
@@ -209,23 +224,8 @@
       "todayDistance": 29.9,
       "todayRank": 5,
       "totalDistance": 1081.1,
-      "overallRank": 14,
-      "previousRank": 14,
-      "nextRunner": "ゴール",
-      "error": null,
-      "finishDay": 32
-    },
-    {
-      "id": 18,
-      "name": "東北大学",
-      "short_name": "東北",
-      "currentLeg": 10,
-      "runner": "10米沢",
-      "todayDistance": 32.8,
-      "todayRank": 2,
-      "totalDistance": 1080.9,
       "overallRank": 15,
-      "previousRank": 15,
+      "previousRank": 14,
       "nextRunner": "ゴール",
       "error": null,
       "finishDay": 32
@@ -236,9 +236,9 @@
       "short_name": "福島",
       "currentLeg": 10,
       "runner": "10若松",
-      "todayDistance": 32.0,
+      "todayDistance": 32.8,
       "todayRank": 3,
-      "totalDistance": 1075.9,
+      "totalDistance": 1076.7,
       "overallRank": 16,
       "previousRank": 16,
       "nextRunner": "ゴール",
