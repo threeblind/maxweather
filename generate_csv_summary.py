@@ -9,6 +9,18 @@ RANK_HISTORY_FILE = 'rank_history.json'
 LEG_RANK_HISTORY_FILE = 'leg_rank_history.json'
 OUTPUT_CSV_FILE = 'ekiden_summary_all_teams.csv'
 
+def get_last_valid_value(data_list):
+    """
+    リストを逆順に探索し、Noneでない最初の値を返します。
+    見つからない場合はNoneを返します。
+    """
+    if not data_list:
+        return None
+    for value in reversed(data_list):
+        if value is not None:
+            return value
+    return None
+
 def generate_csv_summary():
     """
     全チームの駅伝結果をまとめたCSVファイルを生成します。
@@ -51,16 +63,18 @@ def generate_csv_summary():
         # チームの全体成績を取得
         team_final_data = rank_history_map.get(team_id)
 
-        # 履歴の最後の値がNoneの場合があるため、取得後にNoneチェックを行う
-        last_rank_val = team_final_data['ranks'][-1] if team_final_data and team_final_data.get('ranks') else None
-        final_rank = last_rank_val if last_rank_val is not None else ''
+        # 履歴にNoneが含まれる場合があるため、Noneでない最後の有効な値を取得する
+        ranks_history = team_final_data.get('ranks', []) if team_final_data else []
+        last_valid_rank = get_last_valid_value(ranks_history)
+        final_rank = last_valid_rank if last_valid_rank is not None else ''
 
-        last_dist_val = team_final_data['distances'][-1] if team_final_data and team_final_data.get('distances') else None
-        total_distance = last_dist_val if last_dist_val is not None else 0.0
+        distances_history = team_final_data.get('distances', []) if team_final_data else []
+        last_valid_distance = get_last_valid_value(distances_history)
+        total_distance = last_valid_distance if last_valid_distance is not None else 0.0
 
         # チームの区間通過順位を取得
         team_leg_ranks_data = leg_rank_history_map.get(team_id)
-        leg_ranks = team_leg_ranks_data.get('leg_ranks', [])
+        leg_ranks = team_leg_ranks_data.get('leg_ranks', []) if team_leg_ranks_data else []
 
         # 区間ごとのループ
         for i, runner_name in enumerate(team['runners']):
