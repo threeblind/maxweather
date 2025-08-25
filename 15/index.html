@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第１５回全国大学対抗高温駅伝大会 速報</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        /* Main Thread Link */
+        .main-thread-link {
+            display: block;
+            background-color: #28a745; /* A distinct green color */
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+        .main-thread-link:hover {
+            background-color: #218838;
+        }
+        /* 速報コメント */
+        .breaking-news {
+            background-color: #fffbe6; /* 薄い黄色 */
+            border: 2px solid #ffe58f; /* 少し濃い黄色 */
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #856404; /* 暗い黄色/茶色 */
+            display: none; /* デフォルトは非表示 */
+        }
+        .breaking-news::before {
+            content: '📢';
+            margin-right: 10px;
+        }
+        .breaking-news.clickable {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .breaking-news.clickable:hover {
+            background-color: #fff3cd; /* A slightly darker yellow on hover */
+        }
+        /* ページ内ナビゲーション */
+        .page-nav {
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .page-nav ul {
+            display: flex;
+            gap: 10px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            justify-content: center;
+            flex-wrap: wrap; /* 小画面で折り返す */
+        }
+        .page-nav a {
+            /* This will be the base style for all nav links, including mobile */
+            font-size: 18px;
+        }
+
+        .page-nav > ul > li > a {
+            display: block;
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+            font-size: 16px; /* Reset for desktop view */
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .page-nav > ul > li > a:hover {
+            background-color: #007bff;
+            color: #fff;
+            border-color: #007bff;
+        }
+        /* Dropdown Menu for Navigation */
+        .page-nav .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .page-nav .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f1f1f1;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1001; /* マップより手前に表示 */
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .page-nav .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+            background-color: #fff;
+            border: none;
+            border-radius: 0;
+            font-weight: normal;
+        }
+        .page-nav .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        .page-nav .dropdown .dropbtn {
+            cursor: pointer;
+        }
+        /* --- Mobile Navigation Styles --- */
+        .hamburger-menu {
+            display: none; /* Hidden on desktop */
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 2001; /* Above the nav overlay */
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 10px;
+        }
+        .hamburger-menu span {
+            display: block;
+            width: 25px;
+            height: 3px;
+            background-color: #333;
+            margin: 5px 0;
+            transition: all 0.3s;
+        }
+        .hamburger-menu.active span:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .hamburger-menu.active span:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger-menu.active span:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 24px; /* 少しフォントを小さく */
+                margin-bottom: 20px; /* h1下の余白を詰める */
+            }
+            .main-thread-link {
+                padding: 12px 15px; /* パディングを少し詰める */
+                margin-bottom: 20px; /* リンク下の余白を詰める */
+            }
+            .hamburger-menu {
+                display: block;
+            }
+            .page-nav ul {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                max-height: 100vh; /* 画面の高さを超えないように */
+                overflow-y: auto; /* メニューが長い場合にスクロール可能に */
+                background-color: rgba(255, 255, 255, 0.98);
+                flex-direction: column;
+                padding-top: 70px; /* ハンバーガーボタンと重ならないように上部に余白 */
+                padding-bottom: 20px;
+                align-items: center;
+                z-index: 2000;
+                gap: 15px; /* 項目間の余白を少し詰める */
+            }
+            .page-nav ul.active {
+                display: flex;
+            }
+            .page-nav .dropdown:hover .dropdown-content {
+                display: none; /* Disable hover on mobile */
+            }
+            .page-nav .dropdown.open .dropdown-content {
+                display: block;
+                position: static;
+                box-shadow: none;
+                background-color: transparent;
+                text-align: center;
+            }
+            .page-nav .dropdown-content a {
+                padding-left: 0;
+                font-size: 16px;
+                color: #555;
+            }
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .suggestions {
+            margin-top: 20px;
+        }
+        .suggestion-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .suggestion {
+            padding: 8px 12px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .suggestion:hover {
+            background-color: #dee2e6;
+        }
+        .ranking-container {
+            margin-top: 40px;
+        }
+        .ranking-update-time {
+            font-size: 14px;
+            color: #666;
+            text-align: right;
+            margin-top: -10px; /* タイトルとの距離は維持 */
+            margin-bottom: 5px;  /* 下の余白を縮める */
+        }
+        #rankingTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        #rankingTable th, #rankingTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        #rankingTable th {
+            background-color: #f2f2f2;
+        }
+        /* 駅伝ランキング用スタイル */
+        .ekiden-section-wrapper {
+            margin-bottom: 40px;
+        }
+        #ekidenRankingTitle {
+            /* h2のデフォルトマージンを適用 */
+        }
+        .ekiden-ranking-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        #ekidenRankingTable, #legRankHistoryTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0; /* テーブルの上の余白をなくす */
+        }
+        #ekidenRankingTable th, #ekidenRankingTable td,
+        #legRankHistoryTable th, #legRankHistoryTable td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        #ekidenRankingTable th, #legRankHistoryTable th {
+            background-color: #f2f2f2;
+        }
+        #ekidenRankingTable td.team-name,
+        #legRankHistoryTable td.team-name {
+            text-align: left;
+            font-weight: bold;
+        }
+        /* Highlight style for table rows */
+        #ekidenRankingTable tr.highlighted td {
+            background-color: #fffbe6 !important; /* Use the same color as breaking news for consistency */
+            transition: background-color 0.3s ease-in-out;
+        }
+        /* By default, show full name on desktop */
+        #ekidenRankingTable .team-name .short-name {
+            display: none;
+        }
+        /* Desktop defaults for other tables */
+        #legRankHistoryTable .team-name .short-name,
+        #legRankingTable .team-name .short-name,
+        .leg-prize-table .team-name .short-name {
+            display: none;
+        }
+        #legRankHistoryTable td.rank-first {
+            background-color: #ffe5e5; /* 薄い赤色の背景 */
+            color: #d90000; /* 濃い赤色の文字 */
+            font-weight: bold;
+        }
+        /* セクションヘッダーのスタイル */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .section-header h2 {
+            margin: 0; /* h2のデフォルトマージンをリセット */
+        }
+        .section-footer-controls {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+        .header-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .header-button {
+            padding: 6px 12px; font-size: 14px; background-color: #6c757d;
+        }
+        #toggle-ranking-view-btn {
+            display: none; /* デスクトップでは非表示 */
+        }
+        #rankingTable td.location {
+            text-align: left;
+            white-space: nowrap;
+        }
+        #rankingTable td.location a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        #rankingTable td.location a:hover {
+            text-decoration: underline;
+        }
+        #ekidenRankingTable td.rank-change .rank-up {
+            color: #dc3545; /* 赤 */
+            font-weight: bold;
+        }
+        #ekidenRankingTable td.rank-change .rank-down {
+            color: #007bff; /* 青 */
+            font-weight: bold;
+        }
+        #ekidenRankingTable td.rank-change .rank-stay {
+            color: #6c757d; /* グレー */
+        }
+        /* 区間賞・区間ランキング用スタイル */
+        .leg-ranking-container {
+            margin-bottom: 40px;
+        }
+        #legRankingTable, .leg-prize-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        #legRankingTable th, #legRankingTable td,
+        .leg-prize-table th, .leg-prize-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        #legRankingTable th, .leg-prize-table th {
+            background-color: #f2f2f2;
+        }
+        #legRankingTable td.team-name,
+        .leg-prize-table td.team-name {
+            text-align: left;
+        }
+        #legPrizeWinner h4 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .leg-prize-item {
+            margin-bottom: 30px;
+        }
+        /* 選手名をクリック可能にするスタイル */
+        td.runner-name {
+            cursor: pointer;
+            color: #007bff;
+        }
+        td.runner-name:hover {
+            text-decoration: underline;
+        }
+        /* 区間記録テーブルの折りたたみスタイル */
+        .leg-prize-table.collapsed tbody tr:nth-child(n + 4) {
+            display: none;
+        }
+        .toggle-prize-view {
+            margin-top: 10px;
+            text-align: center;
+        }
+        .toggle-prize-view button {
+            background-color: #6c757d;
+        }
+        .toggle-prize-view button:hover {
+            background-color: #5a6268;
+        }
+        /* Leg Tabs Styles */
+        .leg-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .leg-tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            font-size: 16px;
+            font-weight: bold;
+            color: #6c757d;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px; /* Overlap the container's border */
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .leg-tab:hover {
+            color: #007bff;
+        }
+        .leg-tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+        /* Entry List Styles */
+        .entry-list-container {
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+        #entryList {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+        }
+        .team-card {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .team-card h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+        .team-card ul {
+            list-style-type: none;
+            padding-left: 0;
+            margin: 0;
+            font-size: 14px;
+        }
+        .team-card .manager-name {
+            display: block;
+            font-size: 12px;
+            color: #555;
+            margin-top: -8px;
+            margin-bottom: 12px;
+        }
+        .team-card .runners-container, .team-card .substitutes-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0 1em; /* 項目間のスペース */
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .team-card .substitutes-container {
+            margin-top: 5px;
+        }
+        .team-card .substitutes-label {
+            font-weight: bold;
+            color: #555;
+            width: 100%; /* 改行して表示 */
+            margin-bottom: 2px;
+        }
+        .team-card .runner-item {
+            white-space: nowrap;
+        }
+        .team-card .team-description {
+            font-size: 13px;
+            color: #333;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #e0e0e0;
+        }
+        /* Outline Container Styles */
+        .outline-container {
+            margin-top: 40px;
+            background-color: #fff;
+            padding: 25px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .outline-container h3 {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 8px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        .outline-container h3:first-child {
+            margin-top: 0;
+        }
+        .outline-container h4 {
+            color: #333;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-left: 4px solid #6c757d;
+            padding-left: 10px;
+        }
+        .outline-container ul {
+            list-style-type: none;
+            padding-left: 15px;
+        }
+        .outline-container li {
+            margin-bottom: 8px;
+        }
+        /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 2147483647; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover, .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-details-table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+        }
+        .modal-details-table th, .modal-details-table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+            font-size: 16px;
+        }
+        .modal-details-table th {
+            background-color: #f8f9fa;
+            width: 40%;
+            font-weight: bold;
+        }
+
+        .map-container {
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+        .map-container h2 {
+            margin-bottom: 15px;
+        }
+        #map {
+            height: 480px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            z-index: 0; /* Ensure it's behind modals */
+        }
+        .map-controls {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .map-controls label {
+            font-weight: bold;
+        }
+        .map-controls select {
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+        /* Custom Runner Marker Styles */
+        .runner-icon .runner-marker {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            /* JSで設定されるチームカラーを枠線にも適用 */
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .runner-icon .runner-marker::after {
+            content: '';
+            position: absolute;
+            bottom: -12px; /* 円の下に配置 */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            /* JSで設定された親要素のborder-colorを継承して三角形を描画 */
+            border-top: 12px solid;
+            border-top-color: inherit;
+        }
+        .runner-icon .rank-number {
+            line-height: 1; /* Vertically center the number */
+        }
+        /* Leaflet popup customization */
+        .leaflet-popup-content-wrapper {
+            border-radius: 5px;
+        }
+        @media (max-width: 768px) {
+            /* スマホ表示ではナビゲーションを折り返し表示にする */
+            .page-nav ul {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            /* スマホ表示でテーブルの文字と余白を小さくする */
+            #rankingTable,
+            #ekidenRankingTable,
+            #legRankHistoryTable,
+            #legRankingTable,
+            .leg-prize-table {
+                font-size: 13px;
+            }
+            #rankingTable th, #rankingTable td,
+            #ekidenRankingTable th, #ekidenRankingTable td,
+            #legRankHistoryTable th, #legRankHistoryTable td,
+            #legRankingTable th, #legRankingTable td {
+                padding: 6px;
+            }
+            /* スマホ表示の時だけ大学名をクリック可能に見せる */
+            #ekidenRankingTable td.team-name {
+                cursor: pointer;
+                color: #007bff;
+            }
+            #ekidenRankingTable td.team-name:hover {
+                text-decoration: underline;
+            }
+            /* スマホ表示で長い大学名や選手名が折り返すようにする */
+            #ekidenRankingTable td.team-name,
+            #ekidenRankingTable td.runner {
+                white-space: normal;
+            }
+            /* By default, show short name on mobile */
+            #ekidenRankingTable .team-name .full-name { display: none; }
+            #ekidenRankingTable .team-name .short-name { display: inline; }
+
+            /* Apply short name display to other tables on mobile */
+            #legRankHistoryTable .team-name .full-name,
+            #legRankingTable .team-name .full-name,
+            .leg-prize-table .team-name .full-name {
+                display: none;
+            }
+            #legRankHistoryTable .team-name .short-name,
+            #legRankingTable .team-name .short-name,
+            .leg-prize-table .team-name .short-name {
+                display: inline;
+            }
+            #toggle-ranking-view-btn {
+                display: inline-block; /* スマホでは表示 */
+            }
+            .hide-on-mobile {
+                display: none;
+            }
+            /* フル表示モードの時に非表示セルを表示する */
+            .ekiden-ranking-container.show-full-view .hide-on-mobile {
+                display: table-cell;
+            }
+            /* When full view is toggled on mobile, show full name */
+            .ekiden-ranking-container.show-full-view .team-name .full-name {
+                display: inline;
+            }
+            .ekiden-ranking-container.show-full-view .team-name .short-name {
+                display: none;
+            }
+            /* PC版のみキャプチャボタンを表示するため、スマホでは非表示にする */
+            #capture-ranking-btn {
+                display: none;
+            }
+        }
+        /* --- 機能の表示/非表示を制御 --- */
+        .feature-hidden {
+            display: none !important;
+        }
+        /* Rank History Chart Styles */
+        .rank-history-container {
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+        .chart-scroll-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fff;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 500px;
+        }
+        .chart-description {
+            text-align: center;
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 15px;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+        /* Back to Top Button */
+        .back-to-top-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 123, 255, 0.8);
+            color: white;
+            text-align: center;
+            line-height: 50px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50%;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s, transform 0.3s, background-color 0.2s;
+            transform: translateY(20px);
+        }
+        .back-to-top-btn.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .back-to-top-btn:hover {
+            background-color: rgba(0, 86, 179, 0.9);
+        }
+        /* Manager's Lounge Styles */
+        #manager-lounge-content {
+            background-color: #e9ebee; /* Light grey background like a chat app */
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .lounge-post {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+            margin-bottom: 15px;
+        }
+        .lounge-post.manager {
+            align-self: flex-start; /* Align to the left */
+            align-items: flex-start;
+        }
+        .lounge-post.announcer {
+            align-self: flex-end; /* Align to the right */
+            align-items: flex-end;
+        }
+        .lounge-post-header {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5em;
+            font-size: 13px;
+            margin-bottom: 4px;
+            padding: 0 5px;
+        }
+        .lounge-post-header .manager-name {
+            font-weight: bold;
+            color: #333;
+        }
+        .lounge-post-header .manager-tripcode {
+            font-size: 12px;
+            color: #888;
+        }
+        .lounge-post-bubble {
+            padding: 12px 18px;
+            border-radius: 18px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            position: relative;
+            background-color: #ffffff; /* Default for manager */
+        }
+        .lounge-post.announcer .lounge-post-bubble {
+            background-color: #dcf8c6; /* Announcer color */
+        }
+        .lounge-post-content { font-size: 15px; line-height: 1.6; word-wrap: break-word; }
+        .lounge-post-time { font-size: 11px; color: #999; text-align: right; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="page-top">🔥 第１５回全国大学対抗高温駅伝大会 速報</h1>
+
+        <div id="main-thread-link-container">
+            <!-- 本スレリンクは app.js によって動的に生成されます -->
+        </div>
+
+        <button class="hamburger-menu" id="hamburger-btn"><span></span><span></span><span></span></button>
+        <nav class="page-nav">
+            <ul id="main-nav-list">
+                <li><a href="#section-course-map">速報マップ</a></li>
+                <li><a href="#section-overall-ranking">総合順位</a></li>
+                <li><a href="#section-leg-rank-history">順位推移</a></li>
+                <li><a href="#section-leg-ranking">個人記録</a></li>
+                <li><a href="#section-leg-prize">区間記録</a></li>
+                <li><a href="#section-manager-lounge">談話室</a></li>
+                <li class="dropdown">
+                    <a class="dropbtn">その他 ▼</a>
+                    <div class="dropdown-content">
+                        <a href="#section-entry-list">エントリー</a>
+                        <a href="#outlineContainer">大会開催概要</a>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+
+        <div id="breaking-news-container" class="breaking-news" style="margin-top: -10px;">
+            <!-- 速報コメントは app.js によって動的に生成されます -->
+        </div>
+
+        <div id="section-course-map" class="map-container">
+            <h2>🗺️ 速報マップ</h2>
+            <div class="map-controls">
+                <label for="team-tracker-select">追跡モード:</label>
+                <select id="team-tracker-select">
+                    <!-- Options will be populated by JS -->
+                </select>
+            </div>
+            <div id="map"></div>
+        </div>
+
+        <div id="section-overall-ranking" class="ekiden-section-wrapper">
+            <div class="section-header">
+                <h2 id="ekidenRankingTitle">🏆 総合順位</h2>
+                <div class="header-controls">
+                    <button id="capture-ranking-btn" class="header-button">📷 キャプチャ</button>
+                    <button id="toggle-ranking-view-btn" class="header-button">PC版</button>
+                </div>
+            </div>
+            <p id="ekidenRankingUpdateTime" class="ranking-update-time"></p>
+            <div class="ekiden-ranking-container">
+            <table id="ekidenRankingTable">
+                <thead id="ekidenRankingHead">
+                </thead>
+                <tbody id="ekidenRankingBody">
+                </tbody>
+            </table>
+            </div>
+            <div id="ekidenRankingStatus" class="result loading" style="display: none;"></div>
+        </div>
+
+        <div id="section-leg-rank-history" class="ekiden-section-wrapper">
+            <div class="section-header">
+                <h2 id="legRankHistoryTitle">🏁 順位推移</h2>
+                <button id="openRankHistoryModalBtn" class="header-button">📈 順位変動グラフ</button>
+            </div>
+            <div class="ekiden-ranking-container">
+                <table id="legRankHistoryTable">
+                    <thead id="legRankHistoryHead">
+                        <!-- Header will be generated by app.js -->
+                    </thead>
+                    <tbody id="legRankHistoryBody">
+                        <!-- Body will be generated by app.js -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="legRankHistoryStatus" class="result loading" style="display: none;"></div>
+        </div>
+
+        <!-- 順位変動グラフ用モーダル -->
+        <div id="rankHistoryModal" class="modal">
+            <div class="modal-content wide">
+                <span class="close-button" id="closeRankHistoryModal">&times;</span>
+                <div id="section-rank-history" class="rank-history-container">
+                    <h2>📈 順位変動</h2>
+                    <p class="chart-description">💡 グラフ上部の大学名をクリックすると、そのチームの推移をハイライト表示できます。もう一度クリックすると元に戻ります。</p>
+                    <div class="chart-scroll-container">
+                        <div class="chart-wrapper">
+                            <canvas id="rankHistoryChart"></canvas>
+                        </div>
+                    </div>
+                    <div id="rankHistoryStatus" class="result loading" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-leg-ranking" class="leg-ranking-container">
+            <h2 id="legRankingTitle">🏃 個人記録</h2>
+            <div id="leg-tabs-container" class="leg-tabs">
+            </div>
+            <table id="legRankingTable">
+                <thead id="legRankingHead">
+                    <!-- 区間ランキングヘッダーは app.js によって動的に生成されます -->
+                </thead>
+                <tbody id="legRankingBody">
+                    <!-- 区間ランキングは app.js によって動的に生成されます -->
+                </tbody>
+            </table>
+            <div id="legRankingStatus" class="result loading" style="display: none;"></div>
+        </div>
+
+        <div id="section-leg-prize" style="margin-top: 40px;">
+            <h2>🚩 区間記録</h2>
+            <div id="legPrizeWinner">
+            <!-- 区間賞は app.js によって動的に生成されます -->
+            </div>
+        </div>
+
+        <div id="section-manager-lounge" class="ekiden-section-wrapper">
+            <h2>🎙️ 監督たちの談話室</h2>
+            <p class="ranking-update-time">（夜19:00～翌朝7:00の監督コメントを時系列で表示します）</p>
+            <div id="manager-lounge-content">
+                <!-- コメントは app.js によって動的に生成されます -->
+            </div>
+            <div id="manager-lounge-status" class="result loading" style="display: none;"></div>
+        </div>
+
+        <div id="section-entry-list" class="entry-list-container">
+            <h2>📝 エントリーリスト</h2>
+            <div id="entryList">
+                <!-- エントリーリストは app.js によって動的に生成されます -->
+            </div>
+        </div>
+
+        <div id="outlineContainer" class="outline-container">
+            <!-- 開催概要は app.js によって動的に生成されます -->
+        </div>
+
+        <!-- The Modal -->
+        <div id="playerRecordsModal" class="modal">
+          <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3 id="modalPlayerName"></h3>
+            <table id="modalRecordsTable">
+              <thead>
+                <tr>
+                  <th>区間</th>
+                  <th>日付</th>
+                  <th>距離</th>
+                </tr>
+              </thead>
+              <tbody id="modalRecordsBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- The Team Details Modal (for mobile) -->
+        <div id="teamDetailsModal" class="modal">
+          <div class="modal-content">
+            <span class="close-button" id="closeTeamModal">&times;</span>
+            <h3 id="modalTeamName"></h3>
+            <div id="modalTeamDetailsBody">
+              <!-- Details will be injected here by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Breaking News Full Text Modal -->
+        <div id="breakingNewsModal" class="modal">
+          <div class="modal-content">
+            <span class="close-button" id="closeBreakingNewsModal">&times;</span>
+            <h3>📢 速報</h3>
+            <div id="modalBreakingNewsBody" style="white-space: pre-wrap; line-height: 1.6; margin-top: 15px;">
+              <!-- Full text will be injected here -->
+            </div>
+          </div>
+        </div>
+
+        <div id="section-amedas-search" class="amedas-features" style="margin-top: 40px;">
+            <h2>🌡️ アメダス地点検索</h2>
+            <div class="search-box">
+                <input type="text" id="locationInput" placeholder="地点名を入力してください（例：東京、大阪、札幌）" />
+                <button onclick="searchTemperature()">検索</button>
+            </div>
+            <div id="result"></div>
+
+            <div class="suggestions">
+                <h3>検索履歴</h3>
+                <div class="suggestion-list">
+                    <!-- 検索履歴は app.js によって動的に生成されます -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to Top Button -->
+    <a href="#page-top" id="back-to-top" class="back-to-top-btn" title="トップに戻る">↑</a>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <footer class="site-footer">
+        <p>このサイトは個人の趣味で開発・運営されています。</p>
+        <p>もしよろしければ、開発の励みとしてご支援をいただけると大変嬉しいです。</p>
+        <a href="https://buymeacoffee.com/bj6zsz6nrgy" target="_blank" rel="noopener noreferrer"><img decoding="async" src="https://img.buymeacoffee.com/button-api/?text=Beer を奢る&amp;emoji=🍺&amp;slug=haretokidoki&amp;button_colour=5F7FFF&amp;font_colour=ffffff&amp;font_family=Bree&amp;outline_colour=000000&amp;coffee_colour=FFDD00" alt="Beerを奢る"></a>
+    </footer>
+
+    <!-- Leaflet.js should be loaded before app.js -->
+    <script src="app.js"></script>
+</body>
+</html>
