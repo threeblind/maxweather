@@ -23,6 +23,7 @@ EKIDEN_START_DATE = '2025-07-23'
 KML_FILE = 'ekiden_map.kml'
 RUNNER_LOCATIONS_OUTPUT_FILE = 'runner_locations.json'
 COURSE_PATH_FILE = 'course_path.json'
+REALTIME_LOG_FILE = 'realtime_log.jsonl'
 
 # 5chからスクレイピングする際のリクエストヘッダー
 HEADERS = {
@@ -246,6 +247,32 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
 
     with open('realtime_report.json', 'w', encoding='utf-8') as f:
         json.dump(report_data, f, indent=2, ensure_ascii=False)
+
+def append_to_realtime_log(results):
+    """
+    リアルタイムで取得した走行中選手のデータをJSON Lines形式でログファイルに追記する。
+    """
+    timestamp = datetime.now().isoformat()
+    log_entries = []
+    for r in results:
+        # ゴール済みのチームや、まだ走っていないチームはログの対象外とする
+        if r['runner'] == 'ゴール' or r['todayDistance'] <= 0:
+            continue
+        
+        log_entry = {
+            "timestamp": timestamp,
+            "team_id": r['id'],
+            "team_name": r['name'],
+            "runner_name": r['runner'],
+            "distance": r['todayDistance'],
+            "today_rank": r['todayRank']
+        }
+        log_entries.append(json.dumps(log_entry, ensure_ascii=False))
+
+    if log_entries:
+        with open(REALTIME_LOG_FILE, 'a', encoding='utf-8') as f:
+            f.write('\n'.join(log_entries) + '\n')
+        print(f"✅ {len(log_entries)}件のリアルタイムログを '{REALTIME_LOG_FILE}' に追記しました。")
 
 def update_rank_history(results, race_day, rank_history_file_path):
     """
@@ -877,6 +904,7 @@ def main():
 
         # 各種速報ファイルを保存
         save_realtime_report(results, race_day, comment_to_save, timestamp_to_save, full_text_to_save)
+        append_to_realtime_log(results)
         update_rank_history(results, race_day, args.history_file)
         update_leg_rank_history(results, current_state, args.leg_history_file)
         save_individual_results(individual_results, args.individual_state_file)
