@@ -698,8 +698,24 @@ def main():
     previous_rank_map = {s['id']: s['overallRank'] for s in current_state}
     individual_results = load_individual_results(args.individual_state_file)
 
+    # --- モードに応じたデータソースの準備 ---
+    daily_temperatures_today = {}
+    if not args.realtime:
+        # コミットモードまたはプレビューモードでは、事前に生成された日次データファイルから気温を読み込む
+        try:
+            with open('daily_temperatures.json', 'r', encoding='utf-8') as f:
+                all_daily_temps = json.load(f)
+                today_str = datetime.now().strftime('%Y-%m-%d')
+                daily_temperatures_today = all_daily_temps.get(today_str, {})
+                print(f"'{today_str}' の日次気温データを daily_temperatures.json から読み込みました。")
+        except (FileNotFoundError, json.JSONDecodeError):
+            print("警告: daily_temperatures.json が見つからないか、形式が正しくありません。")
+            if args.commit:
+                print("エラー: --commit モードではこのファイルが必須です。`update_all_records.py` を先に実行してください。")
+                exit(1)
+
     results = []
-    print("速報を生成中... 全チームの気温データを取得しています。")
+    print("速報を生成中...")
     for team_state in current_state:
         team_data = next(t for t in ekiden_data['teams'] if t['id'] == team_state['id'])
         
@@ -707,7 +723,6 @@ def main():
         is_finished_yesterday = finish_day is not None and finish_day < race_day
 
         if is_finished_yesterday:
-            print(f"  {team_data['name']} (順位確定済み)")
             results.append({
                 "id": team_state["id"], "name": team_state["name"], "runner": "ゴール",
                 "currentLegNumber": team_state["currentLeg"], "newCurrentLeg": team_state["currentLeg"],
@@ -720,15 +735,22 @@ def main():
             continue
 
         # --- 走行中または本日ゴールのチーム ---
-        print(f"  {team_data['name']} のデータを取得中...")
         runner_index = team_state['currentLeg'] - 1
         runner_name, temp_result, today_distance = "ゴール", {'temperature': 0, 'error': None}, 0.0
 
         if runner_index < len(team_data['runners']):
             runner_name = team_data['runners'][runner_index]
-            station = find_station_by_name(runner_name)
-            temp_result = fetch_max_temperature(station['pref_code'], station['code']) if station else {'temperature': 0, 'error': '地点不明'}
-            today_distance = temp_result.get('temperature') or 0.0
+            
+            if args.realtime:
+                # リアルタイムモードではWebから最新の気温を取得
+                print(f"  [Web] {runner_name} の気温データを取得中...")
+                station = find_station_by_name(runner_name)
+                temp_result = fetch_max_temperature(station['pref_code'], station['code']) if station else {'temperature': 0, 'error': '地点不明'}
+                today_distance = temp_result.get('temperature') or 0.0
+            else:
+                # コミット/プレビューモードではファイルから読み込んだ値を使用
+                today_distance = daily_temperatures_today.get(runner_name, 0.0)
+                temp_result = {'temperature': today_distance, 'error': None if today_distance > 0 else '記録なし'}
 
             if today_distance > 0:
                 runner_info = individual_results.setdefault(runner_name, {"totalDistance": 0, "teamId": team_data['id'], "records": []})
