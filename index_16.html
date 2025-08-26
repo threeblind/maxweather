@@ -1048,6 +1048,30 @@
           </div>
         </div>
 
+        <!-- Runner Daily Chart Modal -->
+        <div id="runnerDailyChartModal" class="modal">
+          <div class="modal-content wide">
+            <span class="close-button" id="closeRunnerDailyChartModal">&times;</span>
+            <h3 id="modalChartPlayerName"></h3>
+            <div class="chart-wrapper" style="height: 400px; position: relative;">
+                <canvas id="runnerDailyChart"></canvas>
+            </div>
+            <div id="runnerDailyChartStatus" class="result loading" style="display: none;"></div>
+          </div>
+        </div>
+
+        <!-- Player Total Chart Modal -->
+        <div id="playerTotalChartModal" class="modal">
+          <div class="modal-content wide">
+            <span class="close-button" id="closePlayerTotalChartModal">&times;</span>
+            <h3 id="modalTotalChartPlayerName"></h3>
+            <div class="chart-wrapper" style="height: 400px; position: relative;">
+                <canvas id="playerTotalChart"></canvas>
+            </div>
+            <div id="playerTotalChartStatus" class="result loading" style="display: none;"></div>
+          </div>
+        </div>
+
         <!-- Breaking News Full Text Modal -->
         <div id="breakingNewsModal" class="modal">
           <div class="modal-content">
@@ -1088,6 +1112,6 @@
     </footer>
 
     <!-- Leaflet.js should be loaded before app.js -->
-    <script src="app.js"></script>
+    <script src="app_16.js"></script>
 </body>
 </html>

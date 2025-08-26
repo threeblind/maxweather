@@ -1,8 +1,12 @@
 let stationsData = [];
 let allIndividualData = {}; // 選手個人の全記録を保持するグローバル変数
+let lastRealtimeData = null; // 最新のrealtime_report.jsonを保持する
+let dailyRunnerChartInstance = null; // 選手の日次推移グラフのインスタンス
+let playerTotalChartInstance = null; // 選手個人の大会全記録グラフのインスタンス
 
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
+const EKIDEN_START_DATE = '2025-07-23'; // Python側と合わせる
 
 /**
  * 選手名から括弧で囲まれた都道府県名を取り除く
@@ -532,6 +536,194 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
 }
 
 /**
+ * 選手のその日の距離推移をグラフで表示するモーダルを開きます。
+ * @param {string} rawRunnerName - 区間番号付きの選手名 (e.g., "1秋ヶ島")
+ * @param {string} teamId - チームID
+ * @param {string} teamName - チーム名
+ * @param {number} raceDay - 大会何日目か
+ */
+async function showDailyRunnerChart(rawRunnerName, teamId, teamName, raceDay) {
+    const modal = document.getElementById('runnerDailyChartModal');
+    const modalTitle = document.getElementById('modalChartPlayerName');
+    const canvas = document.getElementById('runnerDailyChart');
+    const statusEl = document.getElementById('runnerDailyChartStatus');
+
+    if (!modal || !modalTitle || !canvas || !statusEl) return;
+
+    // グラフインスタンスが残っていれば破棄
+    if (dailyRunnerChartInstance) {
+        dailyRunnerChartInstance.destroy();
+    }
+
+    // 選手名から区間番号を除去
+    const runnerName = rawRunnerName.replace(/^\d+/, '');
+
+    modalTitle.textContent = `${teamName}・${runnerName}選手 本日の走行記録`;
+    modal.style.display = 'block';
+    statusEl.textContent = 'ログデータを読み込み中...';
+    statusEl.className = 'result loading';
+    statusEl.style.display = 'block';
+    canvas.style.display = 'none';
+
+    try {
+        const response = await fetch(`realtime_log.jsonl?_=${new Date().getTime()}`);
+        if (!response.ok) {
+            throw new Error(`ログファイルの取得に失敗しました (HTTP ${response.status})`);
+        }
+        const text = await response.text();
+        const lines = text.trim().split('\n');
+
+        // 今日の日付を 'YYYY-MM-DD' 形式で計算
+        const startDate = new Date(EKIDEN_START_DATE);
+        startDate.setDate(startDate.getDate() + raceDay - 1);
+        const todayStr = startDate.toISOString().split('T')[0];
+
+        const chartData = {
+            labels: [],
+            distances: []
+        };
+
+        lines.forEach(line => {
+            if (!line) return;
+            try {
+                const log = JSON.parse(line);
+                // チームID、選手名、日付が一致するログを抽出
+                if (log.team_id == teamId && log.runner_name === runnerName && log.timestamp.startsWith(todayStr)) {
+                    const timestamp = new Date(log.timestamp);
+                    chartData.labels.push(timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }));
+                    chartData.distances.push(log.distance);
+                }
+            } catch (e) {
+                // JSONパースエラーは無視
+            }
+        });
+
+        if (chartData.labels.length === 0) {
+            throw new Error('表示できる本日の走行ログがありません。');
+        }
+
+        statusEl.style.display = 'none';
+        canvas.style.display = 'block';
+
+        dailyRunnerChartInstance = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: '走行距離 (km)',
+                    data: chartData.distances,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, title: { display: true, text: '距離 (km)' } }, x: { title: { display: true, text: '時刻' } } },
+                plugins: { tooltip: { callbacks: { label: (context) => ` ${context.dataset.label}: ${context.parsed.y.toFixed(1)} km` } } }
+            }
+        });
+
+    } catch (error) {
+        console.error('選手の日次グラフ描画エラー:', error);
+        statusEl.textContent = `エラー: ${error.message}`;
+        statusEl.className = 'result error';
+        statusEl.style.display = 'block';
+        canvas.style.display = 'none';
+    }
+}
+
+/**
+ * 選手の大会を通した全記録（累計と日次）を複合グラフで表示します。
+ * @param {string} rawRunnerName - 括弧付きの選手名
+ */
+function showPlayerTotalChart(rawRunnerName) {
+    const modal = document.getElementById('playerTotalChartModal');
+    const modalTitle = document.getElementById('modalTotalChartPlayerName');
+    const canvas = document.getElementById('playerTotalChart');
+    const statusEl = document.getElementById('playerTotalChartStatus');
+
+    if (!modal || !modalTitle || !canvas || !statusEl) return;
+
+    if (playerTotalChartInstance) {
+        playerTotalChartInstance.destroy();
+    }
+
+    const runnerName = formatRunnerName(rawRunnerName);
+    const runnerData = allIndividualData[rawRunnerName];
+
+    // グラフ化するデータがない場合は、既存のテキストベースの記録モーダルを表示
+    if (!runnerData || !runnerData.records || runnerData.records.length === 0) {
+        showPlayerRecords(rawRunnerName);
+        return;
+    }
+
+    const teamInfo = lastRealtimeData.teams.find(t => t.id === runnerData.teamId);
+    const teamName = teamInfo ? teamInfo.name : '所属不明';
+
+    modalTitle.textContent = `${teamName}・${runnerName}選手 大会全記録`;
+    modal.style.display = 'block';
+    statusEl.style.display = 'none';
+    canvas.style.display = 'block';
+
+    // データを日付(day)順にソート
+    const sortedRecords = [...runnerData.records].sort((a, b) => a.day - b.day);
+
+    const labels = [];
+    const dailyDistances = [];
+    const cumulativeDistances = [];
+    let cumulative = 0;
+
+    sortedRecords.forEach(record => {
+        labels.push(`${record.day}日目 (${record.leg}区)`);
+        dailyDistances.push(record.distance);
+        cumulative += record.distance;
+        cumulativeDistances.push(cumulative.toFixed(1));
+    });
+
+    playerTotalChartInstance = new Chart(canvas, {
+        type: 'bar', // 基本を棒グラフに設定
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    type: 'line', // このデータセットは折れ線グラフ
+                    label: '日次走行距離 (km)',
+                    data: dailyDistances,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    yAxisID: 'yDaily', // 右側のY軸を使用
+                    tension: 0.1,
+                    fill: false,
+                },
+                {
+                    type: 'bar', // このデータセットは棒グラフ
+                    label: '累計走行距離 (km)',
+                    data: cumulativeDistances,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    yAxisID: 'yCumulative', // 左側のY軸を使用
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                yCumulative: { type: 'linear', display: true, position: 'left', beginAtZero: true, title: { display: true, text: '累計距離 (km)' } },
+                yDaily: { type: 'linear', display: true, position: 'right', beginAtZero: true, title: { display: true, text: '日次距離 (km)' }, grid: { drawOnChartArea: false } },
+                x: { title: { display: true, text: '日付 (区間)' } }
+            },
+            plugins: {
+                tooltip: { mode: 'index', intersect: false, callbacks: { label: (context) => ` ${context.dataset.label}: ${parseFloat(context.raw).toFixed(1)} km` } }
+            }
+        }
+    });
+}
+
+/**
  * 駅伝用のテーブルヘッダーを生成します。
  */
 const createEkidenHeader = () => {
@@ -601,7 +793,7 @@ const createPrizeTable = (records) => {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${lastRank}</td>
-            <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${medal} ${formattedRunnerName}</td>
+            <td class="runner-name player-total-chart-trigger" data-runner-name="${record.runnerName}">${medal} ${formattedRunnerName}</td>
             <td class="team-name">${teamNameHtml}</td>
             <td>${record.averageDistance.toFixed(3)} km</td>
         `;
@@ -668,7 +860,7 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${lastRank}</td>
-                <td class="runner-name" onclick="showPlayerRecords('${record.runnerName}')">${formattedRunnerName}</td>
+                <td class="runner-name player-total-chart-trigger" data-runner-name="${record.runnerName}">${formattedRunnerName}</td>
                 <td class="team-name">${teamNameHtml}</td>
                 <td>${record.legDistance.toFixed(1)} km</td>
             `;
@@ -1218,7 +1410,11 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         });
         row.appendChild(teamNameCell);
 
-        row.appendChild(createCell(formatRunnerName(team.runner), 'runner'));
+        const runnerCell = createCell(formatRunnerName(team.runner), 'runner runner-name runner-chart-trigger');
+        runnerCell.dataset.teamId = team.id;
+        runnerCell.dataset.runnerName = team.runner; // 整形前の名前を渡す
+        runnerCell.dataset.teamName = team.name;
+        row.appendChild(runnerCell);
 
         // 本日距離セル。スマホでは単位(km)を非表示
         const todayCell = document.createElement('td');
@@ -1282,6 +1478,8 @@ const fetchEkidenData = async () => {
         const individualData = await individualRes.json();
         const runnerLocations = await runnerLocationsRes.json();
         const ekidenData = await ekidenDataRes.json();
+
+        lastRealtimeData = realtimeData; // 最新データをグローバル変数に保存
 
         // データソースの順序に依存しないように、ここで必ずランク順にソートする
         runnerLocations.sort((a, b) => a.rank - b.rank);
@@ -1800,6 +1998,54 @@ document.addEventListener('DOMContentLoaded', function() {
             window.addEventListener('resize', checkScroll);
             checkScroll();
         }
+    }
+
+    // 選手の日次推移グラフモーダルを閉じるイベントリスナー
+    const dailyChartModal = document.getElementById('runnerDailyChartModal');
+    const closeDailyChartBtn = document.getElementById('closeRunnerDailyChartModal');
+    if (dailyChartModal && closeDailyChartBtn) {
+        closeDailyChartBtn.onclick = () => dailyChartModal.style.display = 'none';
+        window.addEventListener('click', (event) => {
+            if (event.target == dailyChartModal) {
+                dailyChartModal.style.display = 'none';
+            }
+        });
+    }
+
+    // イベント委譲を使って、総合順位表の選手名クリックを処理
+    const ekidenRankingBody = document.getElementById('ekidenRankingBody');
+    if (ekidenRankingBody) {
+        ekidenRankingBody.addEventListener('click', (event) => {
+            const target = event.target.closest('.runner-chart-trigger');
+            if (target && lastRealtimeData) {
+                const { teamId, runnerName, teamName } = target.dataset;
+                showDailyRunnerChart(runnerName, teamId, teamName, lastRealtimeData.raceDay);
+            }
+        });
+    }
+
+    // イベント委譲を使って、個人記録・区間記録テーブルの選手名クリックを処理
+    const container = document.querySelector('.container');
+    if (container) {
+        container.addEventListener('click', (event) => {
+            const target = event.target.closest('.player-total-chart-trigger');
+            if (target) {
+                const runnerName = target.dataset.runnerName;
+                if (runnerName && allIndividualData) {
+                    showPlayerTotalChart(runnerName);
+                }
+            }
+        });
+    }
+
+    // 選手個人全記録グラフモーダルを閉じるイベントリスナー
+    const totalChartModal = document.getElementById('playerTotalChartModal');
+    const closeTotalChartBtn = document.getElementById('closePlayerTotalChartModal');
+    if (totalChartModal && closeTotalChartBtn) {
+        closeTotalChartBtn.onclick = () => totalChartModal.style.display = 'none';
+        window.addEventListener('click', (event) => {
+            if (event.target == totalChartModal) { totalChartModal.style.display = 'none'; }
+        });
     }
 
     // --- Smooth Scrolling for Page Navigation ---
