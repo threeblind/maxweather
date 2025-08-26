@@ -2,7 +2,6 @@ let stationsData = [];
 let allIndividualData = {}; // 選手個人の全記録を保持するグローバル変数
 let lastRealtimeData = null; // 最新のrealtime_report.jsonを保持する
 let dailyRunnerChartInstance = null; // 選手の日次推移グラフのインスタンス
-let playerTotalChartInstance = null; // 選手個人の大会全記録グラフのインスタンス
 
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
@@ -558,7 +557,7 @@ async function showDailyRunnerChart(rawRunnerName, teamId, teamName, raceDay) {
     // 選手名から区間番号を除去
     const runnerName = rawRunnerName.replace(/^\d+/, '');
 
-    modalTitle.textContent = `${teamName}・${runnerName}選手`;
+    modalTitle.textContent = `${teamName}・${runnerName}選手 本日の走行記録`;
     modal.style.display = 'block';
     statusEl.textContent = 'ログデータを読み込み中...';
     statusEl.className = 'result loading';
@@ -651,6 +650,7 @@ function showPlayerTotalChart(rawRunnerName) {
     const labels = [];
     const dailyDistances = [];
     const cumulativeDistances = [];
+    const legRanks = [];
     let cumulative = 0;
 
     sortedRecords.forEach(record => {
@@ -658,43 +658,29 @@ function showPlayerTotalChart(rawRunnerName) {
         dailyDistances.push(record.distance);
         cumulative += record.distance;
         cumulativeDistances.push(cumulative.toFixed(1));
+        legRanks.push(record.legRank || null);
     });
 
     playerTotalChartInstance = new Chart(canvas, {
-        type: 'bar', // 基本を棒グラフに設定
+        type: 'bar',
         data: {
             labels: labels,
             datasets: [
-                {
-                    type: 'line', // このデータセットは折れ線グラフ
-                    label: '日次走行距離 (km)',
-                    data: dailyDistances,
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                    yAxisID: 'yDaily', // 右側のY軸を使用
-                    tension: 0.1,
-                    fill: false,
-                },
-                {
-                    type: 'bar', // このデータセットは棒グラフ
-                    label: '累計走行距離 (km)',
-                    data: cumulativeDistances,
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    yAxisID: 'yCumulative', // 左側のY軸を使用
-                }
+                { type: 'bar', label: '累計走行距離 (km)', data: cumulativeDistances, backgroundColor: 'rgba(54, 162, 235, 0.6)', borderColor: 'rgba(54, 162, 235, 1)', yAxisID: 'yDistance', order: 2 },
+                { type: 'line', label: '日次走行距離 (km)', data: dailyDistances, borderColor: 'rgba(255, 99, 132, 1)', backgroundColor: 'rgba(255, 99, 132, 0.2)', yAxisID: 'yDistance', tension: 0.1, fill: false, order: 1 },
+                { type: 'line', label: '区間順位', data: legRanks, borderColor: 'rgba(75, 192, 192, 1)', backgroundColor: 'rgba(75, 192, 192, 0.2)', yAxisID: 'yRank', stepped: true, fill: false, order: 0 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                yCumulative: { type: 'linear', display: true, position: 'left', beginAtZero: true, title: { display: true, text: '累計距離 (km)' } },
-                yDaily: { type: 'linear', display: true, position: 'right', beginAtZero: true, title: { display: true, text: '日次距離 (km)' }, grid: { drawOnChartArea: false } },
+                yDistance: { type: 'linear', display: true, position: 'left', beginAtZero: true, title: { display: true, text: '走行距離 (km)' } },
+                yRank: { type: 'linear', display: true, position: 'right', reverse: true, beginAtZero: false, title: { display: true, text: '区間順位' }, grid: { drawOnChartArea: false }, ticks: { stepSize: 1, precision: 0 } },
                 x: { title: { display: true, text: '日付 (区間)' } }
             },
             plugins: {
-                tooltip: { mode: 'index', intersect: false, callbacks: { label: (context) => ` ${context.dataset.label}: ${parseFloat(context.raw).toFixed(1)} km` } }
+                tooltip: { mode: 'index', intersect: false, callbacks: { label: (context) => { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.dataset.yAxisID === 'yRank') { if (context.raw !== null) { label += `${context.raw}位`; } else { label += '記録なし'; } } else { label += `${parseFloat(context.raw).toFixed(1)} km`; } return label; } } }
             }
         }
     });

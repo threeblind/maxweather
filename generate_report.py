@@ -923,5 +923,39 @@ def main():
     elif not args.realtime:
         print("\n--- [Preview Mode] To save results, run `python generate_report.py --commit` ---")
 
+    if args.commit:
+        # --- 区間順位の計算を追加 ---
+        print("Calculating leg ranks for individual results...")
+        # 1. 日ごと・区間ごとに全選手の記録をグループ化
+        leg_performances = {}
+        for runner_name, data in individual_results.items():
+            for record in data.get('records', []):
+                # 走行距離が0より大きい記録のみを対象とする
+                if record.get('distance', 0) > 0:
+                    key = (record['day'], record['leg'])
+                    if key not in leg_performances:
+                        leg_performances[key] = []
+                    leg_performances[key].append({
+                        'runnerName': runner_name,
+                        'distance': record['distance']
+                    })
+
+        # 2. 各グループ内でソートして順位付け (Standard competition ranking)
+        for key, performances in leg_performances.items():
+            performances.sort(key=lambda x: x['distance'], reverse=True)
+            last_score, last_rank = -1, 0
+            for i, p in enumerate(performances):
+                if p['distance'] != last_score:
+                    last_rank = i + 1
+                    last_score = p['distance']
+                # individual_results 内の該当レコードを探して 'legRank' を追加
+                for record in individual_results[p['runnerName']]['records']:
+                    if record.get('day') == key[0] and record.get('leg') == key[1]:
+                        record['legRank'] = last_rank
+                        break
+        
+        save_individual_results(individual_results, args.individual_state_file)
+        print(f"--- [Commit Mode] Saved individual results with leg ranks to {args.individual_state_file} ---")
+
 if __name__ == '__main__':
     main()
