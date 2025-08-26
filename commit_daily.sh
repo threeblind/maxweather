@@ -30,28 +30,46 @@ python update_all_records.py
 echo "generate_report.py --commit を実行中..."
 python generate_report.py --commit
 
-# 4. 状態ファイルに変更があるか確認し、変更があればPush
+# 4. dataディレクトリを作成し、本日のログファイルを移動
+DATA_DIR="data"
+mkdir -p "$DATA_DIR"
+
+SOURCE_LOG_FILE="realtime_log.jsonl"
+if [ -f "$SOURCE_LOG_FILE" ]; then
+    TODAY=$(date +'%Y-%m-%d')
+    DEST_LOG_FILE="$DATA_DIR/realtime_log_${TODAY}.jsonl"
+    echo "'$SOURCE_LOG_FILE' を '$DEST_LOG_FILE' に移動します。"
+    git mv "$SOURCE_LOG_FILE" "$DEST_LOG_FILE"
+else
+    echo "本日のログファイル '$SOURCE_LOG_FILE' は見つかりませんでした。スキップします。"
+fi
+
+# 5. 変更されたファイルをステージング
 #    daily_temperatures.json と intramural_rankings.json をコミット対象に追加
-if ! git diff --quiet --exit-code ekiden_state.json individual_results.json rank_history.json leg_rank_history.json runner_locations.json daily_temperatures.json intramural_rankings.json; then
-    echo "状態ファイル (ekiden_state.json, etc.) に変更を検出しました。GitHubにプッシュします。"
-    git add ekiden_state.json individual_results.json rank_history.json leg_rank_history.json runner_locations.json daily_temperatures.json intramural_rankings.json
-    git commit -m "Update daily state [bot] $(date +'%Y-%m-%d')"
+#    (git mv で移動したログファイルは既にステージングされている)
+git add ekiden_state.json individual_results.json rank_history.json leg_rank_history.json runner_locations.json daily_temperatures.json intramural_rankings.json
+
+# 6. ステージングされた変更があるか確認し、コミットとプッシュを実行
+if ! git diff --cached --quiet; then
+    echo "最終結果ファイルまたはログファイルに変更を検出しました。GitHubにプッシュします。"
+    git commit -m "Finalize and archive daily data [bot] $(date +'%Y-%m-%d')"
 
     # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash)
     STASH_RESULT=$(git stash)
 
     echo "リモートの変更を取り込んでいます (git pull --rebase)..."
-    git pull --rebase origin main
+    if ! git pull --rebase origin main; then
+        echo "エラー: git pull --rebase に失敗しました。"
+        if [[ "$STASH_RESULT" != "No local changes to save" ]]; then git stash pop; fi
+        exit 1
+    fi
 
     echo "GitHubにプッシュしています..."
     git push origin main
 
-    # 退避していた変更を元に戻す
-    if [[ "$STASH_RESULT" != "No local changes to save" ]]; then
-        git stash pop
-    fi
+    if [[ "$STASH_RESULT" != "No local changes to save" ]]; then git stash pop; fi
 else
-    echo "状態ファイルに変更はありませんでした。コミットをスキップします。"
+    echo "コミット対象の変更はありませんでした。"
 fi
 
 echo "処理が正常に完了しました。"
