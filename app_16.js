@@ -558,12 +558,12 @@ async function showDailyRunnerChart(rawRunnerName, teamId, teamName, raceDay) {
     // 選手名から区間番号を除去
     const runnerName = rawRunnerName.replace(/^\d+/, '');
 
-    modalTitle.textContent = `${teamName}・${runnerName}選手 本日の走行記録`;
+    modalTitle.textContent = `${teamName}・${runnerName}選手`;
     modal.style.display = 'block';
     statusEl.textContent = 'ログデータを読み込み中...';
     statusEl.className = 'result loading';
-    statusEl.style.display = 'block';
-    canvas.style.display = 'none';
+    statusEl.style.display = 'none';
+    canvas.style.display = 'block';
 
     try {
         const response = await fetch(`realtime_log.jsonl?_=${new Date().getTime()}`);
@@ -578,52 +578,29 @@ async function showDailyRunnerChart(rawRunnerName, teamId, teamName, raceDay) {
         startDate.setDate(startDate.getDate() + raceDay - 1);
         const todayStr = startDate.toISOString().split('T')[0];
 
-        const chartData = {
-            labels: [],
-            distances: []
-        };
+        const chartData = { labels: [], distances: [] };
 
         lines.forEach(line => {
             if (!line) return;
             try {
                 const log = JSON.parse(line);
-                // チームID、選手名、日付が一致するログを抽出
                 if (log.team_id == teamId && log.runner_name === runnerName && log.timestamp.startsWith(todayStr)) {
                     const timestamp = new Date(log.timestamp);
                     chartData.labels.push(timestamp.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }));
                     chartData.distances.push(log.distance);
                 }
-            } catch (e) {
-                // JSONパースエラーは無視
-            }
+            } catch (e) { /* JSONパースエラーは無視 */ }
         });
 
-        if (chartData.labels.length === 0) {
-            throw new Error('表示できる本日の走行ログがありません。');
-        }
+        if (chartData.labels.length === 0) { throw new Error('表示できる本日の走行ログがありません。'); }
 
         statusEl.style.display = 'none';
         canvas.style.display = 'block';
 
         dailyRunnerChartInstance = new Chart(canvas, {
             type: 'line',
-            data: {
-                labels: chartData.labels,
-                datasets: [{
-                    label: '走行距離 (km)',
-                    data: chartData.distances,
-                    borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                    fill: true,
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, title: { display: true, text: '距離 (km)' } }, x: { title: { display: true, text: '時刻' } } },
-                plugins: { tooltip: { callbacks: { label: (context) => ` ${context.dataset.label}: ${context.parsed.y.toFixed(1)} km` } } }
-            }
+            data: { labels: chartData.labels, datasets: [{ label: '走行距離 (km)', data: chartData.distances, borderColor: '#007bff', backgroundColor: 'rgba(0, 123, 255, 0.1)', fill: true, tension: 0.1 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: '距離 (km)' } }, x: { title: { display: true, text: '時刻' } } }, plugins: { tooltip: { callbacks: { label: (context) => ` ${context.dataset.label}: ${context.parsed.y.toFixed(1)} km` } } } }
         });
 
     } catch (error) {
@@ -791,12 +768,10 @@ const createPrizeTable = (records) => {
         const formattedRunnerName = formatRunnerName(record.runnerName);
         const teamNameHtml = `<span class="full-name">${record.teamDetails.name}</span><span class="short-name">${record.teamDetails.short_name}</span>`;
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${lastRank}</td>
+        row.innerHTML = `<td>${lastRank}</td>
             <td class="runner-name player-total-chart-trigger" data-runner-name="${record.runnerName}">${medal} ${formattedRunnerName}</td>
             <td class="team-name">${teamNameHtml}</td>
-            <td>${record.averageDistance.toFixed(3)} km</td>
-        `;
+            <td>${record.averageDistance.toFixed(3)} km</td>`;
         tbody.appendChild(row);
     });
 
@@ -858,12 +833,10 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
             const formattedRunnerName = formatRunnerName(record.runnerName);
             const teamNameHtml = `<span class="full-name">${record.teamDetails.name}</span><span class="short-name">${record.teamDetails.short_name}</span>`;
             const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${lastRank}</td>
+            row.innerHTML = `<td>${lastRank}</td>
                 <td class="runner-name player-total-chart-trigger" data-runner-name="${record.runnerName}">${formattedRunnerName}</td>
                 <td class="team-name">${teamNameHtml}</td>
-                <td>${record.legDistance.toFixed(1)} km</td>
-            `;
+                <td>${record.legDistance.toFixed(1)} km</td>`;
             legRankingBody.appendChild(row);
         });
     } else {

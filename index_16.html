@@ -1097,18 +1097,6 @@
           </div>
         </div>
 
-        <!-- Runner Daily Chart Modal -->
-        <div id="runnerDailyChartModal" class="modal">
-          <div class="modal-content wide">
-            <span class="close-button" id="closeRunnerDailyChartModal">&times;</span>
-            <h3 id="modalChartPlayerName"></h3>
-            <div class="chart-wrapper" style="height: 400px; position: relative;">
-                <canvas id="runnerDailyChart"></canvas>
-            </div>
-            <div id="runnerDailyChartStatus" class="result loading" style="display: none;"></div>
-          </div>
-        </div>
-
         <!-- Player Total Chart Modal -->
         <div id="playerTotalChartModal" class="modal">
           <div class="modal-content wide">
@@ -1159,6 +1147,60 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Runner Daily Chart Modal -->
+    <div id="runnerDailyChartModal" class="modal">
+      <div class="modal-content wide">
+        <span class="close-button" id="closeRunnerDailyChartModal">&times;</span>
+        <h3 id="modalChartPlayerName"></h3>
+        <div class="chart-wrapper" style="height: 400px; position: relative;">
+            <canvas id="runnerDailyChart"></canvas>
+        </div>
+        <div id="runnerDailyChartStatus" class="result loading" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- Player Total Chart Modal -->
+    <div id="playerTotalChartModal" class="modal">
+      <div class="modal-content wide">
+        <span class="close-button" id="closePlayerTotalChartModal">&times;</span>
+        <h3 id="modalTotalChartPlayerName"></h3>
+        <div class="chart-wrapper" style="height: 400px; position: relative;">
+            <canvas id="playerTotalChart"></canvas>
+        </div>
+        <div id="playerTotalChartStatus" class="result loading" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- The Modal for Player Records (Text-based) -->
+    <div id="playerRecordsModal" class="modal">
+      <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h3 id="modalPlayerName"></h3>
+        <table id="modalRecordsTable">
+          <thead>
+            <tr>
+              <th>区間</th>
+              <th>日付</th>
+              <th>距離</th>
+            </tr>
+          </thead>
+          <tbody id="modalRecordsBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- The Team Details Modal (for mobile) -->
+    <div id="teamDetailsModal" class="modal">
+      <div class="modal-content">
+        <span class="close-button" id="closeTeamModal">&times;</span>
+        <h3 id="modalTeamName"></h3>
+        <div id="modalTeamDetailsBody">
+          <!-- Details will be injected here by JS -->
+        </div>
+      </div>
     </div>
 
     <!-- Back to Top Button -->
