@@ -1401,13 +1401,6 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         const teamNameCell = document.createElement('td');
         teamNameCell.className = 'team-name';
         teamNameCell.innerHTML = `${finishIcon}<span class="full-name">${team.name}</span><span class="short-name">${team.short_name}</span>`;
-
-        // スマホ表示の時だけ、クリックで詳細モーダルを開くイベントリスナーを追加
-        teamNameCell.addEventListener('click', () => {
-            if (window.innerWidth <= 768) {
-                showTeamDetailsModal(team, topDistance);
-            }
-        });
         row.appendChild(teamNameCell);
 
         const runnerCell = createCell(formatRunnerName(team.runner), 'runner runner-name runner-chart-trigger');

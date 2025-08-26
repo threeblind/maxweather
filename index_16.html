@@ -7,53 +7,126 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #007bff;
+            --primary-hover-color: #0056b3;
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --text-color: #212529;
+            --text-muted-color: #6c757d;
+            --border-color: #e9ecef;
+            --border-radius: 0.5rem; /* 8px */
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --font-family-sans-serif: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
-            max-width: 800px;
+            font-family: var(--font-family-sans-serif);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            line-height: 1.7;
+        }
+
+        .container {
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
         }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+
+        h1, h2, h3, h4 {
+            color: var(--text-color);
+            font-weight: 700;
         }
+
         h1 {
-            color: #333;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 2rem;
+            font-size: 2.2rem;
+            letter-spacing: -1px;
+            color: var(--text-color);
         }
+
+        h2 {
+            font-size: 1.6rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border-color);
+            margin-top: 3rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* --- Table Styles --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+        }
+        th, td {
+            border: 1px solid #dee2e6; /* 罫線を設定 */
+            padding: 0.6rem 0.5rem;
+            text-align: center;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #f2f2f2; /* ヘッダーに背景色を設定 */
+        }
+        td.team-name {
+            text-align: left;
+        }
+
+        /* --- Component Styles --- */
+
+        /* Sections */
+        .ekiden-section-wrapper, .leg-ranking-container, .entry-list-container, .outline-container, .map-container, .amedas-features, #section-leg-prize {
+            background-color: var(--surface-color);
+            padding: 1.5rem 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 2.5rem;
+            border: 1px solid var(--border-color);
+        }
+
         /* Main Thread Link */
         .main-thread-link {
             display: block;
-            background-color: #28a745; /* A distinct green color */
+            background: linear-gradient(45deg, #28a745, #20c997);
             color: white;
             padding: 15px 20px;
             margin-bottom: 30px;
             border-radius: 8px;
             text-align: center;
-            font-size: 18px;
+            font-size: 1.1rem;
             font-weight: bold;
             text-decoration: none;
-            transition: background-color 0.2s;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .main-thread-link:hover {
-            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(40, 167, 69, 0.3);
         }
         /* 速報コメント */
         .breaking-news {
-            background-color: #fffbe6; /* 薄い黄色 */
-            border: 2px solid #ffe58f; /* 少し濃い黄色 */
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-left: 5px solid #ffc107;
             border-radius: 8px;
             padding: 15px 20px;
             margin-bottom: 30px;
             text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-            color: #856404; /* 暗い黄色/茶色 */
+            font-size: 1rem;
+            font-weight: 500;
+            color: #856404;
             display: none; /* デフォルトは非表示 */
         }
         .breaking-news::before {
@@ -65,7 +138,7 @@
             transition: background-color 0.2s;
         }
         .breaking-news.clickable:hover {
-            background-color: #fff3cd; /* A slightly darker yellow on hover */
+            background-color: #fffbe6;
         }
         /* ページ内ナビゲーション */
         .page-nav {
@@ -89,20 +162,19 @@
 
         .page-nav > ul > li > a {
             display: block;
-            padding: 10px 15px;
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
+            padding: 0.6rem 1rem;
+            background-color: transparent;
+            border: 1px solid transparent;
+            border-radius: 99px; /* Pill shape */
             text-decoration: none;
-            color: #333;
-            font-weight: bold;
-            font-size: 16px; /* Reset for desktop view */
+            color: var(--text-muted-color);
+            font-weight: 500;
+            font-size: 1rem;
             transition: background-color 0.2s, color 0.2s;
         }
         .page-nav > ul > li > a:hover {
-            background-color: #007bff;
-            color: #fff;
-            border-color: #007bff;
+            background-color: #e9ecef;
+            color: var(--text-color);
         }
         /* Dropdown Menu for Navigation */
         .page-nav .dropdown {
@@ -112,16 +184,18 @@
         .page-nav .dropdown-content {
             display: none;
             position: absolute;
-            background-color: #f1f1f1;
-            min-width: 160px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            background-color: var(--surface-color);
+            min-width: 180px;
+            box-shadow: var(--box-shadow);
             z-index: 1001; /* マップより手前に表示 */
-            border-radius: 5px;
+            border-radius: var(--border-radius);
             overflow: hidden;
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 0;
         }
         .page-nav .dropdown-content a {
-            color: black;
-            padding: 12px 16px;
+            color: var(--text-color);
+            padding: 0.75rem 1.5rem;
             text-decoration: none;
             display: block;
             text-align: left;
@@ -129,6 +203,9 @@
             border: none;
             border-radius: 0;
             font-weight: normal;
+        }
+        .page-nav .dropdown:hover .dropdown-content {
+            background-color: var(--background-color);
         }
         .page-nav .dropdown:hover .dropdown-content {
             display: block;
@@ -169,6 +246,8 @@
             h1 {
                 font-size: 24px; /* 少しフォントを小さく */
                 margin-bottom: 20px; /* h1下の余白を詰める */
+                padding: 0 40px; /* 左右の余白を確保してメニューとの重なりを回避 */
+                box-sizing: border-box;
             }
             .main-thread-link {
                 padding: 12px 15px; /* パディングを少し詰める */
@@ -225,16 +304,19 @@
             font-size: 16px;
         }
         button {
-            padding: 12px 20px;
-            background-color: #007bff;
+            padding: 0.6rem 1.2rem;
+            background-color: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: var(--border-radius);
             cursor: pointer;
-            font-size: 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background-color 0.2s, transform 0.1s;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: var(--primary-hover-color);
+            transform: translateY(-1px);
         }
         button:disabled {
             background-color: #ccc;
@@ -295,48 +377,17 @@
         #rankingTable {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 1rem;
         }
-        #rankingTable th, #rankingTable td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        #rankingTable th {
-            background-color: #f2f2f2;
-        }
-        /* 駅伝ランキング用スタイル */
-        .ekiden-section-wrapper {
-            margin-bottom: 40px;
-        }
-        #ekidenRankingTitle {
-            /* h2のデフォルトマージンを適用 */
-        }
+        #rankingTable th, #rankingTable td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        #rankingTable th { background-color: #f2f2f2; }
         .ekiden-ranking-container {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
-        #ekidenRankingTable, #legRankHistoryTable {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 0; /* テーブルの上の余白をなくす */
-        }
-        #ekidenRankingTable th, #ekidenRankingTable td,
-        #legRankHistoryTable th, #legRankHistoryTable td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
+        #ekidenRankingTable th, #ekidenRankingTable td, #legRankHistoryTable th, #legRankHistoryTable td {
             white-space: nowrap;
         }
-        #ekidenRankingTable th, #legRankHistoryTable th {
-            background-color: #f2f2f2;
-        }
-        #ekidenRankingTable td.team-name,
-        #legRankHistoryTable td.team-name {
-            text-align: left;
-            font-weight: bold;
-        }
-        /* Highlight style for table rows */
         #ekidenRankingTable tr.highlighted td {
             background-color: #fffbe6 !important; /* Use the same color as breaking news for consistency */
             transition: background-color 0.3s ease-in-out;
@@ -376,7 +427,7 @@
             gap: 10px;
         }
         .header-button {
-            padding: 6px 12px; font-size: 14px; background-color: #6c757d;
+            padding: 6px 12px; font-size: 14px; background-color: var(--secondary-color);
         }
         #toggle-ranking-view-btn {
             display: none; /* デスクトップでは非表示 */
@@ -408,26 +459,8 @@
         .leg-ranking-container {
             margin-bottom: 40px;
         }
-        #legRankingTable, .leg-prize-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        #legRankingTable th, #legRankingTable td,
-        .leg-prize-table th, .leg-prize-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        #legRankingTable th, .leg-prize-table th {
-            background-color: #f2f2f2;
-        }
-        #legRankingTable td.team-name,
-        .leg-prize-table td.team-name {
-            text-align: left;
-        }
         #legPrizeWinner h4 {
-            font-size: 20px;
+            font-size: 1.2rem;
             margin-bottom: 10px;
             color: #333;
         }
@@ -437,7 +470,8 @@
         /* 選手名をクリック可能にするスタイル */
         td.runner-name {
             cursor: pointer;
-            color: #007bff;
+            color: var(--primary-color);
+            font-weight: 500;
         }
         td.runner-name:hover {
             text-decoration: underline;
@@ -460,17 +494,17 @@
         .leg-tabs {
             display: flex;
             gap: 5px;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
         }
         .leg-tab {
             padding: 8px 16px;
             cursor: pointer;
             border: none;
             background-color: transparent;
-            font-size: 16px;
-            font-weight: bold;
-            color: #6c757d;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-muted-color);
             border-bottom: 2px solid transparent;
             margin-bottom: -2px; /* Overlap the container's border */
             transition: color 0.2s, border-color 0.2s;
@@ -479,8 +513,8 @@
             color: #007bff;
         }
         .leg-tab.active {
-            color: #007bff;
-            border-bottom-color: #007bff;
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
         }
         /* Entry List Styles */
         .entry-list-container {
@@ -489,20 +523,25 @@
         }
         #entryList {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
         }
         .team-card {
-            background-color: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--box-shadow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .team-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.08);
         }
         .team-card h4 {
             margin-top: 0;
             margin-bottom: 10px;
-            color: #333;
+            color: var(--text-color);
             border-bottom: 2px solid #007bff;
             padding-bottom: 5px;
         }
@@ -543,7 +582,7 @@
             color: #333;
             margin-top: 15px;
             padding-top: 15px;
-            border-top: 1px dashed #e0e0e0;
+            border-top: 1px dashed var(--border-color);
         }
         /* Outline Container Styles */
         .outline-container {
@@ -554,7 +593,7 @@
             border-radius: 8px;
         }
         .outline-container h3 {
-            border-bottom: 2px solid #007bff;
+            border-bottom: 2px solid var(--primary-color);
             padding-bottom: 8px;
             margin-top: 25px;
             margin-bottom: 15px;
@@ -586,23 +625,33 @@
             width: 100%;
             height: 100%;
             overflow: auto; /* Enable scroll if needed */
-            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+            backdrop-filter: blur(5px);
         }
         .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 8px;
+            background-color: var(--surface-color);
+            margin: 10% auto;
+            padding: 2rem;
+            border: none;
+            width: 90%;
+            max-width: 600px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             position: relative;
+            animation: modal-fade-in 0.3s ease;
+        }
+        @keyframes modal-fade-in {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .close-button {
             color: #aaa;
-            float: right;
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
             font-size: 28px;
             font-weight: bold;
+            line-height: 1;
         }
         .close-button:hover, .close-button:focus {
             color: black;
@@ -611,14 +660,14 @@
         }
         .modal-details-table {
             width: 100%;
-            margin-top: 15px;
+            margin-top: 1.5rem;
             border-collapse: collapse;
         }
         .modal-details-table th, .modal-details-table td {
-            padding: 12px;
-            border: 1px solid #ddd;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
             text-align: left;
-            font-size: 16px;
+            font-size: 1rem;
         }
         .modal-details-table th {
             background-color: #f8f9fa;
@@ -636,7 +685,7 @@
         #map {
             height: 480px;
             width: 100%;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             z-index: 0; /* Ensure it's behind modals */
         }
@@ -704,27 +753,24 @@
             #ekidenRankingTable,
             #legRankHistoryTable,
             #legRankingTable,
-            .leg-prize-table {
-                font-size: 13px;
-            }
-            #rankingTable th, #rankingTable td,
-            #ekidenRankingTable th, #ekidenRankingTable td,
-            #legRankHistoryTable th, #legRankHistoryTable td,
-            #legRankingTable th, #legRankingTable td {
-                padding: 6px;
-            }
-            /* スマホ表示の時だけ大学名をクリック可能に見せる */
-            #ekidenRankingTable td.team-name {
-                cursor: pointer;
-                color: #007bff;
-            }
-            #ekidenRankingTable td.team-name:hover {
-                text-decoration: underline;
-            }
+            .leg-prize-table { font-size: 13px; }
             /* スマホ表示で長い大学名や選手名が折り返すようにする */
             #ekidenRankingTable td.team-name,
             #ekidenRankingTable td.runner {
                 white-space: normal;
+            }
+            /* スマホ表示での総合順位テーブルの列幅調整 */
+            #ekidenRankingTable {
+                table-layout: fixed;
+                width: 100%;
+            }
+            #ekidenRankingTable th:nth-child(1), #ekidenRankingTable td:nth-child(1) { width: 10%; } /* 順位 */
+            #ekidenRankingTable th:nth-child(2), #ekidenRankingTable td:nth-child(2) { width: 18%; } /* 大学名 */
+            #ekidenRankingTable th:nth-child(3), #ekidenRankingTable td:nth-child(3) { width: 32%; } /* 現在走者 */
+            #ekidenRankingTable th:nth-child(4), #ekidenRankingTable td:nth-child(4) { width: 22%; } /* 本日距離 */
+            #ekidenRankingTable th:nth-child(5), #ekidenRankingTable td:nth-child(5) {
+                width: 18%;
+                word-break: break-all; /* 総合距離の数値がはみ出ないように */
             }
             /* By default, show short name on mobile */
             #ekidenRankingTable .team-name .full-name { display: none; }
@@ -775,7 +821,7 @@
         .chart-scroll-container {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             background: #fff;
         }
@@ -788,7 +834,7 @@
             color: #555;
             font-size: 14px;
             margin-bottom: 15px;
-            background-color: #f8f9fa;
+            background-color: var(--background-color);
             padding: 10px;
             border-radius: 5px;
             border: 1px solid #e0e0e0;
@@ -826,7 +872,7 @@
         /* Manager's Lounge Styles */
         #manager-lounge-content {
             background-color: #e9ebee; /* Light grey background like a chat app */
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 10px;
             padding: 20px;
             margin-top: 15px;
@@ -871,6 +917,9 @@
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             position: relative;
             background-color: #ffffff; /* Default for manager */
+        }
+        .modal-content.wide {
+            max-width: 800px; /* グラフ用に幅を広げる */
         }
         .lounge-post.announcer .lounge-post-bubble {
             background-color: #dcf8c6; /* Announcer color */
@@ -1057,6 +1106,18 @@
                 <canvas id="runnerDailyChart"></canvas>
             </div>
             <div id="runnerDailyChartStatus" class="result loading" style="display: none;"></div>
+          </div>
+        </div>
+
+        <!-- Player Total Chart Modal -->
+        <div id="playerTotalChartModal" class="modal">
+          <div class="modal-content wide">
+            <span class="close-button" id="closePlayerTotalChartModal">&times;</span>
+            <h3 id="modalTotalChartPlayerName"></h3>
+            <div class="chart-wrapper" style="height: 400px; position: relative;">
+                <canvas id="playerTotalChart"></canvas>
+            </div>
+            <div id="playerTotalChartStatus" class="result loading" style="display: none;"></div>
           </div>
         </div>
 
