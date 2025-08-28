@@ -1913,7 +1913,32 @@ function renderIntramuralTable(teamId) {
     tableBody.innerHTML = ''; // テーブルをクリア
     teamData.daily_results.forEach((result, index) => {
         const row = document.createElement('tr');
-        const statusClass = result.status === '出場' ? 'status-regular' : 'status-sub';
+        let statusClass = '';
+        let rowClass = '';
+
+        switch (result.status) {
+            case '走行中':
+                statusClass = 'status-running';
+                rowClass = 'row-active';
+                break;
+            case '走行前':
+                statusClass = 'status-upcoming';
+                break;
+            case '走行済':
+                statusClass = 'status-finished';
+                rowClass = 'row-inactive';
+                break;
+            case '交代済':
+                statusClass = 'status-substituted';
+                rowClass = 'row-inactive';
+                break;
+            case '補欠':
+            default:
+                statusClass = 'status-sub';
+                break;
+        }
+        if (rowClass) row.className = rowClass;
+
         // 選手名にクリックイベント用のクラスとデータ属性を追加
         row.innerHTML = `
             <td>${index + 1}</td>
@@ -1996,6 +2021,210 @@ async function showIntramuralPlayerHistoryChart(runnerName) {
         statusEl.style.display = 'block';
         canvas.style.display = 'none';
     }
+}
+
+/**
+ * 「たられば」オーダーシミュレーターを管理するクラス
+ */
+class EkidenSimulator {
+    /**
+     * コンストラクタ
+     * @param {string} modalId - モーダルウィンドウのID
+     * @param {string} openBtnId - モーダルを開くボタンのID
+     * @param {string} closeBtnId - モーダルを閉じるボタンのID
+     * @param {string} universitySelectId - 大学選択セレクトボックスのID
+     * @param {string} runBtnId - シミュレーション実行ボタンのID
+     * @param {string} orderEditorId - オーダー編集エリアのID
+     * @param {string} regularListId - 正規メンバーリストのID
+     * @param {string} subListId - 補欠メンバーリストのID
+     * @param {string} resultsContainerId - 結果表示コンテナのID
+     */
+    constructor(modalId, openBtnId, closeBtnId, universitySelectId, runBtnId, orderEditorId, regularListId, subListId, resultsContainerId) {
+        // DOM要素のキャッシュ
+        this.modal = document.getElementById(modalId);
+        this.openBtn = document.getElementById(openBtnId);
+        this.closeBtn = document.getElementById(closeBtnId);
+        this.universitySelect = document.getElementById(universitySelectId);
+        this.runBtn = document.getElementById(runBtnId);
+        this.orderEditor = document.getElementById(orderEditorId);
+        this.regularList = document.getElementById(regularListId);
+        this.subList = document.getElementById(subListId);
+        this.resultsContainer = document.getElementById(resultsContainerId);
+        this.resultsStatus = document.getElementById('simulator-results-status');
+        this.resultsContent = document.getElementById('simulator-results-content');
+
+        // データ
+        this.ekidenData = null;
+        this.dailyTemperatures = null;
+        this.originalTeamState = null; // 比較用の実際の結果
+
+        // 状態
+        this.selectedTeamId = null;
+        this.isDataLoaded = false;
+        this.draggedItem = null;
+    }
+
+    /**
+     * シミュレーターを初期化する
+     */
+    async init() {
+        this.setupEventListeners();
+        // 必要なデータを非同期で読み込む
+        await this.fetchData();
+    }
+
+    /**
+     * イベントリスナーをセットアップする
+     */
+    setupEventListeners() {
+        if (!this.modal || !this.openBtn || !this.closeBtn) return;
+
+        // モーダルを開く
+        this.openBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.openModal();
+        });
+
+        // モーダルを閉じる
+        this.closeBtn.addEventListener('click', () => this.closeModal());
+        window.addEventListener('click', (event) => {
+            if (event.target === this.modal) {
+                this.closeModal();
+            }
+        });
+        
+        // 大学が選択されたらオーダー編集画面を表示
+        this.universitySelect.addEventListener('change', () => this.handleUniversityChange());
+        
+        // シミュレーション実行ボタン
+        this.runBtn.addEventListener('click', () => this.runSimulation());
+    }
+
+    /**
+     * シミュレーションに必要なデータをフェッチする
+     */
+    async fetchData() {
+        try {
+            const [ekidenRes, dailyTempRes, stateRes] = await Promise.all([
+                fetch(`ekiden_data.json?_=${new Date().getTime()}`),
+                fetch(`daily_temperatures.json?_=${new Date().getTime()}`),
+                fetch(`ekiden_state.json?_=${new Date().getTime()}`) // 比較用の実際の結果
+            ]);
+
+            if (!ekidenRes.ok || !dailyTempRes.ok || !stateRes.ok) {
+                throw new Error('シミュレーションに必要なデータの読み込みに失敗しました。');
+            }
+
+            this.ekidenData = await ekidenRes.json();
+            this.dailyTemperatures = await dailyTempRes.json();
+            this.originalTeamState = await stateRes.json();
+            
+            this.isDataLoaded = true;
+            this.populateUniversitySelect();
+            console.log('シミュレーター用のデータを読み込みました。');
+
+        } catch (error) {
+            console.error('Simulator data fetch error:', error);
+            // エラーが発生した場合、シミュレーターボタンを無効化する
+            if (this.openBtn) {
+                this.openBtn.style.display = 'none';
+            }
+        }
+    }
+
+    /**
+     * モーダルを開く処理
+     */
+    openModal() {
+        if (!this.isDataLoaded) {
+            alert('シミュレーターのデータがまだ読み込まれていません。しばらく待ってから再度お試しください。');
+            return;
+        }
+        this.modal.style.display = 'block';
+    }
+
+    /**
+     * モーダルを閉じる処理
+     */
+    closeModal() {
+        this.modal.style.display = 'none';
+        // 閉じる時に表示をリセット
+        this.orderEditor.style.display = 'none';
+        this.resultsContainer.style.display = 'none';
+        this.universitySelect.value = "";
+        this.runBtn.disabled = true;
+    }
+
+    /**
+     * 大学選択のプルダウンメニューを生成する
+     */
+    populateUniversitySelect() {
+        if (!this.ekidenData || !this.ekidenData.teams) return;
+        
+        // 既存の選択肢をクリア（プレースホルダーは残す）
+        this.universitySelect.innerHTML = '<option value="">大学を選んでください</option>';
+
+        this.ekidenData.teams.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team.id;
+            option.textContent = team.name;
+            this.universitySelect.appendChild(option);
+        });
+    }
+    
+    // --- 以下のメソッドは後のステップで実装します ---
+    handleUniversityChange() {
+        this.selectedTeamId = parseInt(this.universitySelect.value, 10);
+        this.resultsContainer.style.display = 'none'; // 結果を隠す
+
+        if (this.selectedTeamId) {
+            this.runBtn.disabled = false;
+            this.displayOrderEditor(this.selectedTeamId);
+        } else {
+            this.runBtn.disabled = true;
+            this.orderEditor.style.display = 'none';
+        }
+    }
+
+    displayOrderEditor(teamId) {
+        const team = this.ekidenData.teams.find(t => t.id === teamId);
+        if (!team) return;
+
+        this.regularList.innerHTML = '';
+        this.subList.innerHTML = '';
+
+        // 正規メンバーリストを生成
+        team.runners.forEach((runnerName, index) => {
+            const li = document.createElement('li');
+            li.dataset.runnerName = runnerName;
+            li.draggable = true;
+            li.innerHTML = `
+                <span>
+                    <span class="runner-leg-number">${index + 1}区</span>
+                    ${formatRunnerName(runnerName)}
+                </span>
+            `;
+            this.regularList.appendChild(li);
+        });
+
+        // 補欠メンバーリストを生成
+        (team.substitutes || []).forEach(runnerName => {
+            const li = document.createElement('li');
+            li.dataset.runnerName = runnerName;
+            li.draggable = true;
+            li.innerHTML = `<span>${formatRunnerName(runnerName)}</span>`;
+            this.subList.appendChild(li);
+        });
+
+        this.orderEditor.style.display = 'grid';
+        
+        // 次のステップで実装するドラッグ＆ドロップ機能をセットアップ
+        this.setupDragAndDrop();
+    }
+
+    setupDragAndDrop() { console.log('Drag and drop setup will be implemented next.'); }
+    runSimulation() { /* シミュレーションの実行 */ console.log('Running simulation!'); }
+    displayResults(simulationResult) { /* 結果の表示 */ }
 }
 // --- 初期化処理 ---
 
@@ -2193,6 +2422,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (event.target == intramuralHistoryModal) { intramuralHistoryModal.style.display = 'none'; }
         });
     }
+
+    // --- Order Simulator Initialization ---
+    const simulator = new EkidenSimulator(
+        'simulatorModal',
+        'open-simulator-btn',
+        'closeSimulatorModal',
+        'simulator-university-select',
+        'run-simulation-btn',
+        'simulator-order-editor',
+        'simulator-regular-runners',
+        'simulator-sub-runners',
+        'simulator-results-container'
+    );
+    simulator.init();
 
     // --- Smooth Scrolling for Page Navigation ---
     // href属性を持つリンクのみを対象にし、ドロップダウンのトグルボタンなどを除外

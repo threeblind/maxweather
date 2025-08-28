@@ -9,6 +9,7 @@ import time
 AMEDAS_STATIONS_FILE = 'amedas_stations.json'
 EKIDEN_DATA_FILE = 'ekiden_data.json'
 DAILY_TEMP_FILE = 'daily_temperatures.json'
+EKIDEN_STATE_FILE = 'ekiden_state.json'
 INTRAMURAL_RANKINGS_FILE = 'intramural_rankings.json'
 EKIDEN_START_DATE = '2025-07-23' # generate_report.pyと共通
 
@@ -76,6 +77,7 @@ def update_all_records():
     for team in ekiden_data['teams']:
         all_runners_to_fetch.update(team.get('runners', []))
         all_runners_to_fetch.update(team.get('substitutes', []))
+        all_runners_to_fetch.update(team.get('substituted_out', []))
 
     fetched_temps_cache = {}
     print(f"全 {len(all_runners_to_fetch)} 選手の最終気温データを取得します...")
@@ -97,6 +99,13 @@ def update_all_records():
     except (FileNotFoundError, json.JSONDecodeError):
         daily_temperatures = {}
     
+    # チームの走行状態を読み込む
+    try:
+        with open(EKIDEN_STATE_FILE, 'r', encoding='utf-8') as f:
+            ekiden_state = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        ekiden_state = []
+
     daily_temperatures[today_str] = {}
     for runner_name, result in fetched_temps_cache.items():
         if result.get('temperature') is not None:
@@ -107,27 +116,42 @@ def update_all_records():
     print(f"\n✅ 日次気温データを '{DAILY_TEMP_FILE}' に保存しました。")
 
     # --- intramural_rankings.json の生成 ---
-    start_date = datetime.strptime(EKIDEN_START_DATE, '%Y-%m-%d')
-    race_day = (datetime.now().date() - start_date.date()).days + 1
+    # チームIDをキーにしたcurrentLegのマップを作成
+    team_current_leg_map = {team['id']: team.get('currentLeg', 1) for team in ekiden_state}
 
     intramural_data = {
         "updateTime": datetime.now().strftime('%Y/%m/%d %H:%M'),
-        "raceDay": race_day,
         "teams": []
     }
 
     for team_data in ekiden_data['teams']:
         active_runners = team_data.get('runners', [])
-        all_team_members = set(active_runners + team_data.get('substitutes', []))
+        substitute_runners = team_data.get('substitutes', [])
+        substituted_out_runners = team_data.get('substituted_out', [])
+        current_leg = team_current_leg_map.get(team_data['id'], 1)
+        all_team_members = set(active_runners + substitute_runners + substituted_out_runners)
         
         daily_results = []
         for runner_name in all_team_members:
             temp_result = fetched_temps_cache.get(runner_name)
             if temp_result and temp_result.get('temperature') is not None:
+                # ステータスを決定 (走行中/走行済/走行前/交代済/補欠)
+                status = "補欠" # デフォルト
+                if runner_name in substituted_out_runners:
+                    status = "交代済"
+                elif runner_name in active_runners:
+                    runner_leg = active_runners.index(runner_name) + 1
+                    if runner_leg < current_leg:
+                        status = "走行済"
+                    elif runner_leg == current_leg:
+                        status = "走行中"
+                    else:
+                        status = "走行前"
+
                 daily_results.append({
                     "runner_name": runner_name,
                     "distance": temp_result['temperature'],
-                    "status": "出場" if runner_name in active_runners else "補欠"
+                    "status": status
                 })
         
         daily_results.sort(key=lambda x: x.get('distance', 0), reverse=True)

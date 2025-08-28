@@ -27,10 +27,13 @@ def substitute_runner(team_id, old_runner, new_runner):
             runner_index = team_to_update['runners'].index(old_runner)
             team_to_update['runners'][runner_index] = new_runner
 
-            # substitutesリストを更新
+            # substitutesリストから交代で出場する選手を削除
             if new_runner in team_to_update.get('substitutes', []):
                 team_to_update['substitutes'].remove(new_runner)
-            team_to_update.setdefault('substitutes', []).append(old_runner)
+
+            # 交代前の選手を記録するリストに追加
+            team_to_update.setdefault('substituted_out', []).append(old_runner)
+            print(f"情報: {old_runner} を substituted_out リストに追加しました。")
 
             # ファイルを更新
             f.seek(0)

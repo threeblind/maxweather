@@ -928,6 +928,30 @@
         .lounge-post-time { font-size: 11px; color: #999; text-align: right; margin-top: 5px; }
     </style>
     <style>
+        /* 学内ランキングの行のスタイル */
+        #intramural-ranking-table tr.row-inactive {
+            background-color: #f8f9fa; /* 薄い灰色 */
+            color: #6c757d; /* 文字も少し薄く */
+        }
+        #intramural-ranking-table tr.row-active {
+            background-color: #fff3cd; /* 薄い黄色 */
+            font-weight: bold;
+        }
+        /* 学内ランキングのステータスバッジ */
+        .status-badge.status-running { background-color: #dc3545; } /* 走行中: 赤 */
+        .status-badge.status-upcoming { background-color: #28a745; } /* 走行前: 緑 */
+        .status-badge.status-finished { background-color: #6c757d; } /* 走行済: 灰色 */
+        .status-badge.status-sub { background-color: #fd7e14; } /* 補欠: オレンジ */
+        .status-badge.status-substituted {
+            background-color: #343a40; /* 交代済: 黒 */
+            color: #fff;
+        }
+        /* 選手名の色をリセット */
+        #intramural-ranking-table tr.row-inactive .runner-name {
+            color: #6c757d;
+        }
+    </style>
+    <style>
         /* 学内ランキングのステータスバッジ */
         .status-badge {
             padding: 0.2em 0.6em;
@@ -938,11 +962,8 @@
             text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
             white-space: nowrap;
         }
-        .status-badge.status-regular {
-            background-color: #28a745; /* 緑色 */
-        }
-        .status-badge.status-sub {
-            background-color: #fd7e14; /* オレンジ色 */
+        .status-badge.status-substituted {
+            background-color: #6c757d; /* 灰色 */
         }
     </style>
 </head>
