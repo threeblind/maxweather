@@ -1,7 +1,11 @@
 let stationsData = [];
 let allIndividualData = {}; // 選手個人の全記録を保持するグローバル変数
 let lastRealtimeData = null; // 最新のrealtime_report.jsonを保持する
+let intramuralDataCache = null; // 学内ランキングデータを保持する
+let dailyTemperaturesCache = null; // daily_temperatures.jsonをキャッシュする
 let dailyRunnerChartInstance = null; // 選手の日次推移グラフのインスタンス
+let playerTotalChartInstance = null; // 選手の大会全記録グラフのインスタンス
+let intramuralPlayerHistoryChartInstance = null; // 学内ランキングの選手推移グラフのインスタンス
 
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
@@ -1828,6 +1832,171 @@ async function displayManagerComments() {
         navLink.parentElement.style.display = 'none';
     }
 }
+
+// --- 学内ランキング機能 ---
+
+/**
+ * 学内ランキングデータを読み込み、セレクターとテーブルを初期化します。
+ */
+async function displayIntramuralRankings() {
+    const container = document.getElementById('section-intramural-ranking');
+    const dateEl = document.getElementById('intramural-ranking-date');
+    const statusEl = document.getElementById('intramural-ranking-status');
+    if (!container || !statusEl) return;
+
+    try {
+        const response = await fetch(`intramural_rankings.json?_=${new Date().getTime()}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        intramuralDataCache = await response.json();
+
+        if (!intramuralDataCache || !intramuralDataCache.teams || intramuralDataCache.teams.length === 0) {
+            throw new Error('ランキングデータが空です。');
+        }
+
+        // 日付を表示
+        if (dateEl && intramuralDataCache.updateTime) {
+            const datePart = intramuralDataCache.updateTime.split(' ')[0];
+            dateEl.textContent = `(${datePart} 時点)`;
+            dateEl.style.display = 'block';
+        }
+
+        statusEl.style.display = 'none';
+        container.querySelector('.controls').style.display = 'block';
+        container.querySelector('.ekiden-ranking-container').style.display = 'block';
+
+        setupUniversitySelector(intramuralDataCache.teams);
+        // 初期表示として最初の大学のランキングを表示
+        renderIntramuralTable(intramuralDataCache.teams[0].id);
+
+    } catch (error) {
+        console.error('学内ランキングデータの読み込みに失敗:', error);
+        statusEl.textContent = `学内ランキングの読み込みに失敗しました: ${error.message}`;
+        statusEl.className = 'result error';
+        statusEl.style.display = 'block';
+    }
+}
+
+/**
+ * 大学選択用のドロップダウンメニューをセットアップします。
+ * @param {Array} teams - チーム情報の配列
+ */
+function setupUniversitySelector(teams) {
+    const selectEl = document.getElementById('university-select');
+    if (!selectEl) return;
+
+    selectEl.innerHTML = ''; // 既存のオプションをクリア
+    teams.forEach(team => {
+        const option = document.createElement('option');
+        option.value = team.id;
+        option.textContent = team.name;
+        selectEl.appendChild(option);
+    });
+
+    selectEl.addEventListener('change', (event) => {
+        renderIntramuralTable(parseInt(event.target.value, 10));
+    });
+}
+
+/**
+ * 指定されたチームの学内ランキングテーブルを描画します。
+ * @param {number} teamId - 表示するチームのID
+ */
+function renderIntramuralTable(teamId) {
+    const tableBody = document.getElementById('intramural-ranking-tbody');
+    if (!tableBody || !intramuralDataCache) return;
+
+    const teamData = intramuralDataCache.teams.find(t => t.id === teamId);
+    if (!teamData) return;
+
+    tableBody.innerHTML = ''; // テーブルをクリア
+    teamData.daily_results.forEach((result, index) => {
+        const row = document.createElement('tr');
+        const statusClass = result.status === '出場' ? 'status-regular' : 'status-sub';
+        // 選手名にクリックイベント用のクラスとデータ属性を追加
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td class="runner-name intramural-chart-trigger" data-runner-name="${result.runner_name}">${formatRunnerName(result.runner_name)}</td>
+            <td>${result.distance.toFixed(1)} km</td>
+            <td><span class="status-badge ${statusClass}">${result.status}</span></td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+/**
+ * 学内ランキングの選手の日々の記録推移をグラフで表示します。
+ * @param {string} runnerName - 選手名 (括弧付きの生データ)
+ */
+async function showIntramuralPlayerHistoryChart(runnerName) {
+    const modal = document.getElementById('intramuralPlayerHistoryModal');
+    const modalTitle = document.getElementById('modalIntramuralPlayerName');
+    const canvas = document.getElementById('intramuralPlayerHistoryChart');
+    const statusEl = document.getElementById('intramuralPlayerHistoryStatus');
+
+    if (!modal || !modalTitle || !canvas || !statusEl) return;
+
+    if (intramuralPlayerHistoryChartInstance) {
+        intramuralPlayerHistoryChartInstance.destroy();
+    }
+
+    // チーム名を取得
+    let teamName = '所属不明';
+    if (intramuralDataCache) {
+        for (const team of intramuralDataCache.teams) {
+            if (team.daily_results.some(r => r.runner_name === runnerName)) {
+                teamName = team.name;
+                break;
+            }
+        }
+    }
+
+    modalTitle.textContent = `${teamName}・${formatRunnerName(runnerName)}選手 記録推移`;
+    modal.style.display = 'block';
+    statusEl.textContent = '記録データを読み込み中...';
+    statusEl.className = 'result loading';
+    statusEl.style.display = 'block';
+    canvas.style.display = 'none';
+
+    try {
+        // daily_temperatures.jsonをキャッシュから読み込むか、なければフェッチ
+        if (!dailyTemperaturesCache) {
+            const response = await fetch(`daily_temperatures.json?_=${new Date().getTime()}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            dailyTemperaturesCache = await response.json();
+        }
+
+        const labels = [];
+        const data = [];
+        const sortedDates = Object.keys(dailyTemperaturesCache).sort();
+
+        for (const date of sortedDates) {
+            if (dailyTemperaturesCache[date][runnerName] !== undefined) {
+                labels.push(date.substring(5)); // 'MM-DD'形式に
+                data.push(dailyTemperaturesCache[date][runnerName]);
+            }
+        }
+
+        if (labels.length === 0) throw new Error('表示できる記録がありません。');
+
+        statusEl.style.display = 'none';
+        canvas.style.display = 'block';
+
+        intramuralPlayerHistoryChartInstance = new Chart(canvas, {
+            type: 'line',
+            data: { labels: labels, datasets: [{ label: '走行距離 (km)', data: data, borderColor: '#fd7e14', backgroundColor: 'rgba(253, 126, 20, 0.1)', fill: true, tension: 0.1 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, title: { display: true, text: '距離 (km)' } }, x: { title: { display: true, text: '日付' } } }, plugins: { tooltip: { callbacks: { label: (context) => ` ${context.dataset.label}: ${context.parsed.y.toFixed(1)} km` } } } }
+        });
+
+    } catch (error) {
+        console.error('選手の日次推移グラフ描画エラー:', error);
+        statusEl.textContent = `エラー: ${error.message}`;
+        statusEl.className = 'result error';
+        statusEl.style.display = 'block';
+        canvas.style.display = 'none';
+    }
+}
 // --- 初期化処理 ---
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1856,6 +2025,7 @@ document.addEventListener('DOMContentLoaded', function() {
     displayEntryList(); // エントリーリスト
     displayLegRankHistoryTable(); // 順位推移テーブル
     displayOutline(); // 大会概要
+    displayIntramuralRankings(); // 学内ランキング
     // ページ読み込み時に一度、即座にデータを取得して表示
     fetchEkidenData();
     // 30秒ごとにデータを自動更新
@@ -1997,6 +2167,30 @@ document.addEventListener('DOMContentLoaded', function() {
         closeTotalChartBtn.onclick = () => totalChartModal.style.display = 'none';
         window.addEventListener('click', (event) => {
             if (event.target == totalChartModal) { totalChartModal.style.display = 'none'; }
+        });
+    }
+
+    // イベント委譲を使って、学内ランキングの選手名クリックを処理
+    const intramuralSection = document.getElementById('section-intramural-ranking');
+    if (intramuralSection) {
+        intramuralSection.addEventListener('click', (event) => {
+            const target = event.target.closest('.intramural-chart-trigger');
+            if (target) {
+                const runnerName = target.dataset.runnerName;
+                if (runnerName) {
+                    showIntramuralPlayerHistoryChart(runnerName);
+                }
+            }
+        });
+    }
+
+    // 学内ランキングの選手推移グラフモーダルを閉じるイベントリスナー
+    const intramuralHistoryModal = document.getElementById('intramuralPlayerHistoryModal');
+    const closeIntramuralHistoryBtn = document.getElementById('closeIntramuralPlayerHistoryModal');
+    if (intramuralHistoryModal && closeIntramuralHistoryBtn) {
+        closeIntramuralHistoryBtn.onclick = () => intramuralHistoryModal.style.display = 'none';
+        window.addEventListener('click', (event) => {
+            if (event.target == intramuralHistoryModal) { intramuralHistoryModal.style.display = 'none'; }
         });
     }
 

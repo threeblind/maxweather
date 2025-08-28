@@ -927,6 +927,24 @@
         .lounge-post-content { font-size: 15px; line-height: 1.6; word-wrap: break-word; }
         .lounge-post-time { font-size: 11px; color: #999; text-align: right; margin-top: 5px; }
     </style>
+    <style>
+        /* 学内ランキングのステータスバッジ */
+        .status-badge {
+            padding: 0.2em 0.6em;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+        .status-badge.status-regular {
+            background-color: #28a745; /* 緑色 */
+        }
+        .status-badge.status-sub {
+            background-color: #fd7e14; /* オレンジ色 */
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -944,7 +962,9 @@
                 <li><a href="#section-leg-rank-history">順位推移</a></li>
                 <li><a href="#section-leg-ranking">個人記録</a></li>
                 <li><a href="#section-leg-prize">区間記録</a></li>
+                <li><a href="#section-intramural-ranking">学内ランキング</a></li>
                 <li><a href="#section-manager-lounge">談話室</a></li>
+                <li><a href="#" id="open-simulator-btn">シミュレーター</a></li>
                 <li class="dropdown">
                     <a class="dropbtn">その他 ▼</a>
                     <div class="dropdown-content">
@@ -1044,6 +1064,34 @@
             <h2>🚩 区間記録</h2>
             <div id="legPrizeWinner">
             <!-- 区間賞は app.js によって動的に生成されます -->
+            </div>
+        </div>
+
+        <!-- 学内ランキング -->
+        <div id="section-intramural-ranking" class="ekiden-section-wrapper">
+            <h2>📊 学内ランキング</h2>
+            <p class="section-description" style="font-size: 0.9rem; color: var(--text-muted-color); text-align: center; margin-top: -1rem; margin-bottom: 1.5rem;">
+                前日の各大学内での全選手（正規・補欠含む）の成績ランキングです。監督の采配や、補欠選手の突き上げに注目！
+            </p>
+            <div class="controls" style="display: none; text-align: center; margin-bottom: 1rem;">
+                <label for="university-select" style="margin-right: 0.5rem;">大学を選択:</label>
+                <select id="university-select" style="padding: 0.5rem; font-size: 1rem; border-radius: var(--border-radius); border: 1px solid var(--border-color);"></select>
+            </div>
+            <div id="intramural-ranking-status" class="result loading" style="display: block;">学内ランキングを読み込み中...</div>
+            <div class="ekiden-ranking-container" style="display: none;">
+                <table id="intramural-ranking-table">
+                    <thead>
+                        <tr>
+                            <th>順位</th>
+                            <th>選手名</th>
+                            <th>距離</th>
+                            <th>ステータス</th>
+                        </tr>
+                    </thead>
+                    <tbody id="intramural-ranking-tbody">
+                        <!-- ここにJavaScriptでデータが挿入されます -->
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -1184,6 +1232,19 @@
         <div id="playerTotalChartStatus" class="result loading" style="display: none;"></div>
       </div>
     </div>
+
+    <!-- Intramural Player History Chart Modal -->
+    <div id="intramuralPlayerHistoryModal" class="modal">
+      <div class="modal-content wide">
+        <span class="close-button" id="closeIntramuralPlayerHistoryModal">&times;</span>
+        <h3 id="modalIntramuralPlayerName"></h3>
+        <div class="chart-wrapper" style="height: 400px; position: relative;">
+            <canvas id="intramuralPlayerHistoryChart"></canvas>
+        </div>
+        <div id="intramuralPlayerHistoryStatus" class="result loading" style="display: none;"></div>
+      </div>
+    </div>
+
 
     <!-- The Modal for Player Records (Text-based) -->
     <div id="playerRecordsModal" class="modal">
