@@ -1,0 +1,29 @@
+{
+  "commentary_settings": {
+    "ace_legs": {
+      "main": [5],
+      "sub": [6, 10],
+      "special": [2, 8]
+    },
+    "leg_characteristics": {
+      "weather_sensitive": [1, 6],
+      "stable_high_record": [5, 10]
+    },
+    "champion_teams": {
+      "名古屋大学": 3,
+      "福岡大学": 3,
+      "上武大学": 3,
+      "関西大学": 3,
+      "広島経済大学": 2,
+      "学連選抜": 1
+    },
+    "rival_teams": [
+    ],
+    "thresholds": {
+      "ace_leg_rank": 3,
+      "cinderella_rank": 10,
+      "rival_rank_diff": 1,
+      "rival_distance_diff_km": 1.0
+    }
+  }
+}
