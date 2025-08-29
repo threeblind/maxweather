@@ -6,6 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import google.generativeai as genai
 from bs4 import BeautifulSoup
+import shutil
 import unicodedata
 import re
 
@@ -173,29 +174,44 @@ def format_article_with_markdown(article_text, ekiden_data):
     生成された記事テキストにMarkdownの太字を追加する。
     - 見出し (■で始まる行)
     - 大学名
-    - 選手名
+    - 「選手名+選手」
     """
     # 1. 見出しを太字にする
     # 行頭が■で始まる行全体を太字にする
     article_text = re.sub(r'^(■.*)$', r'**\1**', article_text, flags=re.MULTILINE)
 
-    # 2. 大学名と選手名をリストアップ
-    names_to_bold = set()
+    # 2. 大学名と選手名を個別にリストアップ
+    university_names = set()
+    player_names = set()
     for team in ekiden_data.get('teams', []):
-        names_to_bold.add(team['name'])
-        names_to_bold.update(team.get('runners', []))
-        names_to_bold.update(team.get('substitutes', []))
+        university_names.add(team['name'])
+        player_names.update(team.get('runners', []))
+        player_names.update(team.get('substitutes', []))
+        player_names.update(team.get('substituted_out', [])) # 交代済みの選手も対象に
 
     # 選手名から括弧部分を除いた名前も追加 (例: 「川内（鹿児島）」から「川内」)
-    plain_names = {re.sub(r'（.+）', '', name).strip() for name in names_to_bold}
-    names_to_bold.update(plain_names)
+    plain_player_names = {re.sub(r'（.+）', '', name).strip() for name in player_names}
+    player_names.update(plain_player_names)
 
-    # 3. 正規表現で名前を検索し、太字に置換
+    # 3. 大学名を太字に置換
     # 長い名前から順にマッチさせることで、部分的な名前（例：「日本」vs「日本大学」）の誤マッチを防ぐ
-    sorted_names = sorted(list(names_to_bold), key=len, reverse=True)
-    for name in sorted_names:
-        # 正規表現で、既に太字になっていない名前のみを対象にする
+    sorted_uni_names = sorted(list(university_names), key=len, reverse=True)
+    for name in sorted_uni_names:
+        # 既に太字になっていない大学名のみを対象にする
         article_text = re.sub(f'(?<!\\*\\*){re.escape(name)}(?!\\*\\*)', f'**{name}**', article_text)
+
+    # 4. 「選手名+選手」を太字に置換
+    # 長い名前から順にマッチさせる
+    sorted_player_names = sorted(list(player_names), key=len, reverse=True)
+    for name in sorted_player_names:
+        if not name: continue # 空文字列はスキップ
+        # 「〇〇選手」というパターンを探して、`**〇〇選手**` に置換する
+        # 選手名の前の数字(区間番号)もマッチさせ、置換時に削除する
+        # パターン: (太字でない) (数字が0個以上) (選手名+選手) (太字でない)
+        # 置換: **選手名+選手**
+        # `\d*` で選手名の前の数字にマッチさせ、キャプチャグループ `({re.escape(name)}選手)` で選手名部分だけを捉える。
+        # 置換文字列 `r'**\1**'` でキャプチャした選手名部分のみを太字にする。
+        article_text = re.sub(f'(?<!\\*\\*)\\d*({re.escape(name)}選手)(?!\\*\\*)', r'**\1**', article_text)
 
     return article_text
 
@@ -207,9 +223,23 @@ def main():
     parser.add_argument('--dry-run', action='store_true', help='Gemini APIを呼び出さずにプロンプトのデバッグ表示のみ行います。')
     args = parser.parse_args()
 
+    # --- 以前のサマリーをバックアップ・読み込み ---
+    PREVIOUS_SUMMARY_FILE = 'daily_summary_previous.json'
+    previous_summary_data = None
+    if os.path.exists(OUTPUT_FILE):
+        shutil.copy(OUTPUT_FILE, PREVIOUS_SUMMARY_FILE)
+        print(f"情報: 以前のサマリーを '{PREVIOUS_SUMMARY_FILE}' にバックアップしました。")
+        try:
+            with open(PREVIOUS_SUMMARY_FILE, 'r', encoding='utf-8') as f:
+                previous_summary_data = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            print(f"警告: {PREVIOUS_SUMMARY_FILE} の読み込みに失敗しました。")
+            previous_summary_data = None
+
     print("日次振り返り解説の生成を開始します...")
 
     load_dotenv()
+
 
     if not args.dry_run:
         if "GEMINI_API_KEY" not in os.environ:
@@ -218,7 +248,6 @@ def main():
         genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
     all_data = load_all_data()
-
     realtime_data = all_data.get('realtime_report', {})
     manager_comments = prepare_manager_comments(all_data.get('manager_comments', []))
     relay_infos = format_relay_info(realtime_data, all_data['ekiden_data'], all_data['rank_history'])
@@ -226,27 +255,52 @@ def main():
     race_day = realtime_data.get('raceDay', 'N/A')
     ranking_table_text = format_ranking_table(realtime_data)
     
+    # --- プロンプト用に昨日の記事全体を準備 ---
+    previous_article_for_prompt = []
+    if previous_summary_data and previous_summary_data.get('article'):
+        previous_article_text = previous_summary_data['article']
+        # Markdownの太字(**)を削除して、AIがテキストとして認識しやすくする
+        cleaned_previous_article = previous_article_text.replace('**', '')
+        
+        previous_article_for_prompt.extend([
+            "\n## 【昨日のあなたの解説記事】",
+            "あなたは昨日、以下の解説記事を執筆しました。この内容を踏まえ、今日のレースで状況がどう変化したか、あなたの視点で自由に解説してください。",
+            "---",
+            cleaned_previous_article,
+            "---"
+        ])
+
     prompt_parts = [
         "このプロジェクトは、「高温大学駅伝」という架空の駅伝イベントです。最大の特徴は、各選手の走行距離を、その選手が担当するアメダス観測地点の最高気温に見立ててシミュレーションしている点です。",
         "あなたは、連日熱戦が繰り広げられる「第15回 全国大学対抗高温駅伝」の専属スポーツ解説者です。",
         "今日のレースのハイライトを、毎日速報を楽しみにしているファンのために、情熱的でドラマチックな総括記事として生成してください。",
-        "以下の【本日のレース状況】と【昨晩の監督コメント】を元に、今日のレースで起きた最も注目すべき展開を深掘りしてください。",
+        "以下の【本日のレース状況】、【昨日のあなたの解説記事】、【昨晩の監督コメント】を元に、今日のレースで起きた最も注目すべき展開を深掘りしてください。",
+        "なおすべての基本は総合順位です。本日の総合順位に従って言及していってください"
+        "各大学の選手名と、その選手が本日走った距離には必ず触れること。言及がない記事はNGとみなします。"
+        "【本日の主なタスキリレー】の下に大学名が入っている場合にのみ次走者に言及してください。"
         "",
         "## 記事執筆ルール",
-        "- 記事冒頭に、今日のレース展開を象徴するような、熱いキャッチコピー風タイトルを必ず入れること。",
-        "- 「高温大学駅伝のルールは～」といった、基本的なルールの説明は絶対に含めないこと。読者はルールを熟知している前提で執筆すること。",
-        "- 記事は複数の章立て見出しを入れること。形式は必ず以下を使う：",
-        "  ■ 首位攻防戦 ― ○○",
-        "  ■ 中盤戦 ― ○○",
-        "  ■ ○○の躍進",
-        "  ■ ○○の苦戦",
-        "  （見出し名や内容は自由にアレンジしてよい）",
-        "- 全体で1000から1200文字程度で書くこと",
-        "- 各見出しの下に本文を書くこと。",
-        "- 全大学に言及すること。",
-        "- 1～5位の大学 → 各80文字程度",
-        "- 6位以下の大学 → 各50文字程度",
-        "- 記事末尾に「■ 解説者の熱い総括」という見出しを設け、全体の見どころを熱くまとめること。",        
+        "- **冒頭**: 今日のレース展開を象徴する熱いキャッチコピー風タイトルを必ず入れること。",
+        "- **見出し構成**: 最低5本と、最後に「■ 解説者の熱い総括」を必ず入れること。見出しはレース展開に応じて柔軟に設定すること。",
+        "  - **見出しのヒント（これらはあくまで候補であり、展開に合わせて自由に設定してください）**:",
+        "    - **首位攻防戦**: 1位と2位が競っている場合。",
+        "    - **独走態勢**: 1位が大きく抜け出している場合。",
+        "    - **中盤の混戦**: 差が僅差の大学群がある場合。",
+        "    - **シード権争い**: 10位前後のボーダーラインで激しい戦いがある場合。",
+        "    - **下位の奮闘**: 10位以下のチームで活躍した選手は積極的に言及、それ以外の選手も距離を淡々と記載するなどとにかく全員登場させること",
+        "    - **特殊事象**: 39.0km以上の選手が出た場合や、逆に28.0km未満で苦しむ選手が出た場合など。",
+        "    - **全選手の言及**: 上の条件に入らない選手がいた場合にはその他の選手動向などして大学、選手名、距離名をただ書くだけでもよい",
+        "  - **言葉選びの注意**: 順位差が大きい場合は「攻防」「混戦」ではなく、「独走」「単独走行」など、展開に即した言葉を選ぶこと。",
+        "- **本文構成**:",
+        "  - **必須条件1**: 各大学の選手名と、その選手が本日走った距離には必ず触れること。言及がない記事はNGとみなします。",
+        "  - **必須条件2**: 記事の中心は総合順位です。総合順位に従って記載してください。選手の当日走った距離も第二の重要な要素です",
+        "  - **必須条件3**: 【本日の主なタスキリレー】の下に大学名が入っている場合にのみ次走者に言及してください。",
+         "  - **文字数**: 上位争いや注目の展開に関わる大学は長め（80文字程度）、それ以外の大学は50文字程度で記述すること。",
+        "  - **特殊事象の記述**: 高温・低温、記録更新、注目すべき監督コメントなどがあれば、本文のどこかに盛り込むこと。",
+        "- **総括**:",
+        "  - 最後に「■ 解説者の熱い総括」を必ず入れること。",
+        "  - 今日のレース全体を振り返りつつ、次戦への期待やファンへの呼びかけで熱く締めくくること。",
+        "- **禁止事項**: 「高温大学駅伝のルールは～」といった、基本的なルールの説明は絶対に含めないこと。読者はルールを熟知している前提で執筆すること。また、【昨晩の監督コメント】に記載されていない、架空の監督コメントは一切生成しないこと。",
         "---",
         "## 【本日のレース状況】",
         f"- 大会日: {race_day}日目",
@@ -257,6 +311,9 @@ def main():
     if relay_infos:
         prompt_parts.append("\n## 【本日の主なタスキリレー】")
         prompt_parts.extend(relay_infos)
+
+    if previous_article_for_prompt:
+        prompt_parts.extend(previous_article_for_prompt)
 
     if manager_comments:
         prompt_parts.append("\n## 【昨晩の監督コメント】")
