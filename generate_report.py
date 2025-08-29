@@ -68,15 +68,21 @@ def load_all_data():
             tournament_records = json.load(f)
         with open(LEG_BEST_RECORDS_FILE, 'r', encoding='utf-8') as f:
             leg_best_records = json.load(f)
-        with open('intramural_rankings.json', 'r', encoding='utf-8') as f:
-            intramural_rankings = json.load(f)
 
     except FileNotFoundError as e:
-        print(f"エラー: データファイルが見つかりません。 {e.filename}")
+        print(f"エラー: 必須データファイルが見つかりません。 {e.filename}")
         exit(1)
-    except json.JSONDecodeError:
-        print(f"エラー: JSONファイルの形式が正しくありません。")
+    except json.JSONDecodeError as e:
+        print(f"エラー: JSONファイルの形式が正しくありません: {e}")
         exit(1)
+
+    # 学内ランキングは任意ファイルとして読み込む
+    try:
+        with open('intramural_rankings.json', 'r', encoding='utf-8') as f:
+            intramural_rankings = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("情報: 'intramural_rankings.json' が見つからないか不正なため、学内ランキング関連の機能はスキップされます。")
+        intramural_rankings = {} # 空の辞書をセット
 
 def find_station_by_name(name):
     """地点名から観測所情報を検索"""
