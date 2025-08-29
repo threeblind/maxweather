@@ -687,6 +687,27 @@ def calculate_and_save_runner_locations(teams_data):
     print(f"\n計算完了: {len(runner_locations)}チームの位置を特定しました。")
     print(f"結果を {RUNNER_LOCATIONS_OUTPUT_FILE} に保存しました。")
 
+def append_to_realtime_log(results):
+    """リアルタイムログファイルに現在の走行データを追記する。"""
+    now_iso = datetime.now().isoformat()
+    try:
+        with open('realtime_log.jsonl', 'a', encoding='utf-8') as f:
+            for r in results:
+                # ゴール済みの選手や、本日走行していない選手はログに記録しない
+                if r['runner'] == 'ゴール' or r.get('todayDistance', 0) <= 0:
+                    continue
+                
+                log_entry = {
+                    "timestamp": now_iso,
+                    "team_id": r['id'],
+                    "runner_name": r['runner'], # '1穴吹' のような形式
+                    "distance": r['todayDistance']
+                }
+                f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+        print(f"✅ リアルタイムログを 'realtime_log.jsonl' に追記しました。")
+    except IOError as e:
+        print(f"エラー: 'realtime_log.jsonl' への書き込みに失敗しました: {e}")
+
 def main():
     """メイン処理"""
     parser = argparse.ArgumentParser(description='高温大学駅伝のレポートを生成します。')
@@ -877,6 +898,9 @@ def main():
                 comment_to_save = old_comment
                 timestamp_to_save = old_timestamp
                 full_text_to_save = old_full_text
+
+        # リアルタイムログに追記
+        append_to_realtime_log(results)
 
         # 各種速報ファイルを保存
         save_realtime_report(results, race_day, comment_to_save, timestamp_to_save, full_text_to_save)
