@@ -21,6 +21,8 @@
 *   **バックエンドスクリプト**:
     *   `generate_report.py`: 気温データを取得し、各種速報JSONを生成する中核スクリプト。
     *   `fetch_manager_comments.py`: 5chから監督コメントを取得するスクリプト。
+    *   `update_all_records.py`: 全選手の最終記録を取得し、学内ランキングを生成するスクリプト。
+    *   `generate_daily_summary.py`: AI(Gemini)を利用してその日の解説記事を生成するスクリプト。
     *   `update_realtime.sh`: 日中に `generate_report.py` を定期実行する。
     *   `update_manager_comments.sh`: 夜間に `fetch_manager_comments.py` を定期実行する。
     *   `commit_daily.sh`: 深夜にその日の結果を確定し、ログをアーカイブする。
@@ -34,17 +36,20 @@
     *   `rank_history.json`, `leg_rank_history.json`: 順位変動グラフや推移表のための履歴データ。
     *   `manager_comments.json`: 監督談話室用のコメントデータ。
     *   `realtime_log.jsonl`: リアルタイムの走行距離推移を記録する時系列ログ。
+    *   `daily_summary.json`: AIが生成した解説記事。
+    *   `intramural_rankings.json`: 学内ランキングデータ。
+    *   `daily_temperatures.json`: 全選手の日次気温データベース。
 
 ### 2.2. データの流れ
 
 本システムは、cronジョブで定期実行されるシェルスクリプトを起点として、以下のサイクルで動作します。
 
 1.  **日中のリアルタイム更新 (7:00-19:00)**
-    *   `update_realtime.sh` が5分ごとに実行されます。
+    *   `update_realtime.sh` が約10分ごとに実行されます。
     *   `generate_report.py --realtime` を実行。
         *   Yahoo!天気から各選手の担当地点の気温を取得。
         *   `realtime_report.json`, `individual_results.json` などを更新。
-        *   `realtime_log.jsonl` に走行データを追記。
+        *   `realtime_log.jsonl` に走行中選手の時系列データを追記。
         *   5chから監督コメントを取得し、速報コメントを生成。
     *   更新されたファイルがあれば、Gitリポジトリに自動でコミット＆プッシュ。
 
@@ -55,10 +60,14 @@
 
 3.  **1日の締め処理 (深夜23:55頃)**
     *   `commit_daily.sh` が実行されます。
-    *   `generate_report.py --commit` を実行。
-        *   この際、`individual_results.json` 内の全選手の記録を元に**区間順位**を計算し、`legRank` として追記します。
+    *   `update_all_records.py` を実行し、全選手（補欠含む）のその日の最終気温を取得し、`daily_temperatures.json` と `intramural_rankings.json` を更新します。
+    *   `generate_report.py --commit` を実行し、`ekiden_state.json` を更新します。この際、`individual_results.json` 内の全選手の記録を元に**区間順位**を計算し、`legRank` として追記します。
     *   その日の `realtime_log.jsonl` を `data/realtime_log_YYYY-MM-DD.jsonl` という形式にリネームして `data/` ディレクトリに移動（アーカイブ）。
     *   更新された全ファイルをGitリポジトリにコミット＆プッシュ。
+
+4.  **AIによる記事生成 (日次)**
+    *   `generate_daily_summary.py` が実行されます。
+    *   その日のレース結果、監督コメント、そしてAI自身が前日に書いた記事をインプットとして、AI(Gemini)が連続性のある解説記事 (`daily_summary.json`) を生成します。
 
 4.  **フロントエンドでの表示**
     *   ユーザーがブラウザでアクセスすると `app.js` が実行されます。
@@ -83,6 +92,10 @@
         *   **日次走行距離 (折れ線グラフ)**: 日々のパフォーマンスの増減を示します。
         *   **区間順位 (折れ線グラフ)**: その日の区間内での相対的な強さを示します。1位が上に来るようにY軸が反転しています。
 
+*   **学内ランキング**: `intramural_rankings.json` を元に、前日の全選手（正規・補欠含む）の成績を大学内でランキング表示。監督の采配や、補欠選手の突き上げに注目できます。
+
+*   **AI解説機能**: `generate_daily_summary.py` が `daily_summary.json` を生成。AI(Gemini)がその日のレース展開、監督コメント、前日の自身の解説を元に、情熱的な解説記事を毎日配信します。
+
 *   **監督談話室**: `manager_comments.json` を元に、夜間の監督たちの会話をチャット形式で表示します。
 
 *   **速報コメント**: `generate_report.py` が `realtime_report.json` の前回データと比較し、「首位交代」や「猛追」などのイベントを検知して自動生成します。また、監督の最新コメントも優先的に表示されます。
@@ -103,7 +116,16 @@
 
 *   **`manager_comments.json`**: 夜間に投稿された監督コメントのリスト。
 
-*   **`realtime_log.jsonl`**: 走行中の選手のデータをリアルタイムで記録するログ。JSON Lines形式で、`timestamp`, `team_id`, `runner_name`, `distance` などの情報が追記されます。総合順位表の選手名クリック時の日次グラフの元データとなります。
+*   **`daily_summary.json`**: AI（Gemini）が生成したその日のレースの総括記事を格納します。「レースダイジェスト」セクションの元データとなります。
+    - **主な内容**: `date`（日付）、`article`（Markdown形式の記事本文）
+
+*   **`intramural_rankings.json`**: 前日の全選手（正規・補欠含む）の成績を大学ごとにまとめたものです。「学内ランキング」セクションの元データとなります。
+    - **主な内容**: 各チームの `id`, `name` と、そのチームに所属する全選手の `daily_results`（選手名、距離、ステータス）のリスト
+
+*   **`daily_temperatures.json`**: 全選手（正規・補欠含む）の、日ごとの最終的な気温（=走行距離）を記録したデータベースです。主に学内ランキングの選手別推移グラフの元データとして利用されます。
+    - **主な内容**: 日付をキーとし、その中に選手名をキーとした気温のオブジェクトが格納されます。
+
+*   **`realtime_log.jsonl`**: 走行中の選手のデータを約10分間隔で記録するログ。JSON Lines形式で、`timestamp`, `team_id`, `runner_name`, `distance` などの情報が追記されます。総合順位表の選手名クリック時の日次グラフの元データとなります。
 
 ## 5. 開発経緯の要約
 
@@ -120,6 +142,9 @@
     *   選手名クリック時の挙動をテーブルごとに最適化。
     *   総合順位表からは「その日の走行記録グラフ」を表示。
     *   個人・区間記録表からは、`individual_results.json` のリッチなデータを活用した「大会全期間の複合グラフ」を表示するようにし、より深いデータ分析を可能にした。
+*   **AI解説と詳細分析機能の導入**:
+    *   `Gemini` を活用したAI解説記事の自動生成機能を追加。AIが前日の自身の解説を記憶し、連続性のある物語を生成します。
+    *   全選手（補欠含む）の最終記録を毎日取得し、大学内でのランキングを表示する機能を追加。より多角的なデータ分析を可能にしました。
 
 ---
 
