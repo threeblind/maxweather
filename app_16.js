@@ -1750,14 +1750,56 @@ async function displayOutline() {
 }
 
 /**
+ * daily_summary.jsonを読み込み、本日の総括記事を表示します。
+ */
+async function displayDailySummary() {
+    const container = document.getElementById('daily-summary-container');
+    if (!container) return;
+
+    try {
+        const response = await fetch(`daily_summary.json?_=${new Date().getTime()}`);
+        if (!response.ok) {
+            // 404 Not Foundはファイルがまだない場合なので、コンテナを非表示にして静かに処理
+            container.style.display = 'none';
+            return;
+        }
+        const data = await response.json();
+
+        if (data && data.article) {
+            // 日付をフォーマット (YYYY/MM/DD -> YYYY年M月D日)
+            const dateParts = data.date.split('/');
+            const formattedDate = `${dateParts[0]}年${parseInt(dateParts[1], 10)}月${parseInt(dateParts[2], 10)}日`;
+
+            // 記事のテキストをHTML用にフォーマット
+            const formattedArticle = data.article
+                .replace(/\n/g, '<br>') // 改行を<br>タグに変換
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Markdownの太字(**text**)を<strong>タグに変換
+
+
+            container.innerHTML = `
+                <h3>${formattedDate}のレースハイライト</h3>
+                <p class="summary-article">${formattedArticle}</p>
+            `;
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('日次サマリーの表示に失敗:', error);
+        container.style.display = 'none';
+    }
+}
+
+/**
  * 監督の夜間コメントを談話室形式で表示します。
  */
 async function displayManagerComments() {
+    const loungeContainer = document.getElementById('manager-lounge-container');
     const loungeContent = document.getElementById('manager-lounge-content');
     const statusEl = document.getElementById('manager-lounge-status');
-    const navLink = document.querySelector('a[href="#section-manager-lounge"]');
+    const navLink = document.querySelector('a[href="#section-digest"]'); // セレクターを更新
 
-    if (!loungeContent || !statusEl || !navLink) return;
+    if (!loungeContainer || !loungeContent || !statusEl || !navLink) return;
 
     try {
         const response = await fetch(`manager_comments.json?_=${new Date().getTime()}`);
@@ -1771,15 +1813,11 @@ async function displayManagerComments() {
         const comments = await response.json();
 
         if (comments.length === 0) {
-            statusEl.textContent = '現在、表示できる監督コメントはありません。';
-            statusEl.className = 'result loading';
-            statusEl.style.display = 'block';
-            loungeContent.style.display = 'none';
-            navLink.parentElement.style.display = 'none'; // コメントがなければナビゲーションリンクも非表示
+            loungeContainer.style.display = 'none'; // コメントがなければコンテナを非表示
         } else {
+            loungeContainer.style.display = 'block'; // コメントがあれば表示
             statusEl.style.display = 'none';
             loungeContent.style.display = 'flex';
-            navLink.parentElement.style.display = ''; // コメントがあれば表示
 
             loungeContent.innerHTML = ''; // 以前のコメントをクリア
             
@@ -1826,10 +1864,8 @@ async function displayManagerComments() {
             loungeContent.scrollTop = loungeContent.scrollHeight;
         }
     } catch (error) {
-        // エラー時やファイルがない場合はセクション全体を非表示にする
-        statusEl.style.display = 'none';
-        loungeContent.style.display = 'none';
-        navLink.parentElement.style.display = 'none';
+        // エラー時やファイルがない場合は監督コメント部分を非表示にする
+        loungeContainer.style.display = 'none';
     }
 }
 
@@ -2250,6 +2286,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 2. 最も重要な速報データを最初に取得して表示（マップのズームもここで行われる）
     fetchEkidenData();
     // 3. その他のコンテンツを読み込む
+    displayDailySummary(); // ★ 新しく追加: 日次サマリー記事
     displayManagerComments(); // 監督談話室
     displayEntryList(); // エントリーリスト
     displayLegRankHistoryTable(); // 順位推移テーブル

@@ -96,6 +96,34 @@
             border: 1px solid var(--border-color);
         }
 
+        /* --- レースダイジェストセクションのスタイル --- */
+        #daily-summary-container h3 {
+            font-size: 1.4rem;
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .summary-article {
+            background-color: #fdfdff; /* わずかに色をつけた背景で本文と区別 */
+            border-left: 5px solid var(--primary-color); /* 左側にアクセントラインを追加 */
+            padding: 1.5rem 2rem;
+            border-radius: 0 var(--border-radius) var(--border-radius) 0;
+            text-align: left;
+            line-height: 1.9; /* 行間を広げて読みやすく */
+            font-size: 1rem;
+            margin-bottom: 3rem; /* 監督コメントとの間に十分な余白を確保 */
+        }
+
+        #manager-lounge-container h3 {
+            font-size: 1.4rem;
+            text-align: center;
+            color: var(--text-muted-color);
+            border-top: 1px solid var(--border-color); /* 記事との間に区切り線を追加 */
+            padding-top: 2rem;
+        }
+
         /* Main Thread Link */
         .main-thread-link {
             display: block;
@@ -983,10 +1011,9 @@
                 <li><a href="#section-leg-rank-history">順位推移</a></li>
                 <li><a href="#section-leg-ranking">個人記録</a></li>
                 <li><a href="#section-leg-prize">区間記録</a></li>
+                <li><a href="#section-digest">レースダイジェスト</a></li>
                 <li><a href="#section-intramural-ranking">学内ランキング</a></li>
-                <li><a href="#section-manager-lounge">談話室</a></li>
-                <li><a href="#" id="open-simulator-btn">シミュレーター</a></li>
-                <li class="dropdown">
+               <li class="dropdown">
                     <a class="dropbtn">その他 ▼</a>
                     <div class="dropdown-content">
                         <a href="#section-entry-list">エントリー</a>
@@ -1088,6 +1115,22 @@
             </div>
         </div>
 
+        <section id="section-digest" class="ekiden-section-wrapper">
+            <h2>レースダイジェスト</h2>
+            
+            <!-- AIによる総括記事がここに挿入される -->
+            <div id="daily-summary-container"></div>
+
+            <!-- 監督コメントは記事の下に表示 -->
+            <div id="manager-lounge-container">
+                <h3>監督たちの声</h3>
+                <p id="manager-lounge-status" class="result loading" style="display: none;"></p>
+                <div id="manager-lounge-content" class="lounge-container" style="display: flex;">
+                    <!-- 監督コメントがここに挿入される -->
+                </div>
+            </div>
+        </section>
+                
         <!-- 学内ランキング -->
         <div id="section-intramural-ranking" class="ekiden-section-wrapper">
             <h2>📊 学内ランキング</h2>
@@ -1116,14 +1159,7 @@
             </div>
         </div>
 
-        <div id="section-manager-lounge" class="ekiden-section-wrapper">
-            <h2>🎙️ 監督たちの談話室</h2>
-            <p class="ranking-update-time">（夜19:00～翌朝7:00の監督コメントを時系列で表示します）</p>
-            <div id="manager-lounge-content">
-                <!-- コメントは app.js によって動的に生成されます -->
-            </div>
-            <div id="manager-lounge-status" class="result loading" style="display: none;"></div>
-        </div>
+
 
         <div id="section-entry-list" class="entry-list-container">
             <h2>📝 エントリーリスト</h2>

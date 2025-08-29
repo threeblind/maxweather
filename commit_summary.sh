@@ -1,4 +1,4 @@
-z#!/bin/bash
+#!/bin/bash
 
 # スクリプトが失敗した場合に即座に終了するように設定
 set -euo pipefail
