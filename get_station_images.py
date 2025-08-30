@@ -4,10 +4,15 @@ import json
 import time
 from dotenv import load_dotenv
 import argparse
+from pathlib import Path
+
+# --- ディレクトリ定義 ---
+CONFIG_DIR = Path('config')
+AMEDAS_DIR = Path('amedas')
 
 # --- 設定 ---
-STATIONS_FILE = 'amedas_stations.json'
-OUTPUT_DIR = 'amedas/jpg'
+STATIONS_FILE = CONFIG_DIR / 'amedas_stations.json'
+OUTPUT_DIR = AMEDAS_DIR / 'jpg'
 IMAGE_SIZE = '600x400'
 
 # .envファイルから環境変数を読み込む
@@ -52,10 +57,15 @@ def main():
         print("プロジェクトのルートに .env ファイルを作成し、'GOOGLE_MAPS_API_KEY=YOUR_API_KEY' のようにキーを設定してください。")
         return
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    try:
+        with open(STATIONS_FILE, 'r', encoding='utf-8') as f:
+            stations = json.load(f)
+    except FileNotFoundError:
+        print(f"エラー: 観測所ファイル '{STATIONS_FILE}' が見つかりません。")
+        return
 
-    with open(STATIONS_FILE, 'r', encoding='utf-8') as f:
-        stations = json.load(f)
+    # 出力ディレクトリが存在しない場合は作成
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     if args.limit:
         stations = stations[:args.limit]
@@ -63,7 +73,7 @@ def main():
     print(f"全 {len(stations)} 地点の地図画像取得を開始します...")
     for i, station in enumerate(stations):
         print(f"({i+1}/{len(stations)}) 処理中: {station['name']} ({station['code']})")
-        image_path = os.path.join(OUTPUT_DIR, f"{station['code']}.jpg")
+        image_path = OUTPUT_DIR / f"{station['code']}.jpg"
         if os.path.exists(image_path):
             print("  - 画像は既に存在します。スキップします。")
             continue

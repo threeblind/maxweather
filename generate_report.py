@@ -12,26 +12,41 @@ from bs4 import BeautifulSoup
 import unicodedata
 from geopy.distance import geodesic
 
-# --- 定数 ---
-AMEDAS_STATIONS_FILE = 'amedas_stations.json'
-HISTORY_DATA_DIR = 'history_data'
-STORY_SETTINGS_FILE = Path(HISTORY_DATA_DIR) / 'ekiden_story_settings.json'
-PAST_RESULTS_FILE = Path(HISTORY_DATA_DIR) / 'past_results.json'
-LEG_AWARD_HISTORY_FILE = Path(HISTORY_DATA_DIR) / 'leg_award_history.json'
-TOURNAMENT_RECORDS_FILE = Path(HISTORY_DATA_DIR) / 'tournament_records.json'
-LEG_BEST_RECORDS_FILE = Path(HISTORY_DATA_DIR) / 'leg_best_records.json'
+# --- ディレクトリ定義 ---
+CONFIG_DIR = Path('config')
+DATA_DIR = Path('data')
+LOGS_DIR = Path('logs')
+HISTORY_DATA_DIR = Path('history_data')
 
-# --- リアルタイム更新ファイル ---
-EKIDEN_DATA_FILE = 'ekiden_data.json'
-OUTLINE_FILE = 'outline.json'
-STATE_FILE = 'ekiden_state.json'
-INDIVIDUAL_STATE_FILE = 'individual_results.json'
-RANK_HISTORY_FILE = 'rank_history.json'
-LEG_RANK_HISTORY_FILE = 'leg_rank_history.json'
+# --- 定数 ---
+# 設定ファイル
+EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
+AMEDAS_STATIONS_FILE = CONFIG_DIR / 'amedas_stations.json'
+OUTLINE_FILE = CONFIG_DIR / 'outline.json'
+KML_FILE = CONFIG_DIR / 'ekiden_map.kml'
+
+# 履歴データ
+STORY_SETTINGS_FILE = HISTORY_DATA_DIR / 'ekiden_story_settings.json'
+PAST_RESULTS_FILE = HISTORY_DATA_DIR / 'past_results.json'
+LEG_AWARD_HISTORY_FILE = HISTORY_DATA_DIR / 'leg_award_history.json'
+TOURNAMENT_RECORDS_FILE = HISTORY_DATA_DIR / 'tournament_records.json'
+LEG_BEST_RECORDS_FILE = HISTORY_DATA_DIR / 'leg_best_records.json'
+
+# 出力ファイル (data)
+REALTIME_REPORT_FILE = DATA_DIR / 'realtime_report.json'
+INDIVIDUAL_STATE_FILE = DATA_DIR / 'individual_results.json'
+RANK_HISTORY_FILE = DATA_DIR / 'rank_history.json'
+LEG_RANK_HISTORY_FILE = DATA_DIR / 'leg_rank_history.json'
+RUNNER_LOCATIONS_OUTPUT_FILE = DATA_DIR / 'runner_locations.json'
+COURSE_PATH_FILE = DATA_DIR / 'course_path.json'
+INTRAMURAL_RANKINGS_FILE = DATA_DIR / 'intramural_rankings.json'
+
+# 状態・ログファイル (logs)
+STATE_FILE = LOGS_DIR / 'ekiden_state.json'
+REALTIME_LOG_FILE = LOGS_DIR / 'realtime_log.jsonl'
+
+# その他
 EKIDEN_START_DATE = '2025-07-23'
-KML_FILE = 'ekiden_map.kml'
-RUNNER_LOCATIONS_OUTPUT_FILE = 'runner_locations.json'
-COURSE_PATH_FILE = 'course_path.json'
 
 # 5chからスクレイピングする際のリクエストヘッダー
 HEADERS = {
@@ -78,10 +93,10 @@ def load_all_data():
 
     # 学内ランキングは任意ファイルとして読み込む
     try:
-        with open('intramural_rankings.json', 'r', encoding='utf-8') as f:
+        with open(INTRAMURAL_RANKINGS_FILE, 'r', encoding='utf-8') as f:
             intramural_rankings = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        print("情報: 'intramural_rankings.json' が見つからないか不正なため、学内ランキング関連の機能はスキップされます。")
+        print(f"情報: '{INTRAMURAL_RANKINGS_FILE}' が見つからないか不正なため、学内ランキング関連の機能はスキップされます。")
         intramural_rankings = {} # 空の辞書をセット
 
 def find_station_by_name(name):
@@ -156,11 +171,14 @@ def save_ekiden_state(state, file_path):
             "finishDay": s.get("finishDay")
         } for s in state
     ]
+    # ディレクトリが存在しない場合は作成
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(data_to_save, f, indent=2, ensure_ascii=False)
 
 def save_individual_results(runners_state, file_path):
     """選手個人の結果を保存する"""
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(runners_state, f, indent=2, ensure_ascii=False)
 
@@ -282,7 +300,8 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
             "finishDay": r.get("finishDay")
         })
 
-    with open('realtime_report.json', 'w', encoding='utf-8') as f:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    with open(REALTIME_REPORT_FILE, 'w', encoding='utf-8') as f:
         json.dump(report_data, f, indent=2, ensure_ascii=False)
 
 def update_rank_history(results, race_day, rank_history_file_path):
@@ -327,6 +346,7 @@ def update_rank_history(results, race_day, rank_history_file_path):
             team_history['distances'][date_index] = result['totalDistance']
 
     # ファイルに保存
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(rank_history_file_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2, ensure_ascii=False)
 
@@ -386,6 +406,7 @@ def update_leg_rank_history(results, previous_day_state, leg_rank_history_file_p
                 # to allow for continuous updates.
                 team_history['leg_ranks'][leg_index] = result['overallRank']
 
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(leg_rank_history_file_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2, ensure_ascii=False)
 
@@ -684,6 +705,7 @@ def calculate_and_save_runner_locations(teams_data):
         print(f"  {team.get('overallRank')}位 {team.get('name'):<10} @ {team.get('totalDistance'):.1f} km -> ({team_lat:.6f}, {team_lon:.6f})")
 
     # 3. 結果をJSONファイルに保存
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(RUNNER_LOCATIONS_OUTPUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(runner_locations, f, indent=2, ensure_ascii=False)
 
@@ -693,8 +715,9 @@ def calculate_and_save_runner_locations(teams_data):
 def append_to_realtime_log(results):
     """リアルタイムログファイルに現在の走行データを追記する。"""
     now_iso = datetime.now().isoformat()
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
     try:
-        with open('realtime_log.jsonl', 'a', encoding='utf-8') as f:
+        with open(REALTIME_LOG_FILE, 'a', encoding='utf-8') as f:
             for r in results:
                 # ゴール済みの選手や、本日走行していない選手はログに記録しない
                 if r['runner'] == 'ゴール' or r.get('todayDistance', 0) <= 0:
@@ -707,9 +730,9 @@ def append_to_realtime_log(results):
                     "distance": r['todayDistance']
                 }
                 f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
-        print(f"✅ リアルタイムログを 'realtime_log.jsonl' に追記しました。")
+        print(f"✅ リアルタイムログを '{REALTIME_LOG_FILE}' に追記しました。")
     except IOError as e:
-        print(f"エラー: 'realtime_log.jsonl' への書き込みに失敗しました: {e}")
+        print(f"エラー: '{REALTIME_LOG_FILE}' への書き込みに失敗しました: {e}")
 
 def main():
     """メイン処理"""

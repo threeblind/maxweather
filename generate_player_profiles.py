@@ -3,15 +3,21 @@ import os
 import glob
 from pathlib import Path
 
-# --- 定数定義 ---
-# 入力ファイル
-EKIDEN_DATA_FILE = 'ekiden_data.json'
-AMEDAS_STATIONS_FILE = 'amedas_stations.json'
-LEG_AWARD_HISTORY_FILE = 'history_data/leg_award_history.json'
-CURRENT_INDIVIDUAL_RESULTS_FILE = 'individual_results.json'
+# --- ディレクトリ定義 ---
+CONFIG_DIR = Path('config')
+DATA_DIR = Path('data')
+HISTORY_DATA_DIR = Path('history_data')
 
-# 出力ファイル
-OUTPUT_FILE = 'player_profiles.json'
+# --- 入力ファイル定義 ---
+EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
+AMEDAS_STATIONS_FILE = CONFIG_DIR / 'amedas_stations.json'
+LEG_AWARD_HISTORY_FILE = HISTORY_DATA_DIR / 'leg_award_history.json'
+
+# 今大会の個人記録ファイルは data/ ディレクトリから読み込む
+CURRENT_INDIVIDUAL_RESULTS_FILE = DATA_DIR / 'individual_results.json'
+
+# --- 出力ファイル定義 ---
+OUTPUT_FILE = DATA_DIR / 'player_profiles.json'
 
 # 大会情報
 # TODO: 将来的にこのあたりも設定ファイルから読み込めるようにすると良い
@@ -177,6 +183,8 @@ def main():
 
     # --- 4. ファイル出力 ---
     try:
+        # 出力先ディレクトリが存在しない場合は作成
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
         with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
             json.dump(player_profiles, f, indent=2, ensure_ascii=False)
         print(f"✅ 選手名鑑データ (全 {len(player_profiles)} 件) を '{OUTPUT_FILE}' に保存しました。")

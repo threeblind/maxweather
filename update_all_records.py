@@ -4,13 +4,20 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 import time
+from pathlib import Path
 
 # --- 定数 ---
-AMEDAS_STATIONS_FILE = 'amedas_stations.json'
-EKIDEN_DATA_FILE = 'ekiden_data.json'
-DAILY_TEMP_FILE = 'daily_temperatures.json'
-EKIDEN_STATE_FILE = 'ekiden_state.json'
-INTRAMURAL_RANKINGS_FILE = 'intramural_rankings.json'
+# --- ディレクトリ定義 ---
+CONFIG_DIR = Path('config')
+DATA_DIR = Path('data')
+LOGS_DIR = Path('logs')
+
+# --- ファイル定義 ---
+AMEDAS_STATIONS_FILE = CONFIG_DIR / 'amedas_stations.json'
+EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
+DAILY_TEMP_FILE = DATA_DIR / 'daily_temperatures.json'
+EKIDEN_STATE_FILE = LOGS_DIR / 'ekiden_state.json'
+INTRAMURAL_RANKINGS_FILE = DATA_DIR / 'intramural_rankings.json'
 EKIDEN_START_DATE = '2025-07-23' # generate_report.pyと共通
 
 # --- グローバル変数 ---
@@ -75,9 +82,13 @@ def update_all_records():
     today_str = datetime.now().strftime('%Y-%m-%d')
     all_runners_to_fetch = set()
     for team in ekiden_data['teams']:
-        all_runners_to_fetch.update(team.get('runners', []))
-        all_runners_to_fetch.update(team.get('substitutes', []))
-        all_runners_to_fetch.update(team.get('substituted_out', []))
+        # 選手名とコメントを一緒に扱うように変更
+        all_team_members_with_comments = team.get('runners', []) + team.get('substitutes', []) + team.get('substituted_out', [])
+        for runner_obj in all_team_members_with_comments:
+            if isinstance(runner_obj, dict) and 'name' in runner_obj:
+                all_runners_to_fetch.add(runner_obj['name'])
+            elif isinstance(runner_obj, str): # 互換性のため
+                 all_runners_to_fetch.add(runner_obj)
 
     fetched_temps_cache = {}
     print(f"全 {len(all_runners_to_fetch)} 選手の最終気温データを取得します...")
@@ -111,6 +122,8 @@ def update_all_records():
         if result.get('temperature') is not None:
             daily_temperatures[today_str][runner_name] = result['temperature']
 
+    # 出力先ディレクトリが存在しない場合は作成
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(DAILY_TEMP_FILE, 'w', encoding='utf-8') as f:
         json.dump(daily_temperatures, f, indent=2, ensure_ascii=False)
     print(f"\n✅ 日次気温データを '{DAILY_TEMP_FILE}' に保存しました。")
@@ -125,9 +138,10 @@ def update_all_records():
     }
 
     for team_data in ekiden_data['teams']:
-        active_runners = team_data.get('runners', [])
-        substitute_runners = team_data.get('substitutes', [])
-        substituted_out_runners = team_data.get('substituted_out', [])
+        # 選手名のみを抽出
+        active_runners = [r['name'] for r in team_data.get('runners', []) if 'name' in r]
+        substitute_runners = [r['name'] for r in team_data.get('substitutes', []) if 'name' in r]
+        substituted_out_runners = [r['name'] for r in team_data.get('substituted_out', []) if 'name' in r]
         current_leg = team_current_leg_map.get(team_data['id'], 1)
         all_team_members = set(active_runners + substitute_runners + substituted_out_runners)
         
@@ -161,6 +175,8 @@ def update_all_records():
             "daily_results": daily_results
         })
 
+    # 出力先ディレクトリが存在しない場合は作成
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(INTRAMURAL_RANKINGS_FILE, 'w', encoding='utf-8') as f:
         json.dump(intramural_data, f, indent=2, ensure_ascii=False)
     print(f"✅ 学内ランキングデータを '{INTRAMURAL_RANKINGS_FILE}' に保存しました。")

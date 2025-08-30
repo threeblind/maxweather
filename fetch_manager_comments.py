@@ -3,11 +3,18 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from datetime import datetime, time, timedelta
+from pathlib import Path
 
 # --- 定数 ---
-EKIDEN_DATA_FILE = 'ekiden_data.json'
-OUTLINE_FILE = 'outline.json'
-OUTPUT_FILE = 'manager_comments.json'
+
+# --- ディレクトリ定義 ---
+CONFIG_DIR = Path('config')
+DATA_DIR = Path('data')
+
+# --- ファイル定義 ---
+EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
+OUTLINE_FILE = CONFIG_DIR / 'outline.json'
+OUTPUT_FILE = DATA_DIR / 'manager_comments.json'
 
 # 5chからスクレイピングする際のリクエストヘッダー
 HEADERS = {
@@ -145,6 +152,8 @@ def fetch_and_process_comments():
     # 新しいコメントが上に来るように逆順ソート
     manager_comments.sort(key=lambda x: x['timestamp'], reverse=True)
 
+    # 出力先ディレクトリが存在しない場合は作成
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(manager_comments, f, indent=2, ensure_ascii=False)
 

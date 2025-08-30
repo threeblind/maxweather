@@ -39,7 +39,7 @@ const getMedalEmoji = (rank) => {
 // アメダス観測所データを読み込み
 async function loadStationsData() {
     try {
-        const response = await fetch('amedas_stations.json');
+        const response = await fetch('data/amedas_stations.json');
         stationsData = await response.json();
         console.log('観測所データを読み込みました:', stationsData.length, '件');
     } catch (error) {
@@ -50,7 +50,7 @@ async function loadStationsData() {
 // 選手名鑑データを読み込み
 async function loadPlayerProfiles() {
     try {
-        const response = await fetch('player_profiles.json');
+        const response = await fetch('data/player_profiles.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -367,8 +367,8 @@ async function initializeMap() {
     try {
         // 4. Fetch course path and relay points data in parallel
         const [coursePathRes, relayPointsRes] = await Promise.all([
-            fetch(`course_path.json?_=${new Date().getTime()}`),
-            fetch(`relay_points.json?_=${new Date().getTime()}`)
+            fetch(`data/course_path.json?_=${new Date().getTime()}`),
+            fetch(`data/relay_points.json?_=${new Date().getTime()}`)
         ]);
 
         if (!coursePathRes.ok || !relayPointsRes.ok) {
@@ -585,7 +585,7 @@ async function showDailyRunnerChart(rawRunnerName, teamId, teamName, raceDay) {
     canvas.style.display = 'block';
 
     try {
-        const response = await fetch(`realtime_log.jsonl?_=${new Date().getTime()}`);
+        const response = await fetch(`logs/realtime_log.jsonl?_=${new Date().getTime()}`);
         if (!response.ok) {
             throw new Error(`ログファイルの取得に失敗しました (HTTP ${response.status})`);
         }
@@ -1021,8 +1021,8 @@ async function displayRankHistoryChart() {
     try {
         // Fetch history data and team color info in parallel
         const [historyRes, ekidenDataRes] = await Promise.all([
-            fetch(`rank_history.json?_=${new Date().getTime()}`),
-            fetch(`ekiden_data.json?_=${new Date().getTime()}`)
+            fetch(`data/rank_history.json?_=${new Date().getTime()}`),
+            fetch(`data/ekiden_data.json?_=${new Date().getTime()}`)
         ]);
 
         if (!historyRes.ok || !ekidenDataRes.ok) {
@@ -1178,9 +1178,9 @@ async function displayLegRankHistoryTable() {
     try {
         // 必要なデータを並行して取得
         const [historyRes, ekidenDataRes, realtimeRes] = await Promise.all([
-            fetch(`leg_rank_history.json?_=${new Date().getTime()}`),
-            fetch(`ekiden_data.json?_=${new Date().getTime()}`),
-            fetch(`realtime_report.json?_=${new Date().getTime()}`)
+            fetch(`data/leg_rank_history.json?_=${new Date().getTime()}`),
+            fetch(`data/ekiden_data.json?_=${new Date().getTime()}`),
+            fetch(`data/realtime_report.json?_=${new Date().getTime()}`)
         ]);
 
         if (!historyRes.ok || !ekidenDataRes.ok || !realtimeRes.ok) {
@@ -1436,10 +1436,10 @@ const fetchEkidenData = async () => {
     try {
         // Fetch all necessary data in parallel
         const [realtimeRes, individualRes, runnerLocationsRes, ekidenDataRes] = await Promise.all([
-            fetch(`realtime_report.json?_=${new Date().getTime()}`),
-            fetch(`individual_results.json?_=${new Date().getTime()}`),
-            fetch(`runner_locations.json?_=${new Date().getTime()}`),
-            fetch(`ekiden_data.json?_=${new Date().getTime()}`)
+            fetch(`data/realtime_report.json?_=${new Date().getTime()}`),
+            fetch(`data/individual_results.json?_=${new Date().getTime()}`),
+            fetch(`data/runner_locations.json?_=${new Date().getTime()}`),
+            fetch(`data/ekiden_data.json?_=${new Date().getTime()}`)
         ]);
 
         if (!realtimeRes.ok || !individualRes.ok || !runnerLocationsRes.ok || !ekidenDataRes.ok) {
@@ -1652,7 +1652,7 @@ async function displayEntryList() {
     if (!entryListDiv) return;
 
     try {
-        const response = await fetch('ekiden_data.json');
+        const response = await fetch('data/ekiden_data.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1740,7 +1740,7 @@ async function displayOutline() {
     if (!container) return;
 
     try {
-        const response = await fetch('outline.json');
+        const response = await fetch('data/outline.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1822,7 +1822,7 @@ async function displayDailySummary() {
     if (!container) return;
 
     try {
-        const response = await fetch(`daily_summary.json?_=${new Date().getTime()}`);
+        const response = await fetch(`data/daily_summary.json?_=${new Date().getTime()}`);
         if (!response.ok) {
             // 404 Not Foundはファイルがまだない場合なので、コンテナを非表示にして静かに処理
             container.style.display = 'none';
@@ -1867,7 +1867,7 @@ async function displayManagerComments() {
     if (!loungeContainer || !loungeContent || !statusEl || !navLink) return;
 
     try {
-        const response = await fetch(`manager_comments.json?_=${new Date().getTime()}`);
+        const response = await fetch(`data/manager_comments.json?_=${new Date().getTime()}`);
         if (!response.ok) {
             // 404 Not Foundはファイルがまだない場合なので、静かに処理
             if (response.status === 404) {
@@ -1946,7 +1946,7 @@ async function displayIntramuralRankings() {
     if (!container || !statusEl) return;
 
     try {
-        const response = await fetch(`intramural_rankings.json?_=${new Date().getTime()}`);
+        const response = await fetch(`data/intramural_rankings.json?_=${new Date().getTime()}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -2088,7 +2088,7 @@ async function showIntramuralPlayerHistoryChart(runnerName) {
     try {
         // daily_temperatures.jsonをキャッシュから読み込むか、なければフェッチ
         if (!dailyTemperaturesCache) {
-            const response = await fetch(`daily_temperatures.json?_=${new Date().getTime()}`);
+            const response = await fetch(`data/daily_temperatures.json?_=${new Date().getTime()}`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             dailyTemperaturesCache = await response.json();
         }
@@ -2207,9 +2207,9 @@ class EkidenSimulator {
     async fetchData() {
         try {
             const [ekidenRes, dailyTempRes, stateRes] = await Promise.all([
-                fetch(`ekiden_data.json?_=${new Date().getTime()}`),
-                fetch(`daily_temperatures.json?_=${new Date().getTime()}`),
-                fetch(`ekiden_state.json?_=${new Date().getTime()}`) // 比較用の実際の結果
+                fetch(`data/ekiden_data.json?_=${new Date().getTime()}`),
+                fetch(`data/daily_temperatures.json?_=${new Date().getTime()}`),
+                fetch(`logs/ekiden_state.json?_=${new Date().getTime()}`) // 比較用の実際の結果
             ]);
 
             if (!ekidenRes.ok || !dailyTempRes.ok || !stateRes.ok) {

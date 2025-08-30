@@ -2,19 +2,25 @@ import json
 import os
 from datetime import datetime, timedelta
 import shutil
+from pathlib import Path
 
 # --- 定数 ---
+# --- ディレクトリ定義 ---
+CONFIG_DIR = Path('config')
+DATA_DIR = Path('data')
+LOGS_DIR = Path('logs')
+
 # 入力ファイル (Source of Truth)
-EKIDEN_DATA_FILE = 'ekiden_data.json'
-DAILY_TEMP_FILE = 'daily_temperatures.json'
-COURSE_PATH_FILE = 'course_path.json'
+EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
+DAILY_TEMP_FILE = DATA_DIR / 'daily_temperatures.json'
+COURSE_PATH_FILE = DATA_DIR / 'course_path.json'
 
 # 出力/上書きされるファイル
-STATE_FILE = 'ekiden_state.json'
-INDIVIDUAL_STATE_FILE = 'individual_results.json'
-RANK_HISTORY_FILE = 'rank_history.json'
-LEG_RANK_HISTORY_FILE = 'leg_rank_history.json'
-RUNNER_LOCATIONS_OUTPUT_FILE = 'runner_locations.json'
+STATE_FILE = LOGS_DIR / 'ekiden_state.json'
+INDIVIDUAL_STATE_FILE = DATA_DIR / 'individual_results.json'
+RANK_HISTORY_FILE = DATA_DIR / 'rank_history.json'
+LEG_RANK_HISTORY_FILE = DATA_DIR / 'leg_rank_history.json'
+RUNNER_LOCATIONS_OUTPUT_FILE = DATA_DIR / 'runner_locations.json'
 
 # 設定
 EKIDEN_START_DATE = '2025-07-23'
@@ -54,9 +60,12 @@ def initialize_result_files():
     # 個人の初期状態
     initial_individual_results = {}
     for team in ekiden_data['teams']:
-        # runners と substitutes の両方を初期化対象とする
-        all_team_members = team.get('runners', []) + team.get('substitutes', [])
-        for runner_name in all_team_members:
+        # 選手名とコメントを持つオブジェクトのリストに対応
+        all_team_members_obj = team.get('runners', []) + team.get('substitutes', [])
+        for runner_obj in all_team_members_obj:
+            runner_name = runner_obj.get('name')
+            if not runner_name:
+                continue
             if runner_name not in initial_individual_results:
                 initial_individual_results[runner_name] = {
                     "totalDistance": 0,
@@ -77,6 +86,10 @@ def initialize_result_files():
             } for t in ekiden_data['teams']
         ]
     }
+
+    # ディレクトリが存在しない場合は作成
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     # ファイルに書き込み
     with open(STATE_FILE, 'w', encoding='utf-8') as f:
@@ -159,7 +172,8 @@ def rebuild_history():
             today_distance = 0.0
 
             if runner_index < len(team_data['runners']):
-                runner_name = team_data['runners'][runner_index]
+                # 選手オブジェクトから名前を取得
+                runner_name = team_data['runners'][runner_index].get('name')
                 # 日々の気温データから今日の距離を取得
                 today_distance = temps_for_today.get(runner_name, 0.0)
 

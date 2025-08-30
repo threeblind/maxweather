@@ -1,9 +1,18 @@
 import json
 import argparse
 import os
+from pathlib import Path
+from datetime import datetime
 
-EKIDEN_DATA_FILE = 'ekiden_data.json'
-INDIVIDUAL_RESULTS_FILE = 'individual_results.json'
+# --- ディレクトリ定義 ---
+CONFIG_DIR = Path('config')
+DATA_DIR = Path('data')
+LOGS_DIR = Path('logs')
+
+# --- ファイル定義 ---
+EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
+INDIVIDUAL_RESULTS_FILE = DATA_DIR / 'individual_results.json'
+SUBSTITUTION_LOG_FILE = LOGS_DIR / 'substitution_log.txt'
 
 def substitute_runner(team_id, old_runner, new_runner):
     """
@@ -11,6 +20,10 @@ def substitute_runner(team_id, old_runner, new_runner):
     """
     # --- 1. ekiden_data.json の更新 ---
     try:
+        # configディレクトリがなければエラー
+        if not CONFIG_DIR.exists():
+            print(f"エラー: 設定ディレクトリ '{CONFIG_DIR}' が見つかりません。")
+            return False
         with open(EKIDEN_DATA_FILE, 'r+', encoding='utf-8') as f:
             ekiden_data = json.load(f)
             team_to_update = next((t for t in ekiden_data['teams'] if t['id'] == team_id), None)
@@ -19,20 +32,27 @@ def substitute_runner(team_id, old_runner, new_runner):
                 print(f"エラー: チームID {team_id} が見つかりません。")
                 return False
 
-            if old_runner not in team_to_update.get('runners', []):
+            # 交代前の選手がrunnersにいるか確認 (オブジェクトのリストを検索)
+            runner_out_obj = next((r for r in team_to_update.get('runners', []) if r.get('name') == old_runner), None)
+            if not runner_out_obj:
                 print(f"エラー: {team_to_update['name']} の runners に {old_runner} が見つかりません。")
                 return False
 
+            # 交代後の選手がsubstitutesにいるか確認
+            runner_in_obj = next((r for r in team_to_update.get('substitutes', []) if r.get('name') == new_runner), None)
+            if not runner_in_obj:
+                print(f"エラー: {team_to_update['name']} の substitutes に {new_runner} が見つかりません。")
+                return False
+
             # runnersリストの選手を交代
-            runner_index = team_to_update['runners'].index(old_runner)
-            team_to_update['runners'][runner_index] = new_runner
+            runner_index = team_to_update['runners'].index(runner_out_obj)
+            team_to_update['runners'][runner_index] = runner_in_obj
 
             # substitutesリストから交代で出場する選手を削除
-            if new_runner in team_to_update.get('substitutes', []):
-                team_to_update['substitutes'].remove(new_runner)
+            team_to_update['substitutes'].remove(runner_in_obj)
 
             # 交代前の選手を記録するリストに追加
-            team_to_update.setdefault('substituted_out', []).append(old_runner)
+            team_to_update.setdefault('substituted_out', []).append(runner_out_obj)
             print(f"情報: {old_runner} を substituted_out リストに追加しました。")
 
             # ファイルを更新
@@ -47,6 +67,8 @@ def substitute_runner(team_id, old_runner, new_runner):
 
     # --- 2. individual_results.json の更新 ---
     try:
+        # dataディレクトリがなければ作成
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
         with open(INDIVIDUAL_RESULTS_FILE, 'r+', encoding='utf-8') as f:
             individual_results = json.load(f)
 
@@ -65,8 +87,22 @@ def substitute_runner(team_id, old_runner, new_runner):
             print(f"✅ '{INDIVIDUAL_RESULTS_FILE}' を更新しました: {new_runner} のエントリを追加しました。")
 
     except FileNotFoundError:
-        print(f"エラー: {INDIVIDUAL_RESULTS_FILE} が見つかりません。")
-        return False
+        print(f"情報: '{INDIVIDUAL_RESULTS_FILE}' が見つかりませんでした。新規に作成します。")
+        individual_results = { new_runner: { "totalDistance": 0, "teamId": team_id, "records": [] } }
+        with open(INDIVIDUAL_RESULTS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(individual_results, f, indent=2, ensure_ascii=False)
+        print(f"✅ '{INDIVIDUAL_RESULTS_FILE}' を新規作成し、{new_runner} のエントリを追加しました。")
+
+    # --- 3. 交代ログの記録 ---
+    try:
+        LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        with open(SUBSTITUTION_LOG_FILE, 'a', encoding='utf-8') as f:
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            log_message = f"{timestamp}: チームID {team_id} ({team_to_update['name']}) - {old_runner} → {new_runner}\n"
+            f.write(log_message)
+            print(f"✅ 交代ログを '{SUBSTITUTION_LOG_FILE}' に記録しました。")
+    except IOError as e:
+        print(f"警告: ログファイルへの書き込みに失敗しました: {e}")
 
     return True
 

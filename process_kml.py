@@ -3,11 +3,18 @@ import xml.etree.ElementTree as ET
 from geopy.distance import geodesic
 import re
 import unicodedata
+from pathlib import Path
 
-# --- 定数 ---
-KML_FILE = 'ekiden_map.kml'
-COURSE_PATH_OUTPUT_FILE = 'course_path.json'
-RELAY_POINTS_OUTPUT_FILE = 'relay_points.json'
+
+# --- ディレクトリ定義 ---
+CONFIG_DIR = Path('config')
+DATA_DIR = Path('data')
+
+# --- ファイル定義 ---
+KML_FILE = CONFIG_DIR / 'ekiden_map.kml'
+EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
+COURSE_PATH_OUTPUT_FILE = DATA_DIR / 'course_path.json'
+RELAY_POINTS_OUTPUT_FILE = DATA_DIR / 'relay_points.json'
 
 def get_leg_number_from_name(name, pattern=r'第(\d+)'):
     """'第1区'、'第一中継所'のような名前から区間番号を抽出します。"""
@@ -59,14 +66,14 @@ def process_kml_data():
     """
     # ekiden_data.jsonから区間距離を読み込む
     try:
-        with open('ekiden_data.json', 'r', encoding='utf-8') as f:
+        with open(EKIDEN_DATA_FILE, 'r', encoding='utf-8') as f:
             ekiden_data = json.load(f)
         leg_boundaries = ekiden_data.get('leg_boundaries', [])
         if not leg_boundaries:
-            print(f"エラー: 'ekiden_data.json' に 'leg_boundaries' が見つかりません。")
+            print(f"エラー: '{EKIDEN_DATA_FILE}' に 'leg_boundaries' が見つかりません。")
             return
     except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"エラー: ekiden_data.json の読み込みに失敗しました: {e}")
+        print(f"エラー: {EKIDEN_DATA_FILE} の読み込みに失敗しました: {e}")
         return
 
     # 1. KMLファイルを解析
@@ -146,9 +153,10 @@ def process_kml_data():
         print("\nError: Could not find all required Start, Goal, or Relay Station <Point> placemarks in the KML file.")
         return
 
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(RELAY_POINTS_OUTPUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(relay_points_data, f, indent=2, ensure_ascii=False)
-    print(f"Successfully saved relay station data to {RELAY_POINTS_OUTPUT_FILE}")
+    print(f"✅ 中継所データを '{RELAY_POINTS_OUTPUT_FILE}' に保存しました。")
 
     # 4. Combine course lines into course_path.json using the extracted stations as anchors
     all_points = []
@@ -202,9 +210,10 @@ def process_kml_data():
             else:
                 all_points.extend(leg_points)
 
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(COURSE_PATH_OUTPUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(all_points, f, indent=2, ensure_ascii=False)
-    print(f"コースパス情報を {COURSE_PATH_OUTPUT_FILE} に保存しました。")
+    print(f"✅ コースパス情報を '{COURSE_PATH_OUTPUT_FILE}' に保存しました。")
 
     # 5. 距離の再計算（確認用）
     cumulative_distance_km = 0.0

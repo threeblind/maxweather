@@ -19,35 +19,40 @@ echo "--- $(date +'%Y-%m-%d %H:%M:%S') ---"
 echo "デイリーコミット処理を開始します..."
 
 # 1. Python仮想環境を有効化
-source venv/bin/activate
+source venv/bin/activate || { echo "エラー: Python仮想環境(venv)の有効化に失敗しました。"; exit 1; }
 
-# 2. 全選手の最終記録を取得・保存
-echo "update_all_records.py を実行中..."
-python update_all_records.py
+# 2. 全選手の最終記録を取得・保存 (スクリプトのパスを修正)
+echo "scripts/update_all_records.py を実行中..."
+python scripts/update_all_records.py
 
-# 3. --commitモードでレポートを生成し、ekiden_state.jsonを更新
-#    このスクリプトは update_all_records.py が生成した daily_temperatures.json を参照します。
-echo "generate_report.py --commit を実行中..."
-python generate_report.py --commit
+# 3. --commitモードでレポートを生成し、ekiden_state.jsonなどを更新 (スクリプトのパスを修正)
+echo "scripts/generate_report.py --commit を実行中..."
+python scripts/generate_report.py --commit
 
-# 4. dataディレクトリを作成し、本日のログファイルを移動
-DATA_DIR="data"
-mkdir -p "$DATA_DIR"
+# 4. 本日のログファイルをアーカイブ
+LOGS_DIR="logs"
+ARCHIVE_DIR="$LOGS_DIR/archive"
+mkdir -p "$ARCHIVE_DIR"
 
-SOURCE_LOG_FILE="realtime_log.jsonl"
+SOURCE_LOG_FILE="$LOGS_DIR/realtime_log.jsonl"
 if [ -f "$SOURCE_LOG_FILE" ]; then
     TODAY=$(date +'%Y-%m-%d')
-    DEST_LOG_FILE="$DATA_DIR/realtime_log_${TODAY}.jsonl"
+    DEST_LOG_FILE="$ARCHIVE_DIR/realtime_log_${TODAY}.jsonl"
     echo "'$SOURCE_LOG_FILE' を '$DEST_LOG_FILE' に移動します。"
     git mv "$SOURCE_LOG_FILE" "$DEST_LOG_FILE"
 else
     echo "本日のログファイル '$SOURCE_LOG_FILE' は見つかりませんでした。スキップします。"
 fi
 
-# 5. 変更されたファイルをステージング
-#    daily_temperatures.json と intramural_rankings.json をコミット対象に追加
-#    (git mv で移動したログファイルは既にステージングされている)
-git add ekiden_state.json individual_results.json rank_history.json leg_rank_history.json runner_locations.json daily_temperatures.json intramural_rankings.json
+# 5. 変更されたファイルをステージング (パスを修正)
+git add \
+  logs/ekiden_state.json \
+  data/individual_results.json \
+  data/rank_history.json \
+  data/leg_rank_history.json \
+  data/runner_locations.json \
+  data/daily_temperatures.json \
+  data/intramural_rankings.json
 
 # 6. ステージングされた変更があるか確認し、コミットとプッシュを実行
 if ! git diff --cached --quiet; then

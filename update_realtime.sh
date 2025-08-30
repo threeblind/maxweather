@@ -23,16 +23,22 @@ echo "--- $(date +'%Y-%m-%d %H:%M:%S') ---"
 echo "リアルタイム速報の更新を開始します..."
 
 # 1. Python仮想環境を有効化
-source venv/bin/activate
+source venv/bin/activate || { echo "エラー: Python仮想環境(venv)の有効化に失敗しました。"; exit 1; }
 
 # 2. 速報JSONを生成
-echo "generate_report.py を実行中..."
-python generate_report.py --realtime
+echo "scripts/generate_report.py を実行中..."
+python scripts/generate_report.py --realtime
 
 # 3. 速報ファイルに変更があるか確認し、変更があればPush
-if ! git diff --quiet --exit-code realtime_report.json individual_results.json rank_history.json leg_rank_history.json runner_locations.json realtime_log.jsonl; then
+if ! git diff --quiet --exit-code \
+  data/realtime_report.json \
+  data/individual_results.json \
+  data/rank_history.json \
+  data/leg_rank_history.json \
+  data/runner_locations.json \
+  logs/realtime_log.jsonl; then
     echo "速報ファイル (realtime_report.json, etc.) に変更を検出しました。GitHubにプッシュします。"
-    git add realtime_report.json individual_results.json rank_history.json leg_rank_history.json runner_locations.json realtime_log.jsonl
+    git add data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json logs/realtime_log.jsonl
     git commit -m "Update realtime report [bot] $(date +'%Y-%m-%d %H:%M:%S')"
 
     # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash) します。

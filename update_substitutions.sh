@@ -34,16 +34,16 @@ mkdir -p "$(dirname "$LOG_FILE")"
 
     # 2. 選手交代処理スクリプトを実行
     echo "process_substitutions.py を実行中..."
-    python3.9 process_substitutions.py
+    python scripts/process_substitutions.py
 
     # 3. ekiden_data.json または substitution_log.txt に変更があったか確認し、変更があればPush
-    if ! git diff --quiet --exit-code ekiden_data.json substitution_log.txt; then
+    if ! git diff --quiet --exit-code config/ekiden_data.json logs/substitution_log.txt; then
         echo "選手交代または新規ログを検出しました。GitHubにプッシュします。"
         
         echo "変更されたファイル:"
-        git status --short ekiden_data.json substitution_log.txt
+        git status --short config/ekiden_data.json logs/substitution_log.txt
 
-        git add ekiden_data.json substitution_log.txt
+        git add config/ekiden_data.json logs/substitution_log.txt
         
         COMMIT_MSG="Apply player substitution [bot] $(date +'%Y-%m-%d %H:%M')"
         echo "コミットを実行します: $COMMIT_MSG"

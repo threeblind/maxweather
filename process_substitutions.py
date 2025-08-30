@@ -3,12 +3,16 @@ import re
 from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
+from pathlib import Path
 
 # --- Constants ---
-EKIDEN_DATA_FILE = 'ekiden_data.json'
-OUTLINE_FILE = 'outline.json'
-PROCESSED_LOG_FILE = 'substitution_log.txt'
-STATE_FILE = 'ekiden_state.json'
+CONFIG_DIR = Path('config')
+LOGS_DIR = Path('logs')
+
+EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
+OUTLINE_FILE = CONFIG_DIR / 'outline.json'
+PROCESSED_LOG_FILE = LOGS_DIR / 'substitution_log.txt'
+STATE_FILE = LOGS_DIR / 'ekiden_state.json'
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -27,6 +31,7 @@ def get_thread_url():
 def get_processed_posts():
     """処理済みの投稿番号のログを読み込みます。"""
     try:
+        LOGS_DIR.mkdir(parents=True, exist_ok=True)
         with open(PROCESSED_LOG_FILE, 'r', encoding='utf-8') as f:
             return set(line.strip() for line in f)
     except FileNotFoundError:
@@ -34,6 +39,7 @@ def get_processed_posts():
 
 def log_processed_post(post_id):
     """投稿番号を処理済みログファイルに記録します。"""
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
     with open(PROCESSED_LOG_FILE, 'a', encoding='utf-8') as f:
         f.write(f"{post_id}\n")
 
@@ -209,15 +215,19 @@ def process_substitutions():
                 log_processed_post(post_id)
                 continue
 
-            # 比較のために、公式の選手名から括弧部分を取り除いて正規化
-            official_runner_name = team['runners'][leg_index]
+            # 交代前の選手が指定区間の選手と一致するか確認
+            runner_out_obj = team['runners'][leg_index]
+            official_runner_name = runner_out_obj.get('name', '')
             normalized_official_runner = re.sub(r'（.+）', '', official_runner_name).strip()
+
             if runner_out != official_runner_name and runner_out != normalized_official_runner:
-                print(f"  - 検証失敗: 選手 '{runner_out}' は {uni_name} の {leg_num}区の現在の走者ではありません。正選手: '{team['runners'][leg_index]}'")
+                print(f"  - 検証失敗: 選手 '{runner_out}' は {uni_name} の {leg_num}区の現在の走者ではありません。正選手: '{official_runner_name}'")
                 log_processed_post(post_id)
                 continue
 
-            if runner_in not in team.get('substitutes', []):
+            # 交代後の選手がsubstitutesにいるか確認
+            runner_in_obj = next((r for r in team.get('substitutes', []) if r.get('name') == runner_in), None)
+            if not runner_in_obj:
                 print(f"  - 検証失敗: 選手 '{runner_in}' は {uni_name} の補欠リストにいません。")
                 log_processed_post(post_id)
                 continue
@@ -225,13 +235,14 @@ def process_substitutions():
             # --- 交代処理の実行 ---
             print(f"  - 検証成功: {uni_name} の {leg_num}区で '{runner_out}' を '{runner_in}' に交代します。")
             
-            # 補欠リストから削除するためにインデックスを見つける
-            sub_index = team['substitutes'].index(runner_in)
-            
             # 選手を入れ替え
-            team['runners'][leg_index] = runner_in
-            # 区間から外れた選手は補欠になる
-            team['substitutes'][sub_index] = runner_out
+            team['runners'][leg_index] = runner_in_obj
+            
+            # substitutesリストから交代で出場する選手を削除
+            team['substitutes'].remove(runner_in_obj)
+            
+            # 交代前の選手をsubstituted_outリストに追加
+            team.setdefault('substituted_out', []).append(runner_out_obj)
             
             substitution_made = True
             log_processed_post(post_id)

@@ -1,10 +1,15 @@
 import json
 import pandas as pd
 import re
+from pathlib import Path
 
-CSV_FILE_PATH = 'ame_master_20250807.csv'  # ユーザー提供のCSVファイル
-STATIONS_JSON_PATH = 'amedas_stations.json'
-OUTPUT_JSON_PATH = 'amedas_stations.json' # 同じファイルに上書き保存
+# --- ディレクトリ定義 ---
+CONFIG_DIR = Path('config')
+
+# --- ファイル定義 ---
+CSV_FILE_PATH = CONFIG_DIR / 'ame_master_20250807.csv'  # ユーザー提供のCSVファイル
+STATIONS_JSON_PATH = CONFIG_DIR / 'amedas_stations.json'
+OUTPUT_JSON_PATH = CONFIG_DIR / 'amedas_stations.json' # 同じファイルに上書き保存
 
 def dms_to_decimal(degrees, minutes):
     """度分形式を十進数に変換"""
@@ -91,8 +96,12 @@ def main():
     df.set_index('code', inplace=True)
 
     # 既存のJSONファイルを読み込む
-    with open(STATIONS_JSON_PATH, 'r', encoding='utf-8') as f:
-        stations_data = json.load(f)
+    try:
+        with open(STATIONS_JSON_PATH, 'r', encoding='utf-8') as f:
+            stations_data = json.load(f)
+    except FileNotFoundError:
+        print(f"エラー: '{STATIONS_JSON_PATH}' が見つかりません。")
+        return
 
     # マージ処理
     updated_count = 0
@@ -139,6 +148,8 @@ def main():
         print(f"  - 警告: {not_found_count}件の地点がマスターCSVに見つかりませんでした。")
 
     # 更新されたJSONを保存
+    # configディレクトリが存在することを確認（なければ作成）
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_JSON_PATH, 'w', encoding='utf-8') as f:
         json.dump(stations_data, f, ensure_ascii=False, indent=2)
 

@@ -1,13 +1,19 @@
 import json
 import csv
 import os
+from pathlib import Path
 
 # --- 定数 ---
-EKIDEN_DATA_FILE = 'ekiden_data.json'
-INDIVIDUAL_RESULTS_FILE = 'individual_results.json'
-RANK_HISTORY_FILE = 'rank_history.json'
-LEG_RANK_HISTORY_FILE = 'leg_rank_history.json'
-OUTPUT_CSV_FILE = 'ekiden_summary_all_teams.csv'
+# --- ディレクトリ定義 ---
+CONFIG_DIR = Path('config')
+DATA_DIR = Path('data')
+
+# --- ファイル定義 ---
+EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
+INDIVIDUAL_RESULTS_FILE = DATA_DIR / 'individual_results.json'
+RANK_HISTORY_FILE = DATA_DIR / 'rank_history.json'
+LEG_RANK_HISTORY_FILE = DATA_DIR / 'leg_rank_history.json'
+OUTPUT_CSV_FILE = DATA_DIR / 'ekiden_summary_all_teams.csv'
 
 def get_last_valid_value(data_list):
     """
@@ -77,7 +83,11 @@ def generate_csv_summary():
         leg_ranks = team_leg_ranks_data.get('leg_ranks', []) if team_leg_ranks_data else []
 
         # 区間ごとのループ
-        for i, runner_name in enumerate(team['runners']):
+        for i, runner_obj in enumerate(team.get('runners', [])):
+            runner_name = runner_obj.get('name')
+            if not runner_name:
+                continue
+
             leg_number = i + 1
             leg_rank = leg_ranks[i] if i < len(leg_ranks) else ''
 
@@ -95,6 +105,8 @@ def generate_csv_summary():
 
     # 5. CSVファイルに書き出し
     try:
+        # 出力先ディレクトリが存在しない場合は作成
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
         with open(OUTPUT_CSV_FILE, 'w', newline='', encoding='utf-8-sig') as f:
             writer = csv.writer(f)
             writer.writerows(csv_rows)

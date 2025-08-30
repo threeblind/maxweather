@@ -10,12 +10,18 @@ import shutil
 import unicodedata
 import re
 
+# --- ディレクトリ定義 ---
+CONFIG_DIR = Path('config')
+DATA_DIR = Path('data')
+LOGS_DIR = Path('logs')
+
 # --- 定数 ---
-REALTIME_REPORT_FILE = 'realtime_report.json'
-MANAGER_COMMENTS_FILE = 'manager_comments.json'
-EKIDEN_DATA_FILE = 'ekiden_data.json'
-RANK_HISTORY_FILE = 'rank_history.json'
-OUTPUT_FILE = 'daily_summary.json'
+REALTIME_REPORT_FILE = DATA_DIR / 'realtime_report.json'
+MANAGER_COMMENTS_FILE = DATA_DIR / 'manager_comments.json'
+EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
+RANK_HISTORY_FILE = DATA_DIR / 'rank_history.json'
+OUTPUT_FILE = DATA_DIR / 'daily_summary.json'
+PREVIOUS_SUMMARY_FILE = LOGS_DIR / 'daily_summary_previous.json'
 
 # --- テキスト整形ヘルパー関数 ---
 
@@ -224,9 +230,9 @@ def main():
     args = parser.parse_args()
 
     # --- 以前のサマリーをバックアップ・読み込み ---
-    PREVIOUS_SUMMARY_FILE = 'daily_summary_previous.json'
     previous_summary_data = None
     if os.path.exists(OUTPUT_FILE):
+        LOGS_DIR.mkdir(parents=True, exist_ok=True)
         shutil.copy(OUTPUT_FILE, PREVIOUS_SUMMARY_FILE)
         print(f"情報: 以前のサマリーを '{PREVIOUS_SUMMARY_FILE}' にバックアップしました。")
         try:
@@ -351,6 +357,7 @@ def main():
     }
     
     try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
         with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
             json.dump(output_data, f, indent=2, ensure_ascii=False)
         print(f"✅ 日次振り返り解説を '{OUTPUT_FILE}' に保存しました。")
