@@ -1837,14 +1837,19 @@ async function displayDailySummary() {
             const formattedDate = `${dateParts[0]}年${parseInt(dateParts[1], 10)}月${parseInt(dateParts[2], 10)}日`;
 
             // 記事のテキストをHTML用にフォーマット
+            // #, ##, ### を h3, h4, h5 タグに変換 (行頭にある場合のみ)
+            // **text** を <strong> タグに変換
+            // 改行を <br> タグに変換
             const formattedArticle = data.article
-                .replace(/\n/g, '<br>') // 改行を<br>タグに変換
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Markdownの太字(**text**)を<strong>タグに変換
-
+                .replace(/^\s*###\s*(.*)/gm, '<h5>$1</h5>')
+                .replace(/^\s*##\s*(.*)/gm, '<h4>$1</h4>')
+                .replace(/^\s*#\s*(.*)/gm, '<h3>$1</h3>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
 
             container.innerHTML = `
                 <h3>${formattedDate}のレースハイライト</h3>
-                <p class="summary-article">${formattedArticle}</p>
+                <div class="summary-article">${formattedArticle}</div>
             `;
             container.style.display = 'block';
         } else {
