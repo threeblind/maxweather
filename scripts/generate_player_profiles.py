@@ -2,6 +2,7 @@ import json
 import os
 import glob
 from pathlib import Path
+import re
 
 # --- ディレクトリ定義 ---
 CONFIG_DIR = Path('config')
@@ -19,9 +20,21 @@ CURRENT_INDIVIDUAL_RESULTS_FILE = DATA_DIR / 'individual_results.json'
 # --- 出力ファイル定義 ---
 OUTPUT_FILE = CONFIG_DIR / 'player_profiles.json'
 
-# 大会情報
-# TODO: 将来的にこのあたりも設定ファイルから読み込めるようにすると良い
 CURRENT_EDITION = 16
+
+# 都道府県コードと都道府県名のマッピング
+PREFECTURE_MAP = {
+    '1': '北海道', '2': '青森県', '3': '岩手県', '4': '宮城県', '5': '秋田県',
+    '6': '山形県', '7': '福島県', '8': '茨城県', '9': '栃木県', '10': '群馬県',
+    '11': '埼玉県', '12': '千葉県', '13': '東京都', '14': '神奈川県', '15': '新潟県',
+    '16': '富山県', '17': '石川県', '18': '福井県', '19': '山梨県', '20': '長野県',
+    '21': '岐阜県', '22': '静岡県', '23': '愛知県', '24': '三重県', '25': '滋賀県',
+    '26': '京都府', '27': '大阪府', '28': '兵庫県', '29': '奈良県', '30': '和歌山県',
+    '31': '鳥取県', '32': '島根県', '33': '岡山県', '34': '広島県', '35': '山口県',
+    '36': '徳島県', '37': '香川県', '38': '愛媛県', '39': '高知県', '40': '福岡県',
+    '41': '佐賀県', '42': '長崎県', '43': '熊本県', '44': '大分県', '45': '宮崎県',
+    '46': '鹿児島県', '47': '沖縄県'
+}
 
 def load_json(file_path, default=None):
     """JSONファイルを読み込む。ファイルがない場合はデフォルト値を返す。"""
@@ -31,6 +44,14 @@ def load_json(file_path, default=None):
     except (FileNotFoundError, json.JSONDecodeError):
         print(f"情報: '{file_path}' が見つからないか、形式が不正です。スキップします。")
         return default
+
+def get_prefecture_name(pref_code):
+    """都道府県コードから都道府県名を取得する。北海道の特殊コードにも対応。"""
+    if not pref_code:
+        return '未設定'
+    # '1a' -> '1' のように、pref_codeからアルファベットを除去して数字部分だけを取得
+    code = re.sub(r'[a-zA-Z]', '', str(pref_code))
+    return PREFECTURE_MAP.get(code, '不明')
 
 def main():
     """選手名鑑用のJSONデータを生成するメイン関数"""
@@ -125,10 +146,14 @@ def main():
                 print(f"警告: 選手 '{runner_name}' のアメダス情報が見つかりません。スキップします。")
                 continue
 
+            # 都道府県名を取得
+            prefecture_name = get_prefecture_name(station_info.get('pref_code'))
+
             # 基本情報の構築
             profile = {
                 "name": runner_name,
                 "code": station_info.get('code'),
+                "prefecture": prefecture_name,
                 "team_id": team_id,
                 "team_name": team_name,
                 "image_url": f"amedas/jpg/{station_info.get('code')}.jpg",

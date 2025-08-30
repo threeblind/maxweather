@@ -1666,6 +1666,7 @@ async function displayEntryList() {
 
             // ゼッケン番号は削除し、タイトルに統合
             const title = document.createElement('h4');
+            title.style.borderBottomColor = team.color;
             const titleText = `No.${team.id} ${team.status_symbol || ''} ${team.name} ${team.prefectures || ''}`.trim();
             title.textContent = titleText;
             card.appendChild(title);
@@ -2341,27 +2342,30 @@ function showPlayerProfileModal(runnerName) {
         return;
     }
 
+    // チームカラーを取得
+    const teamColor = teamColorMap.get(profile.team_name) || '#6c757d'; // デフォルト色
+
     const currentPerformance = allIndividualData[runnerName];
 
     // --- 各パーツのHTMLを生成 ---
 
     const nameAndTeamHtml = `
-        <div class="profile-header" style="text-align: center; padding-bottom: 1rem; margin-bottom: 1rem;">
+        <div class="profile-header" style="text-align: center; padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 2px solid ${teamColor};">
             <h3 class="profile-name" style="font-size: 1.7rem; margin: 0 0 0.25rem 0; font-weight: 600; color: #212529;">${profile.name}</h3>
-            <p class="profile-team" style="font-size: 1rem; margin: 0; color: #495057;">${profile.team_name}</p>
+            <p class="profile-team" style="font-size: 1rem; margin: 0; color: ${teamColor}; font-weight: bold;">${profile.team_name}</p>
         </div>
     `;
 
     const commentHtml = `
         <div class="profile-section" style="margin-bottom: 2rem;">
-            <blockquote class="profile-comment" style="font-size: 1.1rem; font-style: italic; border-left: 4px solid var(--primary-color); padding: 0.8rem 1.2rem; margin: 0; color: #343a40; background-color: #f8f9fa; border-radius: 0 8px 8px 0;">
+            <blockquote class="profile-comment" style="font-size: 1.1rem; font-style: italic; border-left: 4px solid ${teamColor}; padding: 0.8rem 1.2rem; margin: 0; color: #343a40; background-color: #f8f9fa; border-radius: 0 8px 8px 0;">
                 "${profile.comment || 'コメントはありません。'}"
             </blockquote>
         </div>
     `;
 
     const createSectionTitle = (title) => `
-        <h4 style="font-size: 1.1rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--primary-color-light); color: var(--primary-color); font-weight: 600;">${title}</h4>
+        <h4 style="font-size: 1.1rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid ${teamColor}; color: ${teamColor}; font-weight: 600;">${title}</h4>
     `;
 
     let currentPerformanceHtml = '';
@@ -2396,6 +2400,7 @@ function showPlayerProfileModal(runnerName) {
 
     const metaInfoHtml = `
         <div class="profile-section" style="text-align: center; font-size: 0.85rem; color: #6c757d; margin-bottom: 2rem; padding: 0.75rem; background-color: #f8f9fa; border-radius: 8px;">
+            <p class="profile-meta" style="margin: 0.2rem 0;">出身都道府県: ${profile.prefecture || '未設定'}</p>
             <p class="profile-meta" style="margin: 0.2rem 0;">観測地点: ${profile.address} (標高: ${profile.elevation}m)</p>
             <p class="profile-meta" style="margin: 0.2rem 0;">観測開始: ${profile.start_date}</p>
         </div>
@@ -2437,7 +2442,7 @@ function showPlayerProfileModal(runnerName) {
     if (profile.personal_best && profile.personal_best.length > 0) {
         personalBestHtml = `
             <div class="profile-section">
-                ${createSectionTitle('自己ベスト（主な区間賞）')}
+                ${createSectionTitle('主な区間賞')}
                 <div style="overflow-x: auto;">
                     <table class="profile-table">
                         <thead><tr><th>大会</th><th>区間</th><th>記録</th><th>備考</th></tr></thead>
