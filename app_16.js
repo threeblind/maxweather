@@ -1,5 +1,6 @@
 let stationsData = [];
 let allIndividualData = {}; // 選手個人の全記録を保持するグローバル変数
+let playerProfiles = {}; // 選手名鑑データを保持
 let lastRealtimeData = null; // 最新のrealtime_report.jsonを保持する
 let intramuralDataCache = null; // 学内ランキングデータを保持する
 let dailyTemperaturesCache = null; // daily_temperatures.jsonをキャッシュする
@@ -10,6 +11,7 @@ let intramuralPlayerHistoryChartInstance = null; // 学内ランキングの選�
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
 const EKIDEN_START_DATE = '2025-07-23'; // Python側と合わせる
+const CURRENT_EDITION = 16; // 今大会の大会番号
 
 /**
  * 選手名から括弧で囲まれた都道府県名を取り除く
@@ -42,6 +44,20 @@ async function loadStationsData() {
         console.log('観測所データを読み込みました:', stationsData.length, '件');
     } catch (error) {
         console.error('観測所データの読み込みに失敗:', error);
+    }
+}
+
+// 選手名鑑データを読み込み
+async function loadPlayerProfiles() {
+    try {
+        const response = await fetch('player_profiles.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        playerProfiles = await response.json();
+        console.log('選手名鑑データを読み込みました。');
+    } catch (error) {
+        console.error('選手名鑑データの読み込みに失敗:', error);
     }
 }
 
@@ -759,7 +775,7 @@ const createPrizeTable = (records) => {
         const teamNameHtml = `<span class="full-name">${record.teamDetails.name}</span><span class="short-name">${record.teamDetails.short_name}</span>`;
         const row = document.createElement('tr');
         row.innerHTML = `<td>${lastRank}</td>
-            <td class="runner-name player-total-chart-trigger" data-runner-name="${record.runnerName}">${medal} ${formattedRunnerName}</td>
+            <td class="runner-name player-profile-trigger" data-runner-name="${record.runnerName}">${medal} ${formattedRunnerName}</td>
             <td class="team-name">${teamNameHtml}</td>
             <td>${record.averageDistance.toFixed(3)} km</td>`;
         tbody.appendChild(row);
@@ -824,7 +840,7 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
             const teamNameHtml = `<span class="full-name">${record.teamDetails.name}</span><span class="short-name">${record.teamDetails.short_name}</span>`;
             const row = document.createElement('tr');
             row.innerHTML = `<td>${lastRank}</td>
-                <td class="runner-name player-total-chart-trigger" data-runner-name="${record.runnerName}">${formattedRunnerName}</td>
+                <td class="runner-name player-profile-trigger" data-runner-name="${record.runnerName}">${formattedRunnerName}</td>
                 <td class="team-name">${teamNameHtml}</td>
                 <td>${record.legDistance.toFixed(1)} km</td>`;
             legRankingBody.appendChild(row);
@@ -1435,6 +1451,53 @@ const fetchEkidenData = async () => {
         const runnerLocations = await runnerLocationsRes.json();
         const ekidenData = await ekidenDataRes.json();
 
+        // --- 今大会の区間順位を計算して individualData に付与する ---
+        const dailyLegPerformances = {}; // { day: { leg: [dist1, dist2, ...] } }
+
+        // 1. 日ごと・区間ごとの全記録を収集
+        for (const runnerName in individualData) {
+            const runner = individualData[runnerName];
+            if (runner.records) {
+                runner.records.forEach(record => {
+                    const { day, leg, distance } = record;
+                    if (day === undefined || leg === undefined || distance === undefined) return;
+
+                    if (!dailyLegPerformances[day]) {
+                        dailyLegPerformances[day] = {};
+                    }
+                    if (!dailyLegPerformances[day][leg]) {
+                        dailyLegPerformances[day][leg] = [];
+                    }
+                    dailyLegPerformances[day][leg].push(distance);
+                });
+            }
+        }
+
+        // 2. 各区間の記録を降順ソート
+        for (const day in dailyLegPerformances) {
+            for (const leg in dailyLegPerformances[day]) {
+                dailyLegPerformances[day][leg].sort((a, b) => b - a);
+            }
+        }
+
+        // 3. 各記録に区間順位を付与
+        for (const runnerName in individualData) {
+            const runner = individualData[runnerName];
+            if (runner.records) {
+                runner.records.forEach(record => {
+                    const { day, leg, distance } = record;
+                    if (day !== undefined && leg !== undefined && distance !== undefined) {
+                        const sortedDistances = dailyLegPerformances[day][leg];
+                        // 同順位を考慮
+                        const rank = sortedDistances.indexOf(distance) + 1;
+                        record.legRank = rank;
+                    } else {
+                        record.legRank = null;
+                    }
+                });
+            }
+        }
+
         lastRealtimeData = realtimeData; // 最新データをグローバル変数に保存
 
         // データソースの順序に依存しないように、ここで必ずランク順にソートする
@@ -1619,10 +1682,11 @@ async function displayEntryList() {
             runnersContainer.className = 'runners-container';
             team.runners.forEach((runner, index) => {
                 const runnerSpan = document.createElement('span');
-                runnerSpan.className = 'runner-item';
+                runnerSpan.className = 'runner-item player-profile-trigger'; // クリック用のクラスを追加
+                runnerSpan.dataset.runnerName = runner.name; // 生の選手名をdata属性に保存
                 // 数字を全角に変換
                 const fullWidthNumber = String(index + 1).replace(/[0-9]/g, s => String.fromCharCode(s.charCodeAt(0) + 0xFEE0));
-                const formattedName = formatRunnerName(runner);
+                const formattedName = formatRunnerName(runner.name);
                 runnerSpan.textContent = `${fullWidthNumber}${formattedName}`;
                 runnersContainer.appendChild(runnerSpan);
             });
@@ -1640,8 +1704,9 @@ async function displayEntryList() {
 
                 team.substitutes.forEach(substitute => {
                     const subSpan = document.createElement('span');
-                    subSpan.className = 'runner-item';
-                    const formattedName = formatRunnerName(substitute);
+                    subSpan.className = 'runner-item player-profile-trigger'; // クリック用のクラスを追加
+                    subSpan.dataset.runnerName = substitute.name; // 生の選手名をdata属性に保存
+                    const formattedName = formatRunnerName(substitute.name);
                     subSpan.textContent = formattedName;
                     substitutesContainer.appendChild(subSpan);
                 });
@@ -1978,7 +2043,7 @@ function renderIntramuralTable(teamId) {
         // 選手名にクリックイベント用のクラスとデータ属性を追加
         row.innerHTML = `
             <td>${index + 1}</td>
-            <td class="runner-name intramural-chart-trigger" data-runner-name="${result.runner_name}">${formatRunnerName(result.runner_name)}</td>
+            <td class="runner-name player-profile-trigger" data-runner-name="${result.runner_name}">${formatRunnerName(result.runner_name)}</td>
             <td>${result.distance.toFixed(1)} km</td>
             <td><span class="status-badge ${statusClass}">${result.status}</span></td>
         `;
@@ -2262,11 +2327,159 @@ class EkidenSimulator {
     runSimulation() { /* シミュレーションの実行 */ console.log('Running simulation!'); }
     displayResults(simulationResult) { /* 結果の表示 */ }
 }
+
+/**
+ * 選手名鑑モーダルを表示する
+ * @param {string} runnerName - 表示する選手名 (ekiden_data.json に記載の生の名前)
+ */
+function showPlayerProfileModal(runnerName) {
+    const profile = playerProfiles[runnerName];
+    const modal = document.getElementById('playerProfileModal');
+    const contentDiv = document.getElementById('playerProfileContent');
+
+    if (!profile || !modal || !contentDiv) {
+        console.error('選手プロファイルまたはモーダル要素が見つかりません。', runnerName);
+        return;
+    }
+
+    const currentPerformance = allIndividualData[runnerName];
+
+    // --- 各パーツのHTMLを生成 ---
+
+    const nameAndTeamHtml = `
+        <div class="profile-header" style="text-align: center; padding-bottom: 1rem; margin-bottom: 1rem;">
+            <h3 class="profile-name" style="font-size: 1.7rem; margin: 0 0 0.25rem 0; font-weight: 600; color: #212529;">${profile.name}</h3>
+            <p class="profile-team" style="font-size: 1rem; margin: 0; color: #495057;">${profile.team_name}</p>
+        </div>
+    `;
+
+    const commentHtml = `
+        <div class="profile-section" style="margin-bottom: 2rem;">
+            <blockquote class="profile-comment" style="font-size: 1.1rem; font-style: italic; border-left: 4px solid var(--primary-color); padding: 0.8rem 1.2rem; margin: 0; color: #343a40; background-color: #f8f9fa; border-radius: 0 8px 8px 0;">
+                "${profile.comment || 'コメントはありません。'}"
+            </blockquote>
+        </div>
+    `;
+
+    const createSectionTitle = (title) => `
+        <h4 style="font-size: 1.1rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--primary-color-light); color: var(--primary-color); font-weight: 600;">${title}</h4>
+    `;
+
+    let currentPerformanceHtml = '';
+    if (currentPerformance && currentPerformance.records && currentPerformance.records.length > 0) {
+        currentPerformanceHtml = `
+            <div class="profile-section" style="margin-bottom: 2rem;">
+                ${createSectionTitle(`今大会の成績 (第${CURRENT_EDITION}回)`)}
+                <div style="overflow-x: auto;">
+                    <table class="profile-table">
+                        <thead><tr><th>日付</th><th>区間</th><th>距離</th><th>区間順位</th></tr></thead>
+                        <tbody>
+                            ${[...currentPerformance.records].sort((a, b) => a.day - b.day).map(record => `
+                                <tr>
+                                    <td>${record.day}日目</td>
+                                    <td>${record.leg}区</td>
+                                    <td>${record.distance.toFixed(1)} km</td>
+                                    <td>${record.legRank ? `${record.legRank}位` : '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    const imageHtml = `
+        <div class="profile-section" style="text-align: center; margin: 1.5rem 0 1rem 0;">
+            <img src="${profile.image_url}" alt="${profile.name}" class="profile-image" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+        </div>
+    `;
+
+    const metaInfoHtml = `
+        <div class="profile-section" style="text-align: center; font-size: 0.85rem; color: #6c757d; margin-bottom: 2rem; padding: 0.75rem; background-color: #f8f9fa; border-radius: 8px;">
+            <p class="profile-meta" style="margin: 0.2rem 0;">観測地点: ${profile.address} (標高: ${profile.elevation}m)</p>
+            <p class="profile-meta" style="margin: 0.2rem 0;">観測開始: ${profile.start_date}</p>
+        </div>
+    `;
+
+    let pastPerformanceHtml = '';
+    const pastEditions = Object.keys(profile.performance || {})
+        .filter(edition => parseInt(edition, 10) !== CURRENT_EDITION)
+        .sort((a, b) => b - a);
+    if (pastEditions.length > 0) {
+        pastPerformanceHtml = `
+            <div class="profile-section" style="margin-bottom: 2rem;">
+                ${createSectionTitle('過去大会成績')}
+                <div style="overflow-x: auto;">
+                    <table class="profile-table">
+                        <thead><tr><th>大会</th><th>区間</th><th>区間順位</th><th>総距離</th><th>平均距離</th></tr></thead>
+                        <tbody>
+                            ${pastEditions.map(edition => {
+                                const perf = profile.performance[edition].summary;
+                                const legsRunStr = perf.legs_run && perf.legs_run.length > 0 ? perf.legs_run.map(l => `${l}区`).join(', ') : '-';
+                                return `
+                                    <tr>
+                                        <td>第${edition}回</td>
+                                        <td>${legsRunStr}</td>
+                                        <td>${perf.best_leg_rank ? `${perf.best_leg_rank}位` : '-'}</td>
+                                        <td>${perf.total_distance.toFixed(1)} km</td>
+                                        <td>${perf.average_distance.toFixed(3)} km</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    let personalBestHtml = '';
+    if (profile.personal_best && profile.personal_best.length > 0) {
+        personalBestHtml = `
+            <div class="profile-section">
+                ${createSectionTitle('自己ベスト（主な区間賞）')}
+                <div style="overflow-x: auto;">
+                    <table class="profile-table">
+                        <thead><tr><th>大会</th><th>区間</th><th>記録</th><th>備考</th></tr></thead>
+                        <tbody>
+                            ${[...profile.personal_best].sort((a, b) => b.edition - a.edition).map(best => `
+                                <tr>
+                                    <td>第${best.edition}回</td>
+                                    <td>${best.leg}区</td>
+                                    <td>${best.record.toFixed(3)}</td>
+                                    <td>${best.notes.join(', ') || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- 最終的なHTMLを組み立てる ---
+    contentDiv.innerHTML = `
+        <div class="profile-card">
+            ${nameAndTeamHtml}
+            ${commentHtml}
+            ${currentPerformanceHtml}
+            ${imageHtml}
+            ${metaInfoHtml}
+            ${pastPerformanceHtml}
+            ${personalBestHtml}
+        </div>
+    `;
+
+    modal.style.display = 'block';
+}
+
 // --- 初期化処理 ---
 
 document.addEventListener('DOMContentLoaded', function() {
     // アメダス機能の初期化
     loadStationsData();
+    loadPlayerProfiles();
     loadSearchHistory();
     loadRanking();
 
@@ -2412,51 +2625,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // イベント委譲を使って、個人記録・区間記録テーブルの選手名クリックを処理
+    // イベント委譲を使って、選手名鑑モーダルを開くトリガーをまとめて処理
+    // (個人記録、区間記録、学内ランキング、エントリーリスト)
     const container = document.querySelector('.container');
     if (container) {
         container.addEventListener('click', (event) => {
-            const target = event.target.closest('.player-total-chart-trigger');
-            if (target) {
-                const runnerName = target.dataset.runnerName;
-                if (runnerName && allIndividualData) {
-                    showPlayerTotalChart(runnerName);
-                }
-            }
-        });
-    }
-
-    // 選手個人全記録グラフモーダルを閉じるイベントリスナー
-    const totalChartModal = document.getElementById('playerTotalChartModal');
-    const closeTotalChartBtn = document.getElementById('closePlayerTotalChartModal');
-    if (totalChartModal && closeTotalChartBtn) {
-        closeTotalChartBtn.onclick = () => totalChartModal.style.display = 'none';
-        window.addEventListener('click', (event) => {
-            if (event.target == totalChartModal) { totalChartModal.style.display = 'none'; }
-        });
-    }
-
-    // イベント委譲を使って、学内ランキングの選手名クリックを処理
-    const intramuralSection = document.getElementById('section-intramural-ranking');
-    if (intramuralSection) {
-        intramuralSection.addEventListener('click', (event) => {
-            const target = event.target.closest('.intramural-chart-trigger');
+            const target = event.target.closest('.player-profile-trigger');
             if (target) {
                 const runnerName = target.dataset.runnerName;
                 if (runnerName) {
-                    showIntramuralPlayerHistoryChart(runnerName);
+                    showPlayerProfileModal(runnerName);
                 }
             }
         });
     }
 
-    // 学内ランキングの選手推移グラフモーダルを閉じるイベントリスナー
-    const intramuralHistoryModal = document.getElementById('intramuralPlayerHistoryModal');
-    const closeIntramuralHistoryBtn = document.getElementById('closeIntramuralPlayerHistoryModal');
-    if (intramuralHistoryModal && closeIntramuralHistoryBtn) {
-        closeIntramuralHistoryBtn.onclick = () => intramuralHistoryModal.style.display = 'none';
+    // 選手プロフィールモーダルを閉じるイベントリスナー
+    const profileModal = document.getElementById('playerProfileModal');
+    const closeProfileBtn = document.getElementById('closePlayerProfileModal');
+    if (profileModal && closeProfileBtn) {
+        closeProfileBtn.onclick = () => profileModal.style.display = 'none';
         window.addEventListener('click', (event) => {
-            if (event.target == intramuralHistoryModal) { intramuralHistoryModal.style.display = 'none'; }
+            if (event.target == profileModal) { profileModal.style.display = 'none'; }
         });
     }
 

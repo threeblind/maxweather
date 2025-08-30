@@ -22,21 +22,21 @@
       "color": "#0F9D58",
       "description": "昨年度のディフェンディングチャンピオン。型にハマればこのチームを誰も追い抜くことは出来ない。西風不足が懸念される印象だが、序盤の主力の踏ん張りでどこまで加速できるか？",
       "runners": [
-        "美濃加茂",
-        "美濃",
-        "大垣",
-        "愛西",
-        "多治見",
-        "豊田（愛知）",
-        "名古屋",
-        "大府",
-        "揖斐川",
-        "岐阜"
+        { "name": "美濃加茂", "comment": "" },
+        { "name": "美濃", "comment": "" },
+        { "name": "大垣", "comment": "" },
+        { "name": "愛西", "comment": "" },
+        { "name": "多治見", "comment": "" },
+        { "name": "豊田（愛知）", "comment": "" },
+        { "name": "名古屋", "comment": "" },
+        { "name": "大府", "comment": "" },
+        { "name": "揖斐川", "comment": "" },
+        { "name": "岐阜", "comment": "" }
       ],
       "substitutes": [
-        "八幡（岐阜）",
-        "金山（岐阜）",
-        "岡崎"
+        { "name": "八幡（岐阜）", "comment": "" },
+        { "name": "金山（岐阜）", "comment": "" },
+        { "name": "岡崎", "comment": "" }
       ]
     },
     {
@@ -49,22 +49,22 @@
       "color": "#01579B",
       "description": "三重県史上初の40℃。その瞬間を桑名は走り抜けた！悪天下の伏兵から正統派まで、曲者揃いだがそこが面白い。",
       "runners": [
-        "粥見",
-        "五條",
-        "小俣",
-        "風屋",
-        "奈良",
-        "新宮",
-        "津",
-        "和歌山",
-        "上野",
-        "桑名"
+        { "name": "粥見", "comment": "" },
+        { "name": "五條", "comment": "" },
+        { "name": "小俣", "comment": "" },
+        { "name": "風屋", "comment": "" },
+        { "name": "奈良", "comment": "" },
+        { "name": "新宮", "comment": "" },
+        { "name": "津", "comment": "" },
+        { "name": "和歌山", "comment": "" },
+        { "name": "上野", "comment": "" },
+        { "name": "桑名", "comment": "" }
       ],
       "substitutes": [
-        "新宮",
-        "上北山",
-        "熊野新鹿",
-        "桑名"
+        { "name": "新宮", "comment": "" },
+        { "name": "上北山", "comment": "" },
+        { "name": "熊野新鹿", "comment": "" },
+        { "name": "桑名", "comment": "" }
       ]
     },
     {
@@ -77,21 +77,21 @@
       "color": "#C2185B",
       "description": "九州の王者。もう古豪とは言わせない。後半のイメージが強いキャプテン福岡の２区がひとつのカギになるか。",
       "runners": [
-        "久留米",
-        "福岡",
-        "黒木",
-        "朝倉",
-        "前原",
-        "博多",
-        "口之津",
-        "大牟田",
-        "佐賀（佐賀）",
-        "太宰府"
+        { "name": "久留米", "comment": "" },
+        { "name": "福岡", "comment": "" },
+        { "name": "黒木", "comment": "" },
+        { "name": "朝倉", "comment": "" },
+        { "name": "前原", "comment": "" },
+        { "name": "博多", "comment": "" },
+        { "name": "口之津", "comment": "" },
+        { "name": "大牟田", "comment": "" },
+        { "name": "佐賀（佐賀）", "comment": "" },
+        { "name": "太宰府", "comment": "" }
       ],
       "substitutes": [
-        "口之津",
-        "前原",
-        "嬉野"
+        { "name": "口之津", "comment": "" },
+        { "name": "前原", "comment": "" },
+        { "name": "嬉野", "comment": "" }
       ]
     },
     {
@@ -104,21 +104,21 @@
       "color": "#000000",
       "description": "こちらは関東の王者。関東平野猛暑では手をつけられなくなる。波に乗る北日本勢とのガチンコ勝負に期待。",
         "runners": [
-        "佐野",
-        "越谷",
-        "熊谷",
-        "寄居",
-        "桐生",
-        "伊勢崎",
-        "小山",
-        "前橋",
-        "館林",
-        "鳩山"
+        { "name": "佐野", "comment": "" },
+        { "name": "越谷", "comment": "" },
+        { "name": "熊谷", "comment": "" },
+        { "name": "寄居", "comment": "" },
+        { "name": "桐生", "comment": "" },
+        { "name": "伊勢崎", "comment": "" },
+        { "name": "小山", "comment": "" },
+        { "name": "前橋", "comment": "" },
+        { "name": "館林", "comment": "" },
+        { "name": "鳩山", "comment": "" }
       ],
       "substitutes": [
-        "さいたま",
-        "上里見",
-        "久喜"
+        { "name": "さいたま", "comment": "" },
+        { "name": "上里見", "comment": "" },
+        { "name": "久喜", "comment": "" }
       ]
     },
     {
@@ -131,21 +131,21 @@
       "color": "#1A237E",
       "description": "初代チャンピオン。今年は初の通常チームに。やりごたえは十分。5代目の監督に名乗り出るのは誰か？",
       "runners": [
-        "福崎",
-        "和田山",
-        "上郡",
-        "柏原",
-        "枚方",
-        "豊中",
-        "八尾（大阪）",
-        "郡家",
-        "西脇",
-        "大阪"
+        { "name": "福崎", "comment": "" },
+        { "name": "和田山", "comment": "" },
+        { "name": "上郡", "comment": "" },
+        { "name": "柏原", "comment": "" },
+        { "name": "枚方", "comment": "" },
+        { "name": "豊中", "comment": "" },
+        { "name": "八尾（大阪）", "comment": "" },
+        { "name": "郡家", "comment": "" },
+        { "name": "西脇", "comment": "" },
+        { "name": "大阪", "comment": "" }
       ],
       "substitutes": [
-        "豊岡",
-        "大阪",
-        "洲本"
+        { "name": "豊岡", "comment": "" },
+        { "name": "大阪", "comment": "" },
+        { "name": "洲本", "comment": "" }
       ]
     },
     {
@@ -158,21 +158,21 @@
       "color": "#880E4F",
       "description": "いつ優勝してもおかしくない九州のもう1つの実力者。一部演算で高温が予想された日田は使わず温存。ただ最近の熊本勢もそれに劣らぬ勢いがある。",
       "runners": [
-        "甲佐",
-        "岱明",
-        "八代",
-        "人吉",
-        "熊本",
-        "大分",
-        "犬飼",
-        "三角",
-        "菊池",
-        "日田"
+        { "name": "甲佐", "comment": "" },
+        { "name": "岱明", "comment": "" },
+        { "name": "八代", "comment": "" },
+        { "name": "人吉", "comment": "" },
+        { "name": "熊本", "comment": "" },
+        { "name": "大分", "comment": "" },
+        { "name": "犬飼", "comment": "" },
+        { "name": "三角", "comment": "" },
+        { "name": "菊池", "comment": "" },
+        { "name": "日田", "comment": "" }
       ],
       "substitutes": [
-        "牛深",
-        "三角",
-        "豊後高田"
+        { "name": "牛深", "comment": "" },
+        { "name": "三角", "comment": "" },
+        { "name": "豊後高田", "comment": "" }
       ]
     },
     {
@@ -185,22 +185,22 @@
       "color": "#F4EB37",
       "description": "南九州のダークホース。内陸から島嶼部までドンと来い。沖縄方面の熱帯低気圧が序盤どのように作用するか？",
       "runners": [
-        "東市来",
-        "川内（鹿児島）",
-        "加久藤",
-        "西米良",
-        "西都",
-        "笠利",
-        "鹿児島",
-        "さつま柏原",
-        "喜入",
-        "指宿"
+        { "name": "東市来", "comment": "" },
+        { "name": "川内（鹿児島）", "comment": "" },
+        { "name": "加久藤", "comment": "" },
+        { "name": "西米良", "comment": "" },
+        { "name": "西都", "comment": "" },
+        { "name": "笠利", "comment": "" },
+        { "name": "鹿児島", "comment": "" },
+        { "name": "さつま柏原", "comment": "" },
+        { "name": "喜入", "comment": "" },
+        { "name": "指宿", "comment": "" }
       ],
       "substitutes": [
-        "西米良",
-        "中甑",
-        "笠利",
-        "西都"
+        { "name": "西米良", "comment": "" },
+        { "name": "中甑", "comment": "" },
+        { "name": "笠利", "comment": "" },
+        { "name": "西都", "comment": "" }
       ]
     },
     {
@@ -213,21 +213,21 @@
       "color": "#7CB342",
       "description": "年々力強さを増す中国山地勢。40℃のロマンは微笑むか？誰かさんのお気に入りだったあいつはどうやら今年は応援部長のようだ。",
       "runners": [
-        "三次",
-        "加計",
-        "府中（広島）",
-        "大竹",
-        "高梁",
-        "高松（香川）",
-        "福山",
-        "引田",
-        "滝宮",
-        "財田"
+        { "name": "三次", "comment": "" },
+        { "name": "加計", "comment": "" },
+        { "name": "府中（広島）", "comment": "" },
+        { "name": "大竹", "comment": "" },
+        { "name": "高梁", "comment": "" },
+        { "name": "高松（香川）", "comment": "" },
+        { "name": "福山", "comment": "" },
+        { "name": "引田", "comment": "" },
+        { "name": "滝宮", "comment": "" },
+        { "name": "財田", "comment": "" }
       ],
       "substitutes": [
-        "生口島",
-        "府中（広島）",
-        "広島"
+        { "name": "生口島", "comment": "" },
+        { "name": "府中（広島）", "comment": "" },
+        { "name": "広島", "comment": "" }
       ]
     },
     {
@@ -240,21 +240,21 @@
       "color": "#9C27B0",
       "description": "高温大学駅伝の学連はただの学連じゃない。優勝経験のある実力者の選抜部隊。私なら１区はあの歌手の出身地にしました。北海道熱波で最も輝く場所はどこか。",
       "runners": [
-        "美幌",
-        "新潟",
-        "大村",
-        "上",
-        "久世",
-        "多度津",
-        "加世田",
-        "飯塚",
-        "恵那",
-        "真岡"
+        { "name": "美幌", "comment": "" },
+        { "name": "新潟", "comment": "" },
+        { "name": "大村", "comment": "" },
+        { "name": "上", "comment": "" },
+        { "name": "久世", "comment": "" },
+        { "name": "多度津", "comment": "" },
+        { "name": "加世田", "comment": "" },
+        { "name": "飯塚", "comment": "" },
+        { "name": "恵那", "comment": "" },
+        { "name": "真岡", "comment": "" }
       ],
       "substitutes": [
-        "加世田",
-        "真岡",
-        "三国"
+        { "name": "加世田", "comment": "" },
+        { "name": "真岡", "comment": "" },
+        { "name": "三国", "comment": "" }
       ]
     },
     {
@@ -267,22 +267,22 @@
       "color": "#0288D1",
       "description": "上田！Why don't you do your best?",
       "runners": [
-        "長野",
-        "南信濃",
-        "大月",
-        "浜松",
-        "甲府",
-        "静岡",
-        "三島",
-        "上田",
-        "佐久間",
-        "勝沼"
+        { "name": "長野", "comment": "" },
+        { "name": "南信濃", "comment": "" },
+        { "name": "大月", "comment": "" },
+        { "name": "浜松", "comment": "" },
+        { "name": "甲府", "comment": "" },
+        { "name": "静岡", "comment": "" },
+        { "name": "三島", "comment": "" },
+        { "name": "上田", "comment": "上田！Why don't you do your best?" },
+        { "name": "佐久間", "comment": "" },
+        { "name": "勝沼", "comment": "" }
       ],
       "substitutes": [
-        "静岡",
-        "上田",
-        "飯山",
-        "浜松"
+        { "name": "静岡", "comment": "" },
+        { "name": "上田", "comment": "" },
+        { "name": "飯山", "comment": "" },
+        { "name": "浜松", "comment": "" }
       ]
     },
     {
@@ -295,21 +295,21 @@
       "color": "#3F5BA9",
       "description": "久しぶりの専任監督。チームにとっても励みになるだろう。山陰と山陽の両翼で力強く羽ばたけるか。",
       "runners": [
-        "川本",
-        "鳥取",
-        "広瀬",
-        "防府",
-        "境",
-        "松江",
-        "米子",
-        "玖珂",
-        "津和野",
-        "山口（山口）"
+        { "name": "川本", "comment": "" },
+        { "name": "鳥取", "comment": "" },
+        { "name": "広瀬", "comment": "" },
+        { "name": "防府", "comment": "" },
+        { "name": "境", "comment": "" },
+        { "name": "松江", "comment": "" },
+        { "name": "米子", "comment": "" },
+        { "name": "玖珂", "comment": "" },
+        { "name": "津和野", "comment": "" },
+        { "name": "山口（山口）", "comment": "" }
       ],
       "substitutes": [
-        "下松",
-        "益田",
-        "岩国"
+        { "name": "下松", "comment": "" },
+        { "name": "益田", "comment": "" },
+        { "name": "岩国", "comment": "" }
       ]
     },
     {
@@ -322,21 +322,21 @@
       "color": "#9FC3FF",
       "description": "かつての日本一アメダス江川崎要する、黒潮の韋駄天集団。個人的には御荘の活躍が見られるのが嬉しい。",
       "runners": [
-        "穴吹",
-        "大三島",
-        "御荘",
-        "松山",
-        "大洲",
-        "徳島",
-        "新居浜",
-        "江川崎",
-        "西条",
-        "中村"
+        { "name": "穴吹", "comment": "" },
+        { "name": "大三島", "comment": "" },
+        { "name": "御荘", "comment": "" },
+        { "name": "松山", "comment": "" },
+        { "name": "大洲", "comment": "" },
+        { "name": "徳島", "comment": "" },
+        { "name": "新居浜", "comment": "" },
+        { "name": "江川崎", "comment": "" },
+        { "name": "西条", "comment": "" },
+        { "name": "中村", "comment": "" }
       ],
       "substitutes": [
-        "四国中央",
-        "大三島",
-        "西条"
+        { "name": "四国中央", "comment": "" },
+        { "name": "大三島", "comment": "" },
+        { "name": "西条", "comment": "" }
       ]
     },
     {
@@ -349,22 +349,22 @@
       "color": "#FF5252",
       "description": "前半の茨城勢の活躍に期待したい。今年は上武の背中にピッタリ付けるように。島嶼部は1枚で良かったのか？",
       "runners": [
-        "大子",
-        "古河",
-        "下館",
-        "小田原",
-        "牛久",
-        "八王子",
-        "練馬",
-        "府中（東京）",
-        "海老名",
-        "青梅"
+        { "name": "大子", "comment": "" },
+        { "name": "古河", "comment": "" },
+        { "name": "下館", "comment": "" },
+        { "name": "小田原", "comment": "" },
+        { "name": "牛久", "comment": "" },
+        { "name": "八王子", "comment": "" },
+        { "name": "練馬", "comment": "" },
+        { "name": "府中（東京）", "comment": "" },
+        { "name": "海老名", "comment": "" },
+        { "name": "青梅", "comment": "" }
       ],
       "substitutes": [
-        "茂原",
-        "小田原",
-        "海老名",
-        "南鳥島"
+        { "name": "茂原", "comment": "" },
+        { "name": "小田原", "comment": "" },
+        { "name": "海老名", "comment": "" },
+        { "name": "南鳥島", "comment": "" }
       ]
     },
     {
@@ -377,22 +377,22 @@
       "color": "#E65100",
       "description": "レンジの関大に対し少数精鋭で上を狙う立命館。米原は初めての出走か？山間部の躍進に期待したい。",
       "runners": [
-        "東近江",
-        "福知山",
-        "京田辺",
-        "米原",
-        "舞鶴",
-        "彦根",
-        "長浜（滋賀）",
-        "京都",
-        "園部",
-        "大津（滋賀）"
+        { "name": "東近江", "comment": "" },
+        { "name": "福知山", "comment": "" },
+        { "name": "京田辺", "comment": "" },
+        { "name": "米原", "comment": "" },
+        { "name": "舞鶴", "comment": "" },
+        { "name": "彦根", "comment": "" },
+        { "name": "長浜（滋賀）", "comment": "" },
+        { "name": "京都", "comment": "" },
+        { "name": "園部", "comment": "" },
+        { "name": "大津（滋賀）", "comment": "" }
       ],
       "substitutes": [
-        "京都",
-        "舞鶴",
-        "宮津",
-        "南小松"
+        { "name": "京都", "comment": "" },
+        { "name": "舞鶴", "comment": "" },
+        { "name": "宮津", "comment": "" },
+        { "name": "南小松", "comment": "" }
       ]
     },
     {
@@ -405,23 +405,23 @@
       "color": "#A61B4A",
       "description": "風に乗れば上位を脅かす地力は十分にある。絶好調の梁川のお家芸「3ピン」にも期待したい。",
       "runners": [
-        "梁川",
-        "石川",
-        "津川",
-        "長岡",
-        "福島",
-        "浪江",
-        "寺泊",
-        "喜多方",
-        "新津",
-        "若松"
+        { "name": "梁川", "comment": "" },
+        { "name": "石川", "comment": "" },
+        { "name": "津川", "comment": "" },
+        { "name": "長岡", "comment": "" },
+        { "name": "福島", "comment": "" },
+        { "name": "浪江", "comment": "" },
+        { "name": "寺泊", "comment": "" },
+        { "name": "喜多方", "comment": "" },
+        { "name": "新津", "comment": "" },
+        { "name": "若松", "comment": "" }
       ],
       "substitutes": [
-        "福島",
-        "喜多方",
-        "浪江",
-        "村上",
-        "津川"
+        { "name": "福島", "comment": "" },
+        { "name": "喜多方", "comment": "" },
+        { "name": "浪江", "comment": "" },
+        { "name": "村上", "comment": "" },
+        { "name": "津川", "comment": "" }
       ]
     },
     {
@@ -434,22 +434,22 @@
       "color": "#F4B400",
       "description": "表はニコニコ、裏は真夏日割れした選手を下位に突き落とすデススキッパー。いきなりの台風ラウンドだが、上位に進めるチャンスは長い夏のどこかで必ずある。",
       "runners": [
-        "北原",
-        "仲筋",
-        "盛山",
-        "名護",
-        "波照間",
-        "久米島",
-        "那覇",
-        "西表島",
-        "大原",
-        "石垣島"
+        { "name": "北原", "comment": "" },
+        { "name": "仲筋", "comment": "" },
+        { "name": "盛山", "comment": "" },
+        { "name": "名護", "comment": "" },
+        { "name": "波照間", "comment": "" },
+        { "name": "久米島", "comment": "" },
+        { "name": "那覇", "comment": "" },
+        { "name": "西表島", "comment": "" },
+        { "name": "大原", "comment": "" },
+        { "name": "石垣島", "comment": "" }
       ],
       "substitutes": [
-        "南大東",
-        "鏡原",
-        "大原",
-        "北大東"
+        { "name": "南大東", "comment": "" },
+        { "name": "鏡原", "comment": "" },
+        { "name": "大原", "comment": "" },
+        { "name": "北大東", "comment": "" }
       ]
     },
     {
@@ -462,23 +462,23 @@
       "color": "#F8971B",
       "description": "日本海無双の年は上位経験もある。南風基調が予想された序盤にどれだけ前に出られるか。",
       "runners": [
-        "秋ヶ島",
-        "小浜",
-        "七尾",
-        "志賀",
-        "福井",
-        "富山",
-        "敦賀",
-        "小松",
-        "大野（福井）",
-        "加賀中津原"
+        { "name": "秋ヶ島", "comment": "" },
+        { "name": "小浜", "comment": "" },
+        { "name": "七尾", "comment": "" },
+        { "name": "志賀", "comment": "" },
+        { "name": "福井", "comment": "" },
+        { "name": "富山", "comment": "" },
+        { "name": "敦賀", "comment": "" },
+        { "name": "小松", "comment": "" },
+        { "name": "大野（福井）", "comment": "" },
+        { "name": "加賀中津原", "comment": "" }
       ],
       "substitutes": [
-        "小浜",
-        "春江",
-        "輪島",
-        "志賀",
-        "勝山"
+        { "name": "小浜", "comment": "" },
+        { "name": "春江", "comment": "" },
+        { "name": "輪島", "comment": "" },
+        { "name": "志賀", "comment": "" },
+        { "name": "勝山", "comment": "" }
       ]
     },
     {
@@ -491,24 +491,24 @@
       "color": "#006064",
       "description": "2023年大躍進の再来なるか。まずは帯広の大記録に期待。雪に続いて、この高温界でも記録をかっさらってしまうのか。。",
       "runners": [
-        "帯広",
-        "山形（山形）",
-        "高畠",
-        "大館",
-        "一関",
-        "丸森",
-        "秋田",
-        "東根",
-        "江刺",
-        "米沢"
+        { "name": "帯広", "comment": "" },
+        { "name": "山形（山形）", "comment": "" },
+        { "name": "高畠", "comment": "" },
+        { "name": "大館", "comment": "" },
+        { "name": "一関", "comment": "" },
+        { "name": "丸森", "comment": "" },
+        { "name": "秋田", "comment": "" },
+        { "name": "東根", "comment": "" },
+        { "name": "江刺", "comment": "" },
+        { "name": "米沢", "comment": "" }
       ],
       "substitutes": [
-        "鷹巣",
-        "五城目",
-        "大館",
-        "江刺",
-        "北見",
-        "鶴岡"
+        { "name": "鷹巣", "comment": "" },
+        { "name": "五城目", "comment": "" },
+        { "name": "大館", "comment": "" },
+        { "name": "江刺", "comment": "" },
+        { "name": "北見", "comment": "" },
+        { "name": "鶴岡", "comment": "" }
       ]
     }
   ]

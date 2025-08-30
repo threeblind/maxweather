@@ -222,7 +222,9 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
     # resultsは既に総合順位でソートされている想定
     for r in results:
         team_info = next(t for t in ekiden_data['teams'] if t['id'] == r['id'])
-        next_runner_name = team_info['runners'][r['currentLegNumber']] if r['currentLegNumber'] < len(team_info['runners']) else '----'
+        # オブジェクトの配列から選手名を取得するように修正
+        runner_names = [runner['name'] for runner in team_info['runners']]
+        next_runner_name = runner_names[r['currentLegNumber']] if r['currentLegNumber'] < len(runner_names) else '----'
         next_runner_str = 'ゴール' if next_runner_name == '----' else f"{r['currentLegNumber'] + 1}{next_runner_name}"
 
         report_data["teams"].append({
@@ -776,7 +778,9 @@ def main():
 
     for i, r in enumerate(results):
         team_info = next(t for t in ekiden_data['teams'] if t['id'] == r['id'])
-        next_runner_name = team_info['runners'][r['currentLegNumber']] if r['currentLegNumber'] < len(team_info['runners']) else '----'
+        # オブジェクトの配列から選手名を取得するように修正
+        runner_names = [runner['name'] for runner in team_info['runners']]
+        next_runner_name = runner_names[r['currentLegNumber']] if r['currentLegNumber'] < len(runner_names) else '----'
         next_runner_str = 'ゴール' if next_runner_name == '----' else f"{r['currentLegNumber'] + 1}{next_runner_name}"
 
         # 各パーツをフォーマット
