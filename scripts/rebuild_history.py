@@ -13,10 +13,10 @@ LOGS_DIR = Path('logs')
 # 入力ファイル (Source of Truth)
 EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
 DAILY_TEMP_FILE = DATA_DIR / 'daily_temperatures.json'
-COURSE_PATH_FILE = DATA_DIR / 'course_path.json'
+COURSE_PATH_FILE = CONFIG_DIR / 'course_path.json'
 
 # 出力/上書きされるファイル
-STATE_FILE = LOGS_DIR / 'ekiden_state.json'
+STATE_FILE = DATA_DIR / 'ekiden_state.json'
 INDIVIDUAL_STATE_FILE = DATA_DIR / 'individual_results.json'
 RANK_HISTORY_FILE = DATA_DIR / 'rank_history.json'
 LEG_RANK_HISTORY_FILE = DATA_DIR / 'leg_rank_history.json'

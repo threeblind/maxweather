@@ -36,9 +36,9 @@ if ! git diff --quiet --exit-code \
   data/rank_history.json \
   data/leg_rank_history.json \
   data/runner_locations.json \
-  logs/realtime_log.jsonl; then
+  data/realtime_log.jsonl; then
     echo "速報ファイル (realtime_report.json, etc.) に変更を検出しました。GitHubにプッシュします。"
-    git add data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json logs/realtime_log.jsonl
+    git add data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json data/realtime_log.jsonl
     git commit -m "Update realtime report [bot] $(date +'%Y-%m-%d %H:%M:%S')"
 
     # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash) します。

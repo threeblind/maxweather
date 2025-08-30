@@ -12,41 +12,28 @@ from bs4 import BeautifulSoup
 import unicodedata
 from geopy.distance import geodesic
 
-# --- ディレクトリ定義 ---
-CONFIG_DIR = Path('config')
-DATA_DIR = Path('data')
-LOGS_DIR = Path('logs')
-HISTORY_DATA_DIR = Path('history_data')
-
 # --- 定数 ---
-# 設定ファイル
-EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
-AMEDAS_STATIONS_FILE = CONFIG_DIR / 'amedas_stations.json'
-OUTLINE_FILE = CONFIG_DIR / 'outline.json'
-KML_FILE = CONFIG_DIR / 'ekiden_map.kml'
-COURSE_PATH_FILE = CONFIG_DIR / 'course_path.json'
+AMEDAS_STATIONS_FILE = 'config/amedas_stations.json'
+HISTORY_DATA_DIR = 'history_data'
+STORY_SETTINGS_FILE = Path(HISTORY_DATA_DIR) / 'ekiden_story_settings.json'
+PAST_RESULTS_FILE = Path(HISTORY_DATA_DIR) / 'past_results.json'
+LEG_AWARD_HISTORY_FILE = Path(HISTORY_DATA_DIR) / 'leg_award_history.json'
+TOURNAMENT_RECORDS_FILE = Path(HISTORY_DATA_DIR) / 'tournament_records.json'
+LEG_BEST_RECORDS_FILE = Path(HISTORY_DATA_DIR) / 'leg_best_records.json'
 
-# 履歴データ
-STORY_SETTINGS_FILE = HISTORY_DATA_DIR / 'ekiden_story_settings.json'
-PAST_RESULTS_FILE = HISTORY_DATA_DIR / 'past_results.json'
-LEG_AWARD_HISTORY_FILE = HISTORY_DATA_DIR / 'leg_award_history.json'
-TOURNAMENT_RECORDS_FILE = HISTORY_DATA_DIR / 'tournament_records.json'
-LEG_BEST_RECORDS_FILE = HISTORY_DATA_DIR / 'leg_best_records.json'
-
-# 出力ファイル (data)
-REALTIME_REPORT_FILE = DATA_DIR / 'realtime_report.json'
-INDIVIDUAL_STATE_FILE = DATA_DIR / 'individual_results.json'
-RANK_HISTORY_FILE = DATA_DIR / 'rank_history.json'
-LEG_RANK_HISTORY_FILE = DATA_DIR / 'leg_rank_history.json'
-RUNNER_LOCATIONS_OUTPUT_FILE = DATA_DIR / 'runner_locations.json'
-INTRAMURAL_RANKINGS_FILE = DATA_DIR / 'intramural_rankings.json'
-STATE_FILE = DATA_DIR / 'ekiden_state.json'
-
-# 状態・ログファイル (logs)
-REALTIME_LOG_FILE = DATA_DIR / 'realtime_log.jsonl'
-
-# その他
+# --- リアルタイム更新ファイル ---
+EKIDEN_DATA_FILE = 'config/ekiden_data.json'
+OUTLINE_FILE = 'config/outline.json'
+STATE_FILE = 'data/ekiden_state.json'
+INDIVIDUAL_STATE_FILE = 'data/individual_results.json'
+RANK_HISTORY_FILE = 'data/rank_history.json'
+LEG_RANK_HISTORY_FILE = 'data/leg_rank_history.json'
+REALTIME_REPORT_FILE = 'data/realtime_report.json'
+REALTIME_LOG_FILE = 'data/realtime_log.jsonl'
 EKIDEN_START_DATE = '2025-07-23'
+KML_FILE = 'data/ekiden_map.kml'
+RUNNER_LOCATIONS_OUTPUT_FILE = 'data/runner_locations.json'
+COURSE_PATH_FILE = 'config/course_path.json'
 
 # 5chからスクレイピングする際のリクエストヘッダー
 HEADERS = {
@@ -93,10 +80,10 @@ def load_all_data():
 
     # 学内ランキングは任意ファイルとして読み込む
     try:
-        with open(INTRAMURAL_RANKINGS_FILE, 'r', encoding='utf-8') as f:
+        with open('data/intramural_rankings.json', 'r', encoding='utf-8') as f:
             intramural_rankings = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        print(f"情報: '{INTRAMURAL_RANKINGS_FILE}' が見つからないか不正なため、学内ランキング関連の機能はスキップされます。")
+        print("情報: 'intramural_rankings.json' が見つからないか不正なため、学内ランキング関連の機能はスキップされます。")
         intramural_rankings = {} # 空の辞書をセット
 
 def find_station_by_name(name):
@@ -148,10 +135,7 @@ def load_individual_results(file_path):
         # 初期状態を生成
         runners_state = {}
         for team in ekiden_data['teams']:
-            for runner_obj in team.get('runners', []):
-                runner_name = runner_obj.get('name')
-                if not runner_name:
-                    continue
+            for runner_name in team['runners']:
                 # 選手名をキーとして、総距離、チームID、記録配列を保存
                 runners_state[runner_name] = {
                     "totalDistance": 0,
@@ -171,14 +155,11 @@ def save_ekiden_state(state, file_path):
             "finishDay": s.get("finishDay")
         } for s in state
     ]
-    # ディレクトリが存在しない場合は作成
-    LOGS_DIR.mkdir(parents=True, exist_ok=True)
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(data_to_save, f, indent=2, ensure_ascii=False)
 
 def save_individual_results(runners_state, file_path):
     """選手個人の結果を保存する"""
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(runners_state, f, indent=2, ensure_ascii=False)
 
@@ -275,13 +256,12 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
         "breakingNewsFullText": breaking_news_full_text,
         "teams": []
     }
-
     # resultsは既に総合順位でソートされている想定
     for r in results:
         team_info = next(t for t in ekiden_data['teams'] if t['id'] == r['id'])
         # ゴール済みの場合は区間番号を付けずに「ゴール」と表示
         runner_display = "ゴール" if r['runner'] == 'ゴール' else f"{r['currentLegNumber']}{r['runner']}"
-        next_runner_name = team_info['runners'][r['currentLegNumber']]['name'] if r['currentLegNumber'] < len(team_info['runners']) else '----'
+        next_runner_name = team_info['runners'][r['currentLegNumber']] if r['currentLegNumber'] < len(team_info['runners']) else '----'
         next_runner_str = 'ゴール' if next_runner_name == '----' else f"{r['currentLegNumber'] + 1}{next_runner_name}"
 
         report_data["teams"].append({
@@ -300,7 +280,6 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
             "finishDay": r.get("finishDay")
         })
 
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(REALTIME_REPORT_FILE, 'w', encoding='utf-8') as f:
         json.dump(report_data, f, indent=2, ensure_ascii=False)
 
@@ -346,7 +325,6 @@ def update_rank_history(results, race_day, rank_history_file_path):
             team_history['distances'][date_index] = result['totalDistance']
 
     # ファイルに保存
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(rank_history_file_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2, ensure_ascii=False)
 
@@ -406,7 +384,6 @@ def update_leg_rank_history(results, previous_day_state, leg_rank_history_file_p
                 # to allow for continuous updates.
                 team_history['leg_ranks'][leg_index] = result['overallRank']
 
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(leg_rank_history_file_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2, ensure_ascii=False)
 
@@ -705,7 +682,6 @@ def calculate_and_save_runner_locations(teams_data):
         print(f"  {team.get('overallRank')}位 {team.get('name'):<10} @ {team.get('totalDistance'):.1f} km -> ({team_lat:.6f}, {team_lon:.6f})")
 
     # 3. 結果をJSONファイルに保存
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(RUNNER_LOCATIONS_OUTPUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(runner_locations, f, indent=2, ensure_ascii=False)
 
@@ -715,7 +691,6 @@ def calculate_and_save_runner_locations(teams_data):
 def append_to_realtime_log(results):
     """リアルタイムログファイルに現在の走行データを追記する。"""
     now_iso = datetime.now().isoformat()
-    LOGS_DIR.mkdir(parents=True, exist_ok=True)
     try:
         with open(REALTIME_LOG_FILE, 'a', encoding='utf-8') as f:
             for r in results:
@@ -750,7 +725,7 @@ def main():
 
     # Copy the previous report for comparison
     previous_report_file = 'data/realtime_report_previous.json'
-    realtime_report_file = 'data/realtime_report.json'
+    realtime_report_file = REALTIME_REPORT_FILE
     previous_report_data = None # 変数を初期化
     if os.path.exists(realtime_report_file):
         shutil.copy(realtime_report_file, previous_report_file)
@@ -797,7 +772,7 @@ def main():
         runner_name, temp_result, today_distance = "ゴール", {'temperature': 0, 'error': None}, 0.0
 
         if runner_index < len(team_data['runners']):
-            runner_name = team_data['runners'][runner_index]['name']
+            runner_name = team_data['runners'][runner_index]
             station = find_station_by_name(runner_name)
             temp_result = fetch_max_temperature(station['pref_code'], station['code']) if station else {'temperature': 0, 'error': '地点不明'}
             today_distance = temp_result.get('temperature') or 0.0
@@ -861,7 +836,7 @@ def main():
 
     for i, r in enumerate(results):
         team_info = next(t for t in ekiden_data['teams'] if t['id'] == r['id'])
-        next_runner_name = team_info['runners'][r['currentLegNumber']]['name'] if r['currentLegNumber'] < len(team_info['runners']) else '----'
+        next_runner_name = team_info['runners'][r['currentLegNumber']] if r['currentLegNumber'] < len(team_info['runners']) else '----'
         next_runner_str = 'ゴール' if next_runner_name == '----' else f"{r['currentLegNumber'] + 1}{next_runner_name}"
 
         # 各パーツをフォーマット

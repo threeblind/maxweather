@@ -17,7 +17,7 @@ LEG_AWARD_HISTORY_FILE = HISTORY_DATA_DIR / 'leg_award_history.json'
 CURRENT_INDIVIDUAL_RESULTS_FILE = DATA_DIR / 'individual_results.json'
 
 # --- 出力ファイル定義 ---
-OUTPUT_FILE = DATA_DIR / 'player_profiles.json'
+OUTPUT_FILE = CONFIG_DIR / 'player_profiles.json'
 
 # 大会情報
 # TODO: 将来的にこのあたりも設定ファイルから読み込めるようにすると良い

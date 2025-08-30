@@ -8,11 +8,12 @@ from pathlib import Path
 # --- Constants ---
 CONFIG_DIR = Path('config')
 LOGS_DIR = Path('logs')
+DATA_DIR = Path('data')
 
 EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
 OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 PROCESSED_LOG_FILE = LOGS_DIR / 'substitution_log.txt'
-STATE_FILE = LOGS_DIR / 'ekiden_state.json'
+STATE_FILE = DATA_DIR / 'ekiden_state.json'
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'

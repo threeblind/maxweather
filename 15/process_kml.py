@@ -7,7 +7,7 @@ import unicodedata
 # --- 定数 ---
 KML_FILE = 'ekiden_map.kml'
 COURSE_PATH_OUTPUT_FILE = 'course_path.json'
-RELAY_POINTS_OUTPUT_FILE = 'relay_points.json'
+RELAY_POINTS_OUTPUT_FILE = 'config/relay_points.json'
 
 def get_leg_number_from_name(name, pattern=r'第(\d+)'):
     """'第1区'、'第一中継所'のような名前から区間番号を抽出します。"""

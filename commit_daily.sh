@@ -31,10 +31,11 @@ python scripts/generate_report.py --commit
 
 # 4. 本日のログファイルをアーカイブ
 LOGS_DIR="logs"
-ARCHIVE_DIR="$LOGS_DIR/archive"
+DATA_DIR="data"
+ARCHIVE_DIR="$DATA_DIR/archive"
 mkdir -p "$ARCHIVE_DIR"
 
-SOURCE_LOG_FILE="$LOGS_DIR/realtime_log.jsonl"
+SOURCE_LOG_FILE="$DATA_DIR/realtime_log.jsonl"
 if [ -f "$SOURCE_LOG_FILE" ]; then
     TODAY=$(date +'%Y-%m-%d')
     DEST_LOG_FILE="$ARCHIVE_DIR/realtime_log_${TODAY}.jsonl"
@@ -46,7 +47,7 @@ fi
 
 # 5. 変更されたファイルをステージング (パスを修正)
 git add \
-  logs/ekiden_state.json \
+  data/ekiden_state.json \
   data/individual_results.json \
   data/rank_history.json \
   data/leg_rank_history.json \

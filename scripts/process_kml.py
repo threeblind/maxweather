@@ -13,8 +13,8 @@ DATA_DIR = Path('data')
 # --- ファイル定義 ---
 KML_FILE = CONFIG_DIR / 'ekiden_map.kml'
 EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
-COURSE_PATH_OUTPUT_FILE = DATA_DIR / 'course_path.json'
-RELAY_POINTS_OUTPUT_FILE = DATA_DIR / 'relay_points.json'
+COURSE_PATH_OUTPUT_FILE = CONFIG_DIR / 'course_path.json'
+RELAY_POINTS_OUTPUT_FILE = CONFIG_DIR / 'relay_points.json'
 
 def get_leg_number_from_name(name, pattern=r'第(\d+)'):
     """'第1区'、'第一中継所'のような名前から区間番号を抽出します。"""
