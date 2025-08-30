@@ -133,7 +133,10 @@ def load_individual_results(file_path):
         # 初期状態を生成
         runners_state = {}
         for team in ekiden_data['teams']:
-            for runner_name in team['runners']:
+            for runner_obj in team.get('runners', []):
+                runner_name = runner_obj.get('name')
+                if not runner_name:
+                    continue
                 # 選手名をキーとして、総距離、チームID、記録配列を保存
                 runners_state[runner_name] = {
                     "totalDistance": 0,
@@ -260,7 +263,7 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
         team_info = next(t for t in ekiden_data['teams'] if t['id'] == r['id'])
         # ゴール済みの場合は区間番号を付けずに「ゴール」と表示
         runner_display = "ゴール" if r['runner'] == 'ゴール' else f"{r['currentLegNumber']}{r['runner']}"
-        next_runner_name = team_info['runners'][r['currentLegNumber']] if r['currentLegNumber'] < len(team_info['runners']) else '----'
+        next_runner_name = team_info['runners'][r['currentLegNumber']]['name'] if r['currentLegNumber'] < len(team_info['runners']) else '----'
         next_runner_str = 'ゴール' if next_runner_name == '----' else f"{r['currentLegNumber'] + 1}{next_runner_name}"
 
         report_data["teams"].append({
@@ -771,7 +774,7 @@ def main():
         runner_name, temp_result, today_distance = "ゴール", {'temperature': 0, 'error': None}, 0.0
 
         if runner_index < len(team_data['runners']):
-            runner_name = team_data['runners'][runner_index]
+            runner_name = team_data['runners'][runner_index]['name']
             station = find_station_by_name(runner_name)
             temp_result = fetch_max_temperature(station['pref_code'], station['code']) if station else {'temperature': 0, 'error': '地点不明'}
             today_distance = temp_result.get('temperature') or 0.0
@@ -835,7 +838,7 @@ def main():
 
     for i, r in enumerate(results):
         team_info = next(t for t in ekiden_data['teams'] if t['id'] == r['id'])
-        next_runner_name = team_info['runners'][r['currentLegNumber']] if r['currentLegNumber'] < len(team_info['runners']) else '----'
+        next_runner_name = team_info['runners'][r['currentLegNumber']]['name'] if r['currentLegNumber'] < len(team_info['runners']) else '----'
         next_runner_str = 'ゴール' if next_runner_name == '----' else f"{r['currentLegNumber'] + 1}{next_runner_name}"
 
         # 各パーツをフォーマット
