@@ -1862,9 +1862,8 @@ async function displayManagerComments() {
     const loungeContainer = document.getElementById('manager-lounge-container');
     const loungeContent = document.getElementById('manager-lounge-content');
     const statusEl = document.getElementById('manager-lounge-status');
-    const navLink = document.querySelector('a[href="#section-digest"]'); // セレクターを更新
 
-    if (!loungeContainer || !loungeContent || !statusEl || !navLink) return;
+    if (!loungeContainer || !loungeContent || !statusEl) return;
 
     try {
         const response = await fetch(`data/manager_comments.json?_=${new Date().getTime()}`);
@@ -2480,8 +2479,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // アメダス機能の初期化
     loadStationsData();
     loadPlayerProfiles();
-    loadSearchHistory();
-    loadRanking();
+    loadSearchHistory(); // アメダス検索履歴の読み込み
+    // loadRanking(); // 全国ランキングは index_16.html には無いためコメントアウト
 
     document.getElementById('locationInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -2650,19 +2649,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- Order Simulator Initialization ---
-    const simulator = new EkidenSimulator(
-        'simulatorModal',
-        'open-simulator-btn',
-        'closeSimulatorModal',
-        'simulator-university-select',
-        'run-simulation-btn',
-        'simulator-order-editor',
-        'simulator-regular-runners',
-        'simulator-sub-runners',
-        'simulator-results-container'
-    );
-    simulator.init();
+    // --- Order Simulator Initialization (このページでは使用しないため無効化) ---
+    // const simulator = new EkidenSimulator(...)
+    // simulator.init();
 
     // --- Smooth Scrolling for Page Navigation ---
     // href属性を持つリンクのみを対象にし、ドロップダウンのトグルボタンなどを除外
@@ -2752,46 +2741,4 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-
-    // --- キャプチャ機能 ---
-    const captureBtn = document.getElementById('capture-ranking-btn');
-    if (captureBtn) {
-        captureBtn.addEventListener('click', async () => {
-            const rankingSection = document.getElementById('section-overall-ranking');
-            if (!rankingSection) return;
-
-            // キャプチャ画像にボタンが写り込まないように、処理中は非表示にする
-            captureBtn.textContent = '処理中...';
-            captureBtn.disabled = true;
-            captureBtn.style.visibility = 'hidden';
-
-            try {
-                const canvas = await html2canvas(rankingSection, {
-                    useCORS: true,
-                    backgroundColor: '#f5f5f5', // 背景色を指定
-                    windowWidth: window.innerWidth,
-                    windowHeight: rankingSection.scrollHeight // 縦方向のスクロール全体をキャプチャ
-                });
-
-                const response = await fetch(`data/realtime_report.json?_=${new Date().getTime()}`);
-                const data = await response.json();
-                const timeStr = data.updateTime.replace(/[\/:\s]/g, '');
-                const fileName = `EkidenRanking_Day${data.raceDay}_${timeStr}.png`;
-
-                const link = document.createElement('a');
-                link.download = fileName;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-
-            } catch (error) {
-                console.error('キャプチャに失敗しました:', error);
-                alert('キャプチャに失敗しました。');
-            } finally {
-                // ボタンを元に戻す
-                captureBtn.style.visibility = 'visible';
-                captureBtn.textContent = '📷 キャプチャ';
-                captureBtn.disabled = false;
-            }
-        });
-    }
 });
