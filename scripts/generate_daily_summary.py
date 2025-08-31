@@ -264,20 +264,18 @@ def main():
     race_day = realtime_data.get('raceDay', 'N/A')
     ranking_table_text = format_ranking_table(realtime_data)
     
-    # --- プロンプト用に昨日の記事全体を準備 ---
-    previous_article_for_prompt = []
-    if previous_summary_data and previous_summary_data.get('article'):
-        previous_article_text = previous_summary_data['article']
-        # Markdownの太字(**)を削除して、AIがテキストとして認識しやすくする
-        cleaned_previous_article = previous_article_text.replace('**', '')
-        
-        previous_article_for_prompt.extend([
-            "\n## 【昨日のあなたの解説記事】",
-            "あなたは昨日、以下の解説記事を執筆しました。この内容を踏まえ、今日のレースで状況がどう変化したか、あなたの視点で自由に解説してください。",
-            "---",
-            cleaned_previous_article,
-            "---"
-        ])
+    # --- 先頭チームの現在区間を取得し、レース状況サマリーを作成 ---
+    race_status_summary = "レース集計中"
+    if realtime_data.get('teams'):
+        top_team = realtime_data['teams'][0]
+        # チームがゴールしているかチェック
+        if top_team.get('runner') == 'ゴール':
+            race_status_summary = "トップチームはゴールしました"
+        else:
+            leg = top_team.get('currentLeg', 'N/A')
+            race_status_summary = f"トップは第{leg}区を走行中"
+
+    
 
     prompt_parts = [
         "あなたは、長年にわたり「全国大学対抗高温駅伝」を追い続けてきた、日本で唯一の専門スポーツ解説者です。あなたの解説は、単なる事実の羅列ではなく、レースの裏側にあるドラマや選手の想いを描き出し、多くのファンを熱狂させてきました。これから、その深い知見と情熱を込めて、本日のレースを総括する解説記事を執筆していただきます。",
@@ -358,6 +356,7 @@ def main():
         "- **単調なデータの羅列**: 「A大学はXkm、B大学はYkmでした」のような、単なるデータの読み上げは避けてください。必ずあなたの解説と物語を加えてください。",
         "## 【本日のレース状況】",
         f"- 大会日: {race_day}日目",
+        f"- 現在のレース状況: {race_status_summary}",
         "- 本日の総合順位:",
         ranking_table_text,
     ]
