@@ -821,6 +821,14 @@
             #legRankHistoryTable,
             #legRankingTable,
             .leg-prize-table { font-size: 13px; }
+            /* スマホ表示でテーブルの行間を詰める */
+            #ekidenRankingTable th, #ekidenRankingTable td,
+            #legRankHistoryTable th, #legRankHistoryTable td,
+            #legRankingTable th, #legRankingTable td,
+            .leg-prize-table th, .leg-prize-table td {
+                padding-top: 0.3rem;
+                padding-bottom: 0.3rem;
+            }
             /* スマホ表示で長い大学名や選手名が折り返すようにする */
             #ekidenRankingTable td.team-name,
             #ekidenRankingTable td.runner {
@@ -871,6 +879,12 @@
             .ekiden-ranking-container.show-full-view .team-name .short-name {
                 display: none;
             }
+            /* PC版表示モードの時はtable-layoutをautoに戻し、幅の固定を解除して崩れを防ぐ */
+            .ekiden-ranking-container.show-full-view #ekidenRankingTable {
+                table-layout: auto;
+                width: auto;
+            }
+
             /* PC版のみキャプチャボタンを表示するため、スマホでは非表示にする */
             #capture-ranking-btn {
                 display: none;
