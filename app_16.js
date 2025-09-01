@@ -1208,11 +1208,12 @@ async function displayLegRankHistoryTable() {
 
     try {
         // 必要なデータを並行して取得 (グラフ用のrank_history.jsonもここでチェック)
-        const [legHistoryRes, rankHistoryRes, ekidenDataRes, realtimeRes] = await Promise.all([
+        const [legHistoryRes, rankHistoryRes, ekidenDataRes, realtimeRes, intramuralRes] = await Promise.all([
             fetch(`data/leg_rank_history.json?_=${new Date().getTime()}`),
             fetch(`data/rank_history.json?_=${new Date().getTime()}`),
             fetch(`config/ekiden_data.json?_=${new Date().getTime()}`),
-            fetch(`data/realtime_report.json?_=${new Date().getTime()}`)
+            fetch(`data/realtime_report.json?_=${new Date().getTime()}`),
+            fetch(`data/intramural_rankings.json?_=${new Date().getTime()}`) // 学内ランキングデータの有無を確認するために取得
         ]);
 
         // グラフ用のデータが存在する場合のみボタンを表示
@@ -1237,6 +1238,7 @@ async function displayLegRankHistoryTable() {
         const historyData = await legHistoryRes.json();
         const ekidenData = await ekidenDataRes.json();
         const realtimeData = await realtimeRes.json();
+        const intramuralData = intramuralRes.ok ? await intramuralRes.json() : null;
 
         if (!historyData || !historyData.teams || historyData.teams.length === 0) {
             throw new Error('表示する区間通過順位データがありません。');
@@ -1266,6 +1268,9 @@ async function displayLegRankHistoryTable() {
         const teamInfoMap = new Map(realtimeData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name }]));
         const sortedTeams = [...historyData.teams].sort((a, b) => (rankMap.get(a.id) || 999) - (rankMap.get(b.id) || 999));
 
+        // 学内ランキングデータが存在するチームIDのセットを作成
+        const intramuralTeamIds = new Set(intramuralData?.teams?.map(t => t.id) || []);
+
         // テーブルボディを生成
         bodyEl.innerHTML = sortedTeams.map(team => {
             const teamDetails = teamInfoMap.get(team.id) || { name: team.name, short_name: team.name }; // フォールバック
@@ -1276,7 +1281,10 @@ async function displayLegRankHistoryTable() {
                 const displayRank = rank !== null ? rank : '-';
                 return `<td ${cellClass}>${displayRank}</td>`;
             }).join('');
-            return `<tr><td class="team-name">${teamNameHtml}</td>${cellsHtml}</tr>`;
+            const hasIntramuralData = intramuralTeamIds.has(team.id);
+            const tdClass = hasIntramuralData ? 'team-name intramural-ranking-trigger' : 'team-name';
+            const dataAttr = hasIntramuralData ? `data-team-id="${team.id}"` : '';
+            return `<tr><td class="${tdClass}" ${dataAttr}>${teamNameHtml}</td>${cellsHtml}</tr>`;
         }).join('');
 
         statusEl.style.display = 'none';
@@ -1427,10 +1435,8 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         row.appendChild(createCell(team.overallRank, 'rank'));
         
         // 大学名セルは、フルネームと短縮名を切り替えるために特別なHTML構造を持つ
-        // クリックで学内ランキングモーダルを開くためのトリガーも追加
         const teamNameCell = document.createElement('td');
-        teamNameCell.className = 'team-name intramural-ranking-trigger';
-        teamNameCell.dataset.teamId = team.id;
+        teamNameCell.className = 'team-name';
         teamNameCell.innerHTML = `${finishIcon}<span class="full-name">${team.name}</span><span class="short-name">${team.short_name}</span>`;
         row.appendChild(teamNameCell);
 
@@ -2664,12 +2670,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (ekidenRankingBody) {
         ekidenRankingBody.addEventListener('click', (event) => {
             const target = event.target.closest('.runner-chart-trigger');
-            const teamTarget = event.target.closest('.intramural-ranking-trigger');
 
             if (target && lastRealtimeData) { // 選手名クリック
                 const { teamId, runnerName, teamName } = target.dataset;
                 showDailyRunnerChart(runnerName, teamId, teamName, lastRealtimeData.raceDay);
-            } else if (teamTarget) { // 大学名クリック
+            }
+        });
+    }
+
+    // イベント委譲を使って、順位推移表の大学名クリック（学内ランキング表示）を処理
+    const legRankHistoryBody = document.getElementById('legRankHistoryBody');
+    if (legRankHistoryBody) {
+        legRankHistoryBody.addEventListener('click', (event) => {
+            const teamTarget = event.target.closest('.intramural-ranking-trigger');
+            if (teamTarget) {
                 const teamId = parseInt(teamTarget.dataset.teamId, 10);
                 showIntramuralRankingModal(teamId);
             }

@@ -459,6 +459,15 @@
             color: #d90000; /* 濃い赤色の文字 */
             font-weight: bold;
         }
+        /* 順位推移表の大学名をクリック可能にするスタイル */
+        #legRankHistoryTable td.team-name.intramural-ranking-trigger {
+            cursor: pointer;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        #legRankHistoryTable td.team-name.intramural-ranking-trigger:hover {
+            text-decoration: underline;
+        }
         /* セクションヘッダーのスタイル */
         .section-header {
             display: flex;
