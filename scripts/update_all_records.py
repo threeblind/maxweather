@@ -18,7 +18,7 @@ EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
 DAILY_TEMP_FILE = DATA_DIR / 'daily_temperatures.json'
 EKIDEN_STATE_FILE = DATA_DIR / 'ekiden_state.json'
 INTRAMURAL_RANKINGS_FILE = DATA_DIR / 'intramural_rankings.json'
-EKIDEN_START_DATE = '2025-07-23' # generate_report.pyと共通
+EKIDEN_START_DATE = '2025-09-01' # generate_report.pyと共通
 
 # --- グローバル変数 ---
 stations_data = []

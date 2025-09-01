@@ -23,7 +23,7 @@ LEG_RANK_HISTORY_FILE = DATA_DIR / 'leg_rank_history.json'
 RUNNER_LOCATIONS_OUTPUT_FILE = DATA_DIR / 'runner_locations.json'
 
 # 設定
-EKIDEN_START_DATE = '2025-07-23'
+EKIDEN_START_DATE = '2025-09-01'
 
 # --- グローバル変数 ---
 ekiden_data = {}

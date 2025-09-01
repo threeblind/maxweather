@@ -46,7 +46,7 @@ STATE_FILE = DATA_DIR / 'ekiden_state.json'
 REALTIME_LOG_FILE = DATA_DIR / 'realtime_log.jsonl'
 
 # その他
-EKIDEN_START_DATE = '2025-07-23'
+EKIDEN_START_DATE = '2025-09-01'
 
 # 5chからスクレイピングする際のリクエストヘッダー
 HEADERS = {
