@@ -1000,14 +1000,11 @@
         .status-badge.status-upcoming { background-color: #28a745; } /* 走行前: 緑 */
         .status-badge.status-finished { background-color: #6c757d; } /* 走行済: 灰色 */
         .status-badge.status-sub { background-color: #fd7e14; } /* 補欠: オレンジ */
-        .status-badge.status-substituted {
-            background-color: #343a40; /* 交代済: 黒 */
-            color: #fff;
-        }
-        /* 選手名の色をリセット */
-        #intramural-ranking-table tr.row-inactive .runner-name {
-            color: #6c757d;
-        }
+        .status-badge.status-substituted { background-color: #343a40; color: #fff; }
+        /* モーダル内のテーブルスタイル */
+        #modalIntramuralRankingTable tr.row-inactive { background-color: #f8f9fa; color: #6c757d; }
+        #modalIntramuralRankingTable tr.row-active { background-color: #fff3cd; font-weight: bold; }
+        #modalIntramuralRankingTable tr.row-inactive .runner-name { color: #6c757d; }
     </style>
     <style>
         /* 学内ランキングのステータスバッジ */
@@ -1042,7 +1039,6 @@
                 <li><a href="#section-leg-ranking">個人記録</a></li>
                 <li><a href="#section-leg-prize">区間記録</a></li>
                 <li><a href="#section-digest">ダイジェスト</a></li>
-                <li><a href="#section-intramural-ranking">ランキング</a></li>
                <li class="dropdown">
                     <a class="dropbtn">その他 ▼</a>
                     <div class="dropdown-content">
@@ -1160,34 +1156,6 @@
                 </div>
             </div>
         </section>
-                
-        <!-- 学内ランキング -->
-        <div id="section-intramural-ranking" class="ekiden-section-wrapper">
-            <h2>📊 学内ランキング</h2>
-            <p class="section-description" style="font-size: 0.9rem; color: var(--text-muted-color); text-align: center; margin-top: -1rem; margin-bottom: 1.5rem;">
-                前日の各大学内での全選手（正規・補欠含む）の成績ランキングです。監督の采配や、補欠選手の突き上げに注目！
-            </p>
-            <div class="controls" style="display: none; text-align: center; margin-bottom: 1rem;">
-                <label for="university-select" style="margin-right: 0.5rem;">大学を選択:</label>
-                <select id="university-select" style="padding: 0.5rem; font-size: 1rem; border-radius: var(--border-radius); border: 1px solid var(--border-color);"></select>
-            </div>
-            <div id="intramural-ranking-status" class="result loading" style="display: block;">学内ランキングを読み込み中...</div>
-            <div class="ekiden-ranking-container" style="display: none;">
-                <table id="intramural-ranking-table">
-                    <thead>
-                        <tr>
-                            <th>順位</th>
-                            <th>選手名</th>
-                            <th>距離</th>
-                            <th>ステータス</th>
-                        </tr>
-                    </thead>
-                    <tbody id="intramural-ranking-tbody">
-                        <!-- ここにJavaScriptでデータが挿入されます -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
 
 
 
@@ -1320,18 +1288,6 @@
       </div>
     </div>
 
-    <!-- Intramural Player History Chart Modal -->
-    <div id="intramuralPlayerHistoryModal" class="modal">
-      <div class="modal-content wide">
-        <span class="close-button" id="closeIntramuralPlayerHistoryModal">&times;</span>
-        <h3 id="modalIntramuralPlayerName"></h3>
-        <div class="chart-wrapper" style="height: 400px; position: relative;">
-            <canvas id="intramuralPlayerHistoryChart"></canvas>
-        </div>
-        <div id="intramuralPlayerHistoryStatus" class="result loading" style="display: none;"></div>
-      </div>
-    </div>
-
 
     <!-- The Modal for Player Records (Text-based) -->
     <div id="playerRecordsModal" class="modal">
@@ -1360,6 +1316,29 @@
         <div id="modalTeamDetailsBody">
           <!-- Details will be injected here by JS -->
         </div>
+      </div>
+    </div>
+
+    <!-- Intramural Ranking Modal -->
+    <div id="intramuralRankingModal" class="modal">
+      <div class="modal-content wide">
+        <span class="close-button" id="closeIntramuralRankingModal">&times;</span>
+        <h3 id="modalIntramuralTeamName"></h3>
+        <p id="modalIntramuralUpdateTime" style="text-align: right; font-size: 0.9rem; color: #6c757d; margin-top: -1.5rem; margin-bottom: 1rem;"></p>
+        <div class="ekiden-ranking-container">
+            <table id="modalIntramuralRankingTable">
+                <thead>
+                    <tr>
+                        <th>順位</th>
+                        <th>選手名</th>
+                        <th>昨日の距離</th>
+                        <th>現在のステータス</th>
+                    </tr>
+                </thead>
+                <tbody id="modalIntramuralRankingBody"></tbody>
+            </table>
+        </div>
+        <div id="modalIntramuralRankingStatus" class="result loading" style="display: none;"></div>
       </div>
     </div>
 
