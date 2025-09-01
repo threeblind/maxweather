@@ -366,10 +366,11 @@ async function initializeMap() {
     runnerMarkersLayer = L.layerGroup().addTo(map);
 
     try {
-        // 4. Fetch course path and relay points data in parallel
-        const [coursePathRes, relayPointsRes] = await Promise.all([
+        // 4. Fetch course path, relay points, and leg best records data in parallel
+        const [coursePathRes, relayPointsRes, legBestRecordsRes] = await Promise.all([
             fetch(`config/course_path.json?_=${new Date().getTime()}`),
-            fetch(`config/relay_points.json?_=${new Date().getTime()}`)
+            fetch(`config/relay_points.json?_=${new Date().getTime()}`),
+            fetch(`history_data/leg_best_records.json?_=${new Date().getTime()}`) // 区間記録データをここで取得
         ]);
 
         if (!coursePathRes.ok || !relayPointsRes.ok) {
@@ -378,23 +379,46 @@ async function initializeMap() {
 
         const coursePath = await coursePathRes.json();
         const relayPoints = await relayPointsRes.json();
+        // 区間記録データは任意。取得できなくてもエラーにしない
+        const legBestRecords = legBestRecordsRes.ok ? await legBestRecordsRes.json() : null;
 
         // 5. Draw the course path
         if (coursePath && coursePath.length > 0) {
             const latlngs = coursePath.map(p => [p.lat, p.lon]);
             coursePolyline = L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
-            // 初期表示では、コース全体が収まるようにズームします。
-            // これにより、データ取得までの間、ユーザーはコースの全体像を把握できます。
-            // 実際の先頭集団へのズームは、この後の fetchEkidenData -> updateRunnerMarkers で行われます。
-            map.fitBounds(coursePolyline.getBounds().pad(0.1)); // .pad(0.1)で少し余白を持たせる
+            map.fitBounds(coursePolyline.getBounds().pad(0.1));
         }
 
-        // 6. Draw relay point markers
+        // 6. Draw relay point markers with leg record info
         if (relayPoints && relayPoints.length > 0) {
+            // 区間記録を検索しやすいようにMapに変換
+            const legRecordsMap = new Map();
+            if (legBestRecords && legBestRecords.leg_records) {
+                legBestRecords.leg_records.forEach(record => {
+                    if (record.top10 && record.top10.length > 0) {
+                        legRecordsMap.set(record.leg, record.top10[0]);
+                    }
+                });
+            }
+
             relayPoints.forEach(point => {
+                let popupContent = `<b>${point.name}</b><br>${point.target_distance_km} km地点`;
+                
+                // point.leg は中継所の「到着区間」を指す
+                const legRecord = legRecordsMap.get(point.leg);
+                if (legRecord) {
+                    popupContent += `
+                        <hr style="margin: 5px 0; border-top: 1px solid #eee;">
+                        <div style="font-size: 0.9em;">
+                            <b>区間記録:</b> ${legRecord.record.toFixed(3)} km/日<br>
+                            <span>(${legRecord.team_name}: ${formatRunnerName(legRecord.runner_name)} / 第${legRecord.edition}回)</span>
+                        </div>
+                    `;
+                }
+
                 L.marker([point.latitude, point.longitude])
                     .addTo(map)
-                    .bindPopup(`<b>${point.name}</b><br>${point.target_distance_km} km地点`);
+                    .bindPopup(popupContent);
             });
         }
     } catch (error) {
