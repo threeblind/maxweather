@@ -41,61 +41,6 @@
     },
     {
       "id": 2,
-      "name": "三重大学",
-      "short_name": "三重",
-      "status_symbol": "●",
-      "prefectures": "（奈良・三重・和歌山 +1）",
-      "manager": "熊本学園大学（風来の試練） ◆g8a8AxWMVk",
-      "color": "#01579B",
-      "description": "三重県史上初の40℃。その瞬間を桑名は走り抜けた！悪天下の伏兵から正統派まで、曲者揃いだがそこが面白い。",
-      "runners": [
-        { "name": "粥見", "comment": "" },
-        { "name": "五條", "comment": "" },
-        { "name": "小俣", "comment": "" },
-        { "name": "風屋", "comment": "" },
-        { "name": "奈良", "comment": "" },
-        { "name": "新宮", "comment": "" },
-        { "name": "津", "comment": "" },
-        { "name": "和歌山", "comment": "" },
-        { "name": "上野", "comment": "" },
-        { "name": "桑名", "comment": "" }
-      ],
-      "substitutes": [
-        { "name": "新宮", "comment": "" },
-        { "name": "上北山", "comment": "" },
-        { "name": "熊野新鹿", "comment": "" },
-        { "name": "桑名", "comment": "" }
-      ]
-    },
-    {
-      "id": 3,
-      "name": "福岡大学",
-      "short_name": "福岡",
-      "status_symbol": "■",
-      "prefectures": "（福岡・長崎・佐賀）",
-      "manager": "福岡大学監督（前熊学監督) ◆1Lye/U2E2I (2025)",
-      "color": "#C2185B",
-      "description": "九州の王者。もう古豪とは言わせない。後半のイメージが強いキャプテン福岡の２区がひとつのカギになるか。",
-      "runners": [
-        { "name": "久留米", "comment": "" },
-        { "name": "福岡", "comment": "" },
-        { "name": "黒木", "comment": "" },
-        { "name": "朝倉", "comment": "" },
-        { "name": "前原", "comment": "" },
-        { "name": "博多", "comment": "" },
-        { "name": "口之津", "comment": "" },
-        { "name": "大牟田", "comment": "" },
-        { "name": "佐賀（佐賀）", "comment": "" },
-        { "name": "太宰府", "comment": "" }
-      ],
-      "substitutes": [
-        { "name": "口之津", "comment": "" },
-        { "name": "前原", "comment": "" },
-        { "name": "嬉野", "comment": "" }
-      ]
-    },
-    {
-      "id": 4,
       "name": "上武大学",
       "short_name": "上武",
       "status_symbol": "★",
@@ -122,7 +67,7 @@
       ]
     },
     {
-      "id": 5,
+      "id": 3,
       "name": "関西大学",
       "short_name": "関大",
       "status_symbol": "⚫︎",
@@ -149,116 +94,7 @@
       ]
     },
     {
-      "id": 6,
-      "name": "熊本学園大学",
-      "short_name": "熊学",
-      "status_symbol": "■",
-      "prefectures": "（熊本・大分）",
-      "manager": "熊本学園大学（風来の試練） ◆g8a8AxWMVk (2027)",
-      "color": "#880E4F",
-      "description": "いつ優勝してもおかしくない九州のもう1つの実力者。一部演算で高温が予想された日田は使わず温存。ただ最近の熊本勢もそれに劣らぬ勢いがある。",
-      "runners": [
-        { "name": "甲佐", "comment": "" },
-        { "name": "岱明", "comment": "" },
-        { "name": "八代", "comment": "" },
-        { "name": "人吉", "comment": "" },
-        { "name": "熊本", "comment": "" },
-        { "name": "大分", "comment": "" },
-        { "name": "犬飼", "comment": "" },
-        { "name": "三角", "comment": "" },
-        { "name": "菊池", "comment": "" },
-        { "name": "日田", "comment": "" }
-      ],
-      "substitutes": [
-        { "name": "牛深", "comment": "" },
-        { "name": "三角", "comment": "" },
-        { "name": "豊後高田", "comment": "" }
-      ]
-    },
-    {
-      "id": 7,
-      "name": "鹿児島大学",
-      "short_name": "鹿大",
-      "status_symbol": "●",
-      "prefectures": "（鹿児島・宮崎 +1）",
-      "manager": "全日本学連選抜監督（夏の日の1994) ◆oIdAWXadP6",
-      "color": "#F4EB37",
-      "description": "南九州のダークホース。内陸から島嶼部までドンと来い。沖縄方面の熱帯低気圧が序盤どのように作用するか？",
-      "runners": [
-        { "name": "東市来", "comment": "" },
-        { "name": "川内（鹿児島）", "comment": "" },
-        { "name": "加久藤", "comment": "" },
-        { "name": "西米良", "comment": "" },
-        { "name": "西都", "comment": "" },
-        { "name": "笠利", "comment": "" },
-        { "name": "鹿児島", "comment": "" },
-        { "name": "さつま柏原", "comment": "" },
-        { "name": "喜入", "comment": "" },
-        { "name": "指宿", "comment": "" }
-      ],
-      "substitutes": [
-        { "name": "西米良", "comment": "" },
-        { "name": "中甑", "comment": "" },
-        { "name": "笠利", "comment": "" },
-        { "name": "西都", "comment": "" }
-      ]
-    },
-    {
-      "id": 8,
-      "name": "広島経済大学",
-      "short_name": "広経",
-      "status_symbol": "●",
-      "prefectures": "（広島・岡山・香川）",
-      "manager": "名古屋大学監督（ロマン派) ◆Ai4OO8X72O3b",
-      "color": "#7CB342",
-      "description": "年々力強さを増す中国山地勢。40℃のロマンは微笑むか？誰かさんのお気に入りだったあいつはどうやら今年は応援部長のようだ。",
-      "runners": [
-        { "name": "三次", "comment": "" },
-        { "name": "加計", "comment": "" },
-        { "name": "府中（広島）", "comment": "" },
-        { "name": "大竹", "comment": "" },
-        { "name": "高梁", "comment": "" },
-        { "name": "高松（香川）", "comment": "" },
-        { "name": "福山", "comment": "" },
-        { "name": "引田", "comment": "" },
-        { "name": "滝宮", "comment": "" },
-        { "name": "財田", "comment": "" }
-      ],
-      "substitutes": [
-        { "name": "生口島", "comment": "" },
-        { "name": "府中（広島）", "comment": "" },
-        { "name": "広島", "comment": "" }
-      ]
-    },
-    {
-      "id": 9,
-      "name": "学連選抜",
-      "short_name": "学連",
-      "status_symbol": "■",
-      "prefectures": "（各都道府県から最大１名）",
-      "manager": "全日本学連選抜監督（夏の日の1994) ◆oIdAWXadP6 (2026)",
-      "color": "#9C27B0",
-      "description": "高温大学駅伝の学連はただの学連じゃない。優勝経験のある実力者の選抜部隊。私なら１区はあの歌手の出身地にしました。北海道熱波で最も輝く場所はどこか。",
-      "runners": [
-        { "name": "美幌", "comment": "" },
-        { "name": "新潟", "comment": "" },
-        { "name": "大村", "comment": "" },
-        { "name": "上", "comment": "" },
-        { "name": "久世", "comment": "" },
-        { "name": "多度津", "comment": "" },
-        { "name": "加世田", "comment": "" },
-        { "name": "飯塚", "comment": "" },
-        { "name": "恵那", "comment": "" },
-        { "name": "真岡", "comment": "" }
-      ],
-      "substitutes": [
-        { "name": "加世田", "comment": "" },
-        { "name": "真岡", "comment": "" },
-        { "name": "三国", "comment": "" }
-      ]
-    },
-    {
-      "id": 10,
+      "id": 4,
       "name": "山梨学院大学",
       "short_name": "山学",
       "status_symbol": "■",
@@ -286,89 +122,7 @@
       ]
     },
     {
-      "id": 11,
-      "name": "鳥取大学",
-      "short_name": "鳥取",
-      "status_symbol": "■",
-      "prefectures": "（鳥取・島根・山口）",
-      "manager": "鳥取大学（白黒タビー監督） ◆ CT6iZVF9L. (2027)",
-      "color": "#3F5BA9",
-      "description": "久しぶりの専任監督。チームにとっても励みになるだろう。山陰と山陽の両翼で力強く羽ばたけるか。",
-      "runners": [
-        { "name": "川本", "comment": "" },
-        { "name": "鳥取", "comment": "" },
-        { "name": "広瀬", "comment": "" },
-        { "name": "防府", "comment": "" },
-        { "name": "境", "comment": "" },
-        { "name": "松江", "comment": "" },
-        { "name": "米子", "comment": "" },
-        { "name": "玖珂", "comment": "" },
-        { "name": "津和野", "comment": "" },
-        { "name": "山口（山口）", "comment": "" }
-      ],
-      "substitutes": [
-        { "name": "下松", "comment": "" },
-        { "name": "益田", "comment": "" },
-        { "name": "岩国", "comment": "" }
-      ]
-    },
-    {
-      "id": 12,
-      "name": "四国大学",
-      "short_name": "四国",
-      "status_symbol": "●",
-      "prefectures": "（愛媛・高知・徳島）",
-      "manager": "駅弁監督（season6） ◆rGlpXlZawQ",
-      "color": "#9FC3FF",
-      "description": "かつての日本一アメダス江川崎要する、黒潮の韋駄天集団。個人的には御荘の活躍が見られるのが嬉しい。",
-      "runners": [
-        { "name": "穴吹", "comment": "" },
-        { "name": "大三島", "comment": "" },
-        { "name": "御荘", "comment": "" },
-        { "name": "松山", "comment": "" },
-        { "name": "大洲", "comment": "" },
-        { "name": "徳島", "comment": "" },
-        { "name": "新居浜", "comment": "" },
-        { "name": "江川崎", "comment": "" },
-        { "name": "西条", "comment": "" },
-        { "name": "中村", "comment": "" }
-      ],
-      "substitutes": [
-        { "name": "四国中央", "comment": "" },
-        { "name": "大三島", "comment": "" },
-        { "name": "西条", "comment": "" }
-      ]
-    },
-    {
-      "id": 13,
-      "name": "日本大学",
-      "short_name": "日大",
-      "status_symbol": "●",
-      "prefectures": "（東京・千葉・神奈川・茨城 +1）",
-      "manager": "山梨学院大学監督（ベストマン上田) ◆57ewR3ezOA",
-      "color": "#FF5252",
-      "description": "前半の茨城勢の活躍に期待したい。今年は上武の背中にピッタリ付けるように。島嶼部は1枚で良かったのか？",
-      "runners": [
-        { "name": "大子", "comment": "" },
-        { "name": "古河", "comment": "" },
-        { "name": "下館", "comment": "" },
-        { "name": "小田原", "comment": "" },
-        { "name": "牛久", "comment": "" },
-        { "name": "八王子", "comment": "" },
-        { "name": "練馬", "comment": "" },
-        { "name": "府中（東京）", "comment": "" },
-        { "name": "海老名", "comment": "" },
-        { "name": "青梅", "comment": "" }
-      ],
-      "substitutes": [
-        { "name": "茂原", "comment": "" },
-        { "name": "小田原", "comment": "" },
-        { "name": "海老名", "comment": "" },
-        { "name": "南鳥島", "comment": "" }
-      ]
-    },
-    {
-      "id": 14,
+      "id": 5,
       "name": "立命館大学",
       "short_name": "立命",
       "status_symbol": "■",
@@ -396,64 +150,198 @@
       ]
     },
     {
-      "id": 15,
-      "name": "福島大学",
-      "short_name": "福島",
-      "status_symbol": "■",
-      "prefectures": "（福島・新潟 +2）",
-      "manager": "駅弁監督（season6） ◆rGlpXlZawQ (2026)",
-      "color": "#A61B4A",
-      "description": "風に乗れば上位を脅かす地力は十分にある。絶好調の梁川のお家芸「3ピン」にも期待したい。",
+      "id": 6,
+      "name": "広島経済大学",
+      "short_name": "広経",
+      "status_symbol": "●",
+      "prefectures": "（広島・岡山・香川）",
+      "manager": "名古屋大学監督（ロマン派) ◆Ai4OO8X72O3b",
+      "color": "#7CB342",
+      "description": "年々力強さを増す中国山地勢。40℃のロマンは微笑むか？誰かさんのお気に入りだったあいつはどうやら今年は応援部長のようだ。",
       "runners": [
-        { "name": "梁川", "comment": "" },
-        { "name": "石川", "comment": "" },
-        { "name": "津川", "comment": "" },
-        { "name": "長岡", "comment": "" },
-        { "name": "福島", "comment": "" },
-        { "name": "浪江", "comment": "" },
-        { "name": "寺泊", "comment": "" },
-        { "name": "喜多方", "comment": "" },
-        { "name": "新津", "comment": "" },
-        { "name": "若松", "comment": "" }
+        { "name": "三次", "comment": "" },
+        { "name": "加計", "comment": "" },
+        { "name": "府中（広島）", "comment": "" },
+        { "name": "大竹", "comment": "" },
+        { "name": "高梁", "comment": "" },
+        { "name": "高松（香川）", "comment": "" },
+        { "name": "福山", "comment": "" },
+        { "name": "引田", "comment": "" },
+        { "name": "滝宮", "comment": "" },
+        { "name": "財田", "comment": "" }
       ],
       "substitutes": [
-        { "name": "福島", "comment": "" },
-        { "name": "喜多方", "comment": "" },
-        { "name": "浪江", "comment": "" },
-        { "name": "村上", "comment": "" },
-        { "name": "津川", "comment": "" }
+        { "name": "生口島", "comment": "" },
+        { "name": "府中（広島）", "comment": "" },
+        { "name": "広島", "comment": "" }
       ]
     },
     {
-      "id": 16,
-      "name": "琉球大学",
-      "short_name": "琉球",
+      "id": 7,
+      "name": "福岡大学",
+      "short_name": "福岡",
       "status_symbol": "■",
-      "prefectures": "（沖縄 +1)",
-      "manager": "■琉球大監督（転生してもC） ◆xj5aoi8gEM",
-      "color": "#F4B400",
-      "description": "表はニコニコ、裏は真夏日割れした選手を下位に突き落とすデススキッパー。いきなりの台風ラウンドだが、上位に進めるチャンスは長い夏のどこかで必ずある。",
+      "prefectures": "（福岡・長崎・佐賀）",
+      "manager": "福岡大学監督（前熊学監督) ◆1Lye/U2E2I (2025)",
+      "color": "#C2185B",
+      "description": "九州の王者。もう古豪とは言わせない。後半のイメージが強いキャプテン福岡の２区がひとつのカギになるか。",
       "runners": [
-        { "name": "北原", "comment": "" },
-        { "name": "仲筋", "comment": "" },
-        { "name": "盛山", "comment": "" },
-        { "name": "名護", "comment": "" },
-        { "name": "波照間", "comment": "" },
-        { "name": "久米島", "comment": "" },
-        { "name": "那覇", "comment": "" },
-        { "name": "西表島", "comment": "" },
-        { "name": "大原", "comment": "" },
-        { "name": "石垣島", "comment": "" }
+        { "name": "久留米", "comment": "" },
+        { "name": "福岡", "comment": "" },
+        { "name": "黒木", "comment": "" },
+        { "name": "朝倉", "comment": "" },
+        { "name": "前原", "comment": "" },
+        { "name": "博多", "comment": "" },
+        { "name": "口之津", "comment": "" },
+        { "name": "大牟田", "comment": "" },
+        { "name": "佐賀（佐賀）", "comment": "" },
+        { "name": "太宰府", "comment": "" }
       ],
       "substitutes": [
-        { "name": "南大東", "comment": "" },
-        { "name": "鏡原", "comment": "" },
-        { "name": "大原", "comment": "" },
-        { "name": "北大東", "comment": "" }
+        { "name": "口之津", "comment": "" },
+        { "name": "前原", "comment": "" },
+        { "name": "嬉野", "comment": "" }
       ]
     },
     {
-      "id": 17,
+      "id": 8,
+      "name": "学連選抜",
+      "short_name": "学連",
+      "status_symbol": "■",
+      "prefectures": "（各都道府県から最大１名）",
+      "manager": "全日本学連選抜監督（夏の日の1994) ◆oIdAWXadP6 (2026)",
+      "color": "#9C27B0",
+      "description": "高温大学駅伝の学連はただの学連じゃない。優勝経験のある実力者の選抜部隊。私なら１区はあの歌手の出身地にしました。北海道熱波で最も輝く場所はどこか。",
+      "runners": [
+        { "name": "美幌", "comment": "" },
+        { "name": "新潟", "comment": "" },
+        { "name": "大村", "comment": "" },
+        { "name": "上", "comment": "" },
+        { "name": "久世", "comment": "" },
+        { "name": "多度津", "comment": "" },
+        { "name": "加世田", "comment": "" },
+        { "name": "飯塚", "comment": "" },
+        { "name": "恵那", "comment": "" },
+        { "name": "真岡", "comment": "" }
+      ],
+      "substitutes": [
+        { "name": "加世田", "comment": "" },
+        { "name": "真岡", "comment": "" },
+        { "name": "三国", "comment": "" }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "鳥取大学",
+      "short_name": "鳥取",
+      "status_symbol": "■",
+      "prefectures": "（鳥取・島根・山口）",
+      "manager": "鳥取大学（白黒タビー監督） ◆ CT6iZVF9L. (2027)",
+      "color": "#3F5BA9",
+      "description": "久しぶりの専任監督。チームにとっても励みになるだろう。山陰と山陽の両翼で力強く羽ばたけるか。",
+      "runners": [
+        { "name": "川本", "comment": "" },
+        { "name": "鳥取", "comment": "" },
+        { "name": "広瀬", "comment": "" },
+        { "name": "防府", "comment": "" },
+        { "name": "境", "comment": "" },
+        { "name": "松江", "comment": "" },
+        { "name": "米子", "comment": "" },
+        { "name": "玖珂", "comment": "" },
+        { "name": "津和野", "comment": "" },
+        { "name": "山口（山口）", "comment": "" }
+      ],
+      "substitutes": [
+        { "name": "下松", "comment": "" },
+        { "name": "益田", "comment": "" },
+        { "name": "岩国", "comment": "" }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "三重大学",
+      "short_name": "三重",
+      "status_symbol": "●",
+      "prefectures": "（奈良・三重・和歌山 +1）",
+      "manager": "熊本学園大学（風来の試練） ◆g8a8AxWMVk",
+      "color": "#01579B",
+      "description": "三重県史上初の40℃。その瞬間を桑名は走り抜けた！悪天下の伏兵から正統派まで、曲者揃いだがそこが面白い。",
+      "runners": [
+        { "name": "粥見", "comment": "" },
+        { "name": "五條", "comment": "" },
+        { "name": "小俣", "comment": "" },
+        { "name": "風屋", "comment": "" },
+        { "name": "奈良", "comment": "" },
+        { "name": "新宮", "comment": "" },
+        { "name": "津", "comment": "" },
+        { "name": "和歌山", "comment": "" },
+        { "name": "上野", "comment": "" },
+        { "name": "桑名", "comment": "" }
+      ],
+      "substitutes": [
+        { "name": "新宮", "comment": "" },
+        { "name": "上北山", "comment": "" },
+        { "name": "熊野新鹿", "comment": "" },
+        { "name": "桑名", "comment": "" }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "日本大学",
+      "short_name": "日大",
+      "status_symbol": "●",
+      "prefectures": "（東京・千葉・神奈川・茨城 +1）",
+      "manager": "山梨学院大学監督（ベストマン上田) ◆57ewR3ezOA",
+      "color": "#FF5252",
+      "description": "前半の茨城勢の活躍に期待したい。今年は上武の背中にピッタリ付けるように。島嶼部は1枚で良かったのか？",
+      "runners": [
+        { "name": "大子", "comment": "" },
+        { "name": "古河", "comment": "" },
+        { "name": "下館", "comment": "" },
+        { "name": "小田原", "comment": "" },
+        { "name": "牛久", "comment": "" },
+        { "name": "八王子", "comment": "" },
+        { "name": "練馬", "comment": "" },
+        { "name": "府中（東京）", "comment": "" },
+        { "name": "海老名", "comment": "" },
+        { "name": "青梅", "comment": "" }
+      ],
+      "substitutes": [
+        { "name": "茂原", "comment": "" },
+        { "name": "小田原", "comment": "" },
+        { "name": "海老名", "comment": "" },
+        { "name": "南鳥島", "comment": "" }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "熊本学園大学",
+      "short_name": "熊学",
+      "status_symbol": "■",
+      "prefectures": "（熊本・大分）",
+      "manager": "熊本学園大学（風来の試練） ◆g8a8AxWMVk (2027)",
+      "color": "#880E4F",
+      "description": "いつ優勝してもおかしくない九州のもう1つの実力者。一部演算で高温が予想された日田は使わず温存。ただ最近の熊本勢もそれに劣らぬ勢いがある。",
+      "runners": [
+        { "name": "甲佐", "comment": "" },
+        { "name": "岱明", "comment": "" },
+        { "name": "八代", "comment": "" },
+        { "name": "人吉", "comment": "" },
+        { "name": "熊本", "comment": "" },
+        { "name": "大分", "comment": "" },
+        { "name": "犬飼", "comment": "" },
+        { "name": "三角", "comment": "" },
+        { "name": "菊池", "comment": "" },
+        { "name": "日田", "comment": "" }
+      ],
+      "substitutes": [
+        { "name": "牛深", "comment": "" },
+        { "name": "三角", "comment": "" },
+        { "name": "豊後高田", "comment": "" }
+      ]
+    },
+    {
+      "id": 13,
       "name": "金沢大学",
       "short_name": "金沢",
       "status_symbol": "★",
@@ -482,7 +370,7 @@
       ]
     },
     {
-      "id": 18,
+      "id": 14,
       "name": "東北大学",
       "short_name": "東北",
       "status_symbol": "●",
@@ -509,6 +397,119 @@
         { "name": "江刺", "comment": "" },
         { "name": "北見", "comment": "" },
         { "name": "鶴岡", "comment": "" }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "四国大学",
+      "short_name": "四国",
+      "status_symbol": "●",
+      "prefectures": "（愛媛・高知・徳島）",
+      "manager": "駅弁監督（season6） ◆rGlpXlZawQ",
+      "color": "#9FC3FF",
+      "description": "かつての日本一アメダス江川崎要する、黒潮の韋駄天集団。個人的には御荘の活躍が見られるのが嬉しい。",
+      "runners": [
+        { "name": "穴吹", "comment": "" },
+        { "name": "大三島", "comment": "" },
+        { "name": "御荘", "comment": "" },
+        { "name": "松山", "comment": "" },
+        { "name": "大洲", "comment": "" },
+        { "name": "徳島", "comment": "" },
+        { "name": "新居浜", "comment": "" },
+        { "name": "江川崎", "comment": "" },
+        { "name": "西条", "comment": "" },
+        { "name": "中村", "comment": "" }
+      ],
+      "substitutes": [
+        { "name": "四国中央", "comment": "" },
+        { "name": "大三島", "comment": "" },
+        { "name": "西条", "comment": "" }
+      ]
+    },
+
+    {
+      "id": 16,
+      "name": "福島大学",
+      "short_name": "福島",
+      "status_symbol": "■",
+      "prefectures": "（福島・新潟 +2）",
+      "manager": "駅弁監督（season6） ◆rGlpXlZawQ (2026)",
+      "color": "#A61B4A",
+      "description": "風に乗れば上位を脅かす地力は十分にある。絶好調の梁川のお家芸「3ピン」にも期待したい。",
+      "runners": [
+        { "name": "梁川", "comment": "" },
+        { "name": "石川", "comment": "" },
+        { "name": "津川", "comment": "" },
+        { "name": "長岡", "comment": "" },
+        { "name": "福島", "comment": "" },
+        { "name": "浪江", "comment": "" },
+        { "name": "寺泊", "comment": "" },
+        { "name": "喜多方", "comment": "" },
+        { "name": "新津", "comment": "" },
+        { "name": "若松", "comment": "" }
+      ],
+      "substitutes": [
+        { "name": "福島", "comment": "" },
+        { "name": "喜多方", "comment": "" },
+        { "name": "浪江", "comment": "" },
+        { "name": "村上", "comment": "" },
+        { "name": "津川", "comment": "" }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "鹿児島大学",
+      "short_name": "鹿大",
+      "status_symbol": "●",
+      "prefectures": "（鹿児島・宮崎 +1）",
+      "manager": "全日本学連選抜監督（夏の日の1994) ◆oIdAWXadP6",
+      "color": "#F4EB37",
+      "description": "南九州のダークホース。内陸から島嶼部までドンと来い。沖縄方面の熱帯低気圧が序盤どのように作用するか？",
+      "runners": [
+        { "name": "東市来", "comment": "" },
+        { "name": "川内（鹿児島）", "comment": "" },
+        { "name": "加久藤", "comment": "" },
+        { "name": "西米良", "comment": "" },
+        { "name": "西都", "comment": "" },
+        { "name": "笠利", "comment": "" },
+        { "name": "鹿児島", "comment": "" },
+        { "name": "さつま柏原", "comment": "" },
+        { "name": "喜入", "comment": "" },
+        { "name": "指宿", "comment": "" }
+      ],
+      "substitutes": [
+        { "name": "西米良", "comment": "" },
+        { "name": "中甑", "comment": "" },
+        { "name": "笠利", "comment": "" },
+        { "name": "西都", "comment": "" }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "琉球大学",
+      "short_name": "琉球",
+      "status_symbol": "■",
+      "prefectures": "（沖縄 +1)",
+      "manager": "■琉球大監督（転生してもC） ◆xj5aoi8gEM",
+      "color": "#F4B400",
+      "description": "表はニコニコ、裏は真夏日割れした選手を下位に突き落とすデススキッパー。いきなりの台風ラウンドだが、上位に進めるチャンスは長い夏のどこかで必ずある。",
+      "runners": [
+        { "name": "北原", "comment": "" },
+        { "name": "仲筋", "comment": "" },
+        { "name": "盛山", "comment": "" },
+        { "name": "名護", "comment": "" },
+        { "name": "波照間", "comment": "" },
+        { "name": "久米島", "comment": "" },
+        { "name": "那覇", "comment": "" },
+        { "name": "西表島", "comment": "" },
+        { "name": "大原", "comment": "" },
+        { "name": "石垣島", "comment": "" }
+      ],
+      "substitutes": [
+        { "name": "南大東", "comment": "" },
+        { "name": "鏡原", "comment": "" },
+        { "name": "大原", "comment": "" },
+        { "name": "北大東", "comment": "" }
       ]
     }
   ]

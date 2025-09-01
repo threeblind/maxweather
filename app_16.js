@@ -6,11 +6,12 @@ let intramuralDataCache = null; // 学内ランキングデータを保持する
 let dailyTemperaturesCache = null; // daily_temperatures.jsonをキャッシュする
 let dailyRunnerChartInstance = null; // 選手の日次推移グラフのインスタンス
 let playerTotalChartInstance = null; // 選手の大会全記録グラフのインスタンス
+let logFileExists = false; // ログファイルの存在を管理するフラグ
 let intramuralPlayerHistoryChartInstance = null; // 学内ランキングの選手推移グラフのインスタンス
 
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
-const EKIDEN_START_DATE = '2025-07-23'; // Python側と合わせる
+const EKIDEN_START_DATE = '2025-09-01'; // Python側と合わせる
 const CURRENT_EDITION = 16; // 今大会の大会番号
 
 /**
@@ -1164,34 +1165,56 @@ async function displayRankHistoryChart() {
  * 区間通過順位のテーブルを生成・表示します。
  */
 async function displayLegRankHistoryTable() {
+    const sectionEl = document.getElementById('section-leg-rank-history');
     const headEl = document.getElementById('legRankHistoryHead');
     const bodyEl = document.getElementById('legRankHistoryBody');
     const statusEl = document.getElementById('legRankHistoryStatus');
     const tableEl = document.getElementById('legRankHistoryTable');
+    const openRankHistoryModalBtn = document.getElementById('openRankHistoryModalBtn');
 
-    if (!headEl || !bodyEl || !statusEl || !tableEl) return;
+    if (!sectionEl || !headEl || !bodyEl || !statusEl || !tableEl || !openRankHistoryModalBtn) return;
+
+    // ボタンを一旦非表示にする
+    openRankHistoryModalBtn.style.display = 'none';
 
     statusEl.textContent = '区間通過順位を読み込み中...';
     statusEl.className = 'result loading';
     statusEl.style.display = 'block';
+    tableEl.style.display = 'none';
 
     try {
-        // 必要なデータを並行して取得
-        const [historyRes, ekidenDataRes, realtimeRes] = await Promise.all([
+        // 必要なデータを並行して取得 (グラフ用のrank_history.jsonもここでチェック)
+        const [legHistoryRes, rankHistoryRes, ekidenDataRes, realtimeRes] = await Promise.all([
             fetch(`data/leg_rank_history.json?_=${new Date().getTime()}`),
+            fetch(`data/rank_history.json?_=${new Date().getTime()}`),
             fetch(`config/ekiden_data.json?_=${new Date().getTime()}`),
             fetch(`data/realtime_report.json?_=${new Date().getTime()}`)
         ]);
 
-        if (!historyRes.ok || !ekidenDataRes.ok || !realtimeRes.ok) {
-            throw new Error('区間通過順位データの取得に失敗しました。');
+        // グラフ用のデータが存在する場合のみボタンを表示
+        if (rankHistoryRes.ok) {
+            const rankHistoryData = await rankHistoryRes.json();
+            if (rankHistoryData && rankHistoryData.dates && rankHistoryData.dates.length > 0) {
+                openRankHistoryModalBtn.style.display = 'block';
+            }
         }
 
-        const historyData = await historyRes.json();
+        // leg_rank_history.json (推移表のデータ) がない場合はメッセージを表示して終了
+        if (legHistoryRes.status === 404) {
+            statusEl.textContent = '順位推移の記録はまだありません。';
+            return;
+        }
+
+        // 他の必須ファイルがない場合はエラー表示
+        if (!legHistoryRes.ok || !ekidenDataRes.ok || !realtimeRes.ok) {
+            throw new Error('表示に必要な基本データの取得に失敗しました。');
+        }
+
+        const historyData = await legHistoryRes.json();
         const ekidenData = await ekidenDataRes.json();
         const realtimeData = await realtimeRes.json();
 
-        if (!historyData || !historyData.teams) {
+        if (!historyData || !historyData.teams || historyData.teams.length === 0) {
             throw new Error('表示する区間通過順位データがありません。');
         }
 
@@ -1233,11 +1256,14 @@ async function displayLegRankHistoryTable() {
         }).join('');
 
         statusEl.style.display = 'none';
+        tableEl.style.display = '';
+        sectionEl.style.display = 'block';
 
     } catch (error) {
         console.error('区間通過順位テーブルの描画に失敗:', error);
         statusEl.textContent = `区間通過順位の表示に失敗: ${error.message}`;
         statusEl.className = 'result error';
+        tableEl.style.display = 'none';
     }
 }
 
@@ -1382,10 +1408,15 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         teamNameCell.innerHTML = `${finishIcon}<span class="full-name">${team.name}</span><span class="short-name">${team.short_name}</span>`;
         row.appendChild(teamNameCell);
 
-        const runnerCell = createCell(formatRunnerName(team.runner), 'runner runner-name runner-chart-trigger');
-        runnerCell.dataset.teamId = team.id;
-        runnerCell.dataset.runnerName = team.runner; // 整形前の名前を渡す
-        runnerCell.dataset.teamName = team.name;
+        // ログファイルの存在に応じて、クリック可能にするかを決定
+        const runnerCellClass = logFileExists ? 'runner runner-name runner-chart-trigger' : 'runner runner-name';
+        const runnerCell = createCell(formatRunnerName(team.runner), runnerCellClass);
+        // ログファイルがある場合のみ、グラフ表示用のdata属性を設定
+        if (logFileExists) {
+            runnerCell.dataset.teamId = team.id;
+            runnerCell.dataset.runnerName = team.runner; // 整形前の名前を渡す
+            runnerCell.dataset.teamName = team.name;
+        }
         row.appendChild(runnerCell);
 
         // 本日距離セル。スマホでは単位(km)を非表示
@@ -1435,13 +1466,18 @@ const fetchEkidenData = async () => {
 
     try {
         // Fetch all necessary data in parallel
-        const [realtimeRes, individualRes, runnerLocationsRes, ekidenDataRes] = await Promise.all([
+        const [realtimeRes, individualRes, runnerLocationsRes, ekidenDataRes, logFileRes] = await Promise.all([
             fetch(`data/realtime_report.json?_=${new Date().getTime()}`),
             fetch(`data/individual_results.json?_=${new Date().getTime()}`),
             fetch(`data/runner_locations.json?_=${new Date().getTime()}`),
-            fetch(`config/ekiden_data.json?_=${new Date().getTime()}`)
+            fetch(`config/ekiden_data.json?_=${new Date().getTime()}`),
+            fetch(`data/realtime_log.jsonl?_=${new Date().getTime()}`) // ログファイルの存在確認
         ]);
 
+        // ログファイルの存在をチェックしてフラグを更新
+        logFileExists = logFileRes.ok;
+
+        // ログファイル以外の必須ファイルを確認
         if (!realtimeRes.ok || !individualRes.ok || !runnerLocationsRes.ok || !ekidenDataRes.ok) {
             throw new Error(`HTTP error! One or more data files failed to load.`);
         }
