@@ -2505,6 +2505,48 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // 総合順位のキャプチャ機能
+    const captureBtn = document.getElementById('capture-ranking-btn');
+    if (captureBtn) {
+        captureBtn.addEventListener('click', () => {
+            const targetElement = document.getElementById('section-overall-ranking');
+            if (!targetElement) {
+                alert('キャプチャ対象が見つかりません。');
+                return;
+            }
+
+            captureBtn.textContent = 'キャプチャ中...';
+            captureBtn.disabled = true;
+
+            html2canvas(targetElement, {
+                backgroundColor: '#f8f9fa', // ページの背景色に合わせる
+                useCORS: true,
+                onclone: (clonedDoc) => {
+                    // クローンされたDOM内でキャプチャ不要な要素（操作ボタン）を非表示にする
+                    const controls = clonedDoc.querySelector('#section-overall-ranking .header-controls');
+                    if (controls) {
+                        controls.style.display = 'none';
+                    }
+                }
+            }).then(canvas => {
+                const link = document.createElement('a');
+                const now = new Date();
+                const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
+                link.download = `ekiden_ranking_${timestamp}.png`;
+                link.href = canvas.toDataURL('image/png');
+                document.body.appendChild(link); // Firefoxでの動作を確実にするため
+                link.click();
+                document.body.removeChild(link); // 後片付け
+            }).catch(err => {
+                console.error('キャプチャに失敗しました:', err);
+                alert('画像のキャプチャに失敗しました。コンソールを確認してください。');
+            }).finally(() => {
+                captureBtn.textContent = '📷 キャプチャ';
+                captureBtn.disabled = false;
+            });
+        });
+    }
+
     // モーダルを閉じるイベントリスナーを設定
     const modal = document.getElementById('playerRecordsModal');
     const closeButton = modal.querySelector('.close-button'); // このモーダル内の閉じるボタンを特定
