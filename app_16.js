@@ -624,21 +624,39 @@ async function showDailyRunnerChart(rawRunnerName, teamId, teamName, raceDay) {
         }
         const sortedRecords = [...runnerData.records].sort((a, b) => a.day - b.day);
 
-        const logResponse = await fetch(`data/realtime_log.jsonl?_=${new Date().getTime()}`);
-        if (!logResponse.ok) throw new Error('詳細ログの取得に失敗しました。');
-        const logText = await logResponse.text();
-        const allLogLines = logText.trim().split('\n').map(line => JSON.parse(line));
-
         // --- 2. 下段：日次詳細グラフを更新するヘルパー関数 ---
-        const updateDailyDetailChart = (targetDay) => {
+        const updateDailyDetailChart = async (targetDay) => {
             if (dailyRunnerChartInstance) dailyRunnerChartInstance.destroy();
 
+            // ターゲットとなる日付とファイル名を決定
             const targetDate = new Date(EKIDEN_START_DATE);
             targetDate.setDate(targetDate.getDate() + targetDay - 1);
             const targetDateStr = targetDate.toISOString().split('T')[0];
+            
+            const logFilePath = (targetDay === raceDay) 
+                ? `data/realtime_log.jsonl` 
+                : `data/archive/realtime_log_${targetDateStr}.jsonl`;
+
+            // ログファイルをフェッチ
+            let allLogLines = [];
+            try {
+                const logResponse = await fetch(`${logFilePath}?_=${new Date().getTime()}`);
+                if (logResponse.ok) {
+                    const logText = await logResponse.text();
+                    // 空ファイルの場合にエラーにならないようにチェック
+                    if (logText.trim()) {
+                        allLogLines = logText.trim().split('\n').map(line => JSON.parse(line));
+                    }
+                } else {
+                    console.log(`ログファイル ${logFilePath} が見つかりません。`);
+                }
+            } catch (e) {
+                console.error(`ログファイル ${logFilePath} の読み込みエラー:`, e);
+            }
 
             const dailyChartData = { labels: [], distances: [] };
             allLogLines.forEach(log => {
+                // runnerKey は親スコープから参照
                 if (log.team_id == teamId && log.runner_name === runnerKey && log.timestamp.startsWith(targetDateStr)) {
                     dailyChartData.labels.push(new Date(log.timestamp));
                     dailyChartData.distances.push(log.distance);
@@ -673,7 +691,7 @@ async function showDailyRunnerChart(rawRunnerName, teamId, teamName, raceDay) {
                             time: { unit: 'hour', displayFormats: { hour: 'H:mm' } },
                             title: { display: true, text: '時刻' },
                             adapters: {
-                                date: { locale: dateFns.locale.ja }
+                                date: { locale: window.dateFns.locale.ja }
                             }
                         }
                     },
@@ -711,10 +729,31 @@ async function showDailyRunnerChart(rawRunnerName, teamId, teamName, raceDay) {
                 plugins: {
                     legend: { display: false },
                     title: { display: true, text: 'クリックでその日の詳細を表示' },
-                    tooltip: { callbacks: { label: (context) => ` ${context.dataset.label}: ${context.parsed.y.toFixed(1)} km` } }
+                    tooltip: {
+                        callbacks: {
+                            title: (tooltipItems) => {
+                                const index = tooltipItems[0].dataIndex;
+                                const record = sortedRecords[index];
+                                if (record) {
+                                    return `${record.day}日目 (${record.leg}区)`;
+                                }
+                                return tooltipItems[0].label; // Fallback
+                            },
+                            label: (context) => {
+                                const index = context.dataIndex;
+                                const record = sortedRecords[index];
+                                const distance = context.parsed.y.toFixed(1);
+                                let tooltipLabel = `走行距離: ${distance} km`;
+                                if (record && record.legRank) {
+                                    tooltipLabel += ` (区間 ${record.legRank}位)`;
+                                }
+                                return tooltipLabel;
+                            }
+                        }
+                    }
                 },
                 scales: { y: { beginAtZero: true, title: { display: true, text: '距離(km)' } } },
-                onClick: (evt) => {
+                onClick: async (evt) => {
                     const points = summaryChartInstance.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
                     if (points.length) {
                         const clickedIndex = points[0].index;
@@ -730,7 +769,7 @@ async function showDailyRunnerChart(rawRunnerName, teamId, teamName, raceDay) {
                         summaryChartInstance.update();
 
                         // 下段のグラフを更新
-                        updateDailyDetailChart(clickedDay);
+                        await updateDailyDetailChart(clickedDay);
                     }
                 }
             }
@@ -740,7 +779,7 @@ async function showDailyRunnerChart(rawRunnerName, teamId, teamName, raceDay) {
         summaryCanvas.style.display = 'block';
 
         // --- 4. 初期表示として、本日の詳細グラフを描画 ---
-        updateDailyDetailChart(raceDay);
+        await updateDailyDetailChart(raceDay);
 
     } catch (error) {
         console.error('選手の日次グラフ描画エラー:', error);
