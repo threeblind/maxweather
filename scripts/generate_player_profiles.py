@@ -14,10 +14,6 @@ EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
 AMEDAS_STATIONS_FILE = CONFIG_DIR / 'amedas_stations.json'
 LEG_AWARD_HISTORY_FILE = HISTORY_DATA_DIR / 'leg_award_history.json'
 
-# 今大会の個人記録ファイルは data/ ディレクトリから読み込む
-CURRENT_INDIVIDUAL_RESULTS_FILE = DATA_DIR / 'individual_results.json'
-
-# --- 出力ファイル定義 ---
 OUTPUT_FILE = CONFIG_DIR / 'player_profiles.json'
 
 CURRENT_EDITION = 16
@@ -90,11 +86,6 @@ def main():
 
     # 大会ごとの個人記録データを読み込む
     performance_data = {}
-    # 今大会の記録
-    current_results = load_json(CURRENT_INDIVIDUAL_RESULTS_FILE)
-    if current_results:
-        performance_data[str(CURRENT_EDITION)] = current_results
-    
     # 過去大会の記録 (例: '15/individual_results.json')
     past_edition_dirs = glob.glob('[0-9]*/') # '15/' のようなディレクトリを探す
     for dir_path in past_edition_dirs:
@@ -121,6 +112,36 @@ def main():
     for edition, legs in all_leg_performances.items():
         for leg, distances in legs.items():
             distances.sort(reverse=True)
+
+    # --- 3.5. 大会ごと・区間ごとの「選手別平均走行距離」ランキングを作成 ---
+    leg_average_rankings = {} # {edition: {leg: [{'runner_name': str, 'avg_dist': float}, ...]}}
+    for edition, results in performance_data.items():
+        leg_average_rankings[edition] = {}
+        # まず、選手ごと・区間ごとに走行距離を集計
+        runner_leg_stats = {} # {runner_name: {leg: [dist1, dist2, ...]}}
+        for runner_name, runner_data in results.items():
+            runner_leg_stats[runner_name] = {}
+            for record in runner_data.get('records', []):
+                leg = record.get('leg')
+                distance = record.get('distance')
+                if leg and distance is not None:
+                    if leg not in runner_leg_stats[runner_name]:
+                        runner_leg_stats[runner_name][leg] = []
+                    runner_leg_stats[runner_name][leg].append(distance)
+
+        # 次に、区間ごとに選手とその平均距離をリスト化
+        leg_performances_for_ranking = {}
+        for runner_name, leg_data in runner_leg_stats.items():
+            for leg, distances in leg_data.items():
+                if not distances: continue
+                avg_dist = sum(distances) / len(distances)
+                if leg not in leg_performances_for_ranking:
+                    leg_performances_for_ranking[leg] = []
+                leg_performances_for_ranking[leg].append({'runner_name': runner_name, 'avg_dist': avg_dist})
+        
+        for leg, performances in leg_performances_for_ranking.items():
+            performances.sort(key=lambda x: x['avg_dist'], reverse=True)
+            leg_average_rankings[edition][leg] = performances
 
     # --- 4. 選手プロファイルの生成 ---
     player_profiles = {}
@@ -185,11 +206,21 @@ def main():
                                 record['legRank'] = None # 万が一見つからない場合
 
                     total_distance = runner_perf.get('totalDistance', 0)
-                    
                     average_distance = total_distance / len(records) if records else 0
-                    valid_ranks = [r['legRank'] for r in records if 'legRank' in r and r['legRank'] is not None]
-                    best_leg_rank = min(valid_ranks) if valid_ranks else None
                     legs_run = sorted(list(set([r.get('leg') for r in records if r.get('leg') is not None])))
+                    
+                    # 新しいロジックでサマリー用の区間順位を計算
+                    summary_leg_ranks = []
+                    for leg in legs_run:
+                        if edition in leg_average_rankings and leg in leg_average_rankings[edition]:
+                            ranking_list = leg_average_rankings[edition][leg]
+                            try:
+                                my_avg_dist = next(p['avg_dist'] for p in ranking_list if p['runner_name'] == runner_name)
+                                rank = next(i for i, p in enumerate(ranking_list) if p['avg_dist'] == my_avg_dist) + 1
+                                summary_leg_ranks.append(rank)
+                            except StopIteration:
+                                pass # 自分の記録が見つからない場合は何もしない
+                    best_leg_rank = min(summary_leg_ranks) if summary_leg_ranks else None
 
                     profile['performance'][edition] = {
                         "summary": {
