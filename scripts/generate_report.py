@@ -130,6 +130,32 @@ def fetch_max_temperature(pref_code, station_code):
     except Exception:
         return {'temperature': None, 'error': '不明な解析エラー'}
 
+def fetch_current_temperature(pref_code, station_code):
+    """Yahoo天気から現在の気温を取得"""
+    url = f"https://weather.yahoo.co.jp/weather/amedas/{pref_code}/{station_code}.html?m=temp"
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        main_data = soup.find('p', class_='mainData')
+        if not main_data:
+            return {'temperature': None, 'error': '現在気温データなし'}
+
+        temp_span = main_data.find('span')
+        if not temp_span or not temp_span.contents:
+            return {'temperature': None, 'error': '現在気温情報解析失敗'}
+
+        temp_value_str = temp_span.contents[0].strip()
+        temperature = float(temp_value_str)
+        return {'temperature': temperature, 'error': None}
+    except requests.RequestException as e:
+        return {'temperature': None, 'error': f"通信エラー: {e}"}
+    except (ValueError, TypeError, IndexError):
+        return {'temperature': None, 'error': '現在気温が数値でない'}
+    except Exception:
+        return {'temperature': None, 'error': '不明な解析エラー'}
+
 def load_ekiden_state(file_path):
     """駅伝の現在の状態を読み込む"""
     if not os.path.exists(file_path):
@@ -713,21 +739,21 @@ def calculate_and_save_runner_locations(teams_data):
     print(f"結果を {RUNNER_LOCATIONS_OUTPUT_FILE} に保存しました。")
 
 def append_to_realtime_log(results):
-    """リアルタイムログファイルに現在の走行データを追記する。"""
+    """リアルタイムログファイルに現在の走行データ（現在気温）を追記する。"""
     now_iso = datetime.now().isoformat()
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     try:
         with open(REALTIME_LOG_FILE, 'a', encoding='utf-8') as f:
             for r in results:
-                # ゴール済みの選手や、本日走行していない選手はログに記録しない
-                if r['runner'] == 'ゴール' or r.get('todayDistance', 0) <= 0:
+                # ゴール済みの選手や、現在気温が取得できなかった選手はログに記録しない
+                if r['runner'] == 'ゴール' or r.get('currentTempForLog') is None:
                     continue
                 
                 log_entry = {
                     "timestamp": now_iso,
                     "team_id": r['id'],
                     "runner_name": r['runner'], # '1穴吹' のような形式
-                    "distance": r['todayDistance']
+                    "distance": r.get('currentTempForLog')
                 }
                 f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
         print(f"✅ リアルタイムログを '{REALTIME_LOG_FILE}' に追記しました。")
@@ -794,13 +820,20 @@ def main():
         # --- 走行中または本日ゴールのチーム ---
         print(f"  {team_data['name']} のデータを取得中...")
         runner_index = team_state['currentLeg'] - 1
-        runner_name, temp_result, today_distance = "ゴール", {'temperature': 0, 'error': None}, 0.0
+        runner_name, max_temp_result, current_temp_for_log, today_distance = "ゴール", {'temperature': 0, 'error': None}, None, 0.0
 
         if runner_index < len(team_data['runners']):
             runner_name = team_data['runners'][runner_index]['name']
             station = find_station_by_name(runner_name)
-            temp_result = fetch_max_temperature(station['pref_code'], station['code']) if station else {'temperature': 0, 'error': '地点不明'}
-            today_distance = temp_result.get('temperature') or 0.0
+            if station:
+                max_temp_result = fetch_max_temperature(station['pref_code'], station['code'])
+                # リアルタイムログ用に現在の気温も取得
+                current_temp_result = fetch_current_temperature(station['pref_code'], station['code'])
+                current_temp_for_log = current_temp_result.get('temperature')
+            else:
+                max_temp_result = {'temperature': 0, 'error': '地点不明'}
+
+            today_distance = max_temp_result.get('temperature') or 0.0
 
             if today_distance > 0:
                 runner_info = individual_results.setdefault(runner_name, {"totalDistance": 0, "teamId": team_data['id'], "records": []})
@@ -827,9 +860,10 @@ def main():
             "currentLegNumber": team_state["currentLeg"], "newCurrentLeg": new_current_leg,
             "todayDistance": today_distance, "totalDistance": new_total_distance,
             "previousRank": previous_rank_map.get(team_state["id"], 0),
-            "rawTempResult": temp_result,
+            "rawTempResult": max_temp_result,
             "finishDay": finish_day_today,
-            "group_id": 0 # 順位変動グループ
+            "group_id": 0, # 順位変動グループ
+            "currentTempForLog": current_temp_for_log
         })
 
     # 今日の順位を計算 (Standard competition ranking)
