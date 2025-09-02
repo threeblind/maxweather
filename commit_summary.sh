@@ -25,9 +25,23 @@ source venv/bin/activate || { echo "エラー: Python仮想環境(venv)の有効
 echo "generate_daily_summary.py を実行中..."
 python scripts/generate_daily_summary.py
 
-# 3. daily_summary.json に変更があったか確認し、変更があればPush (パスを修正)
+# 3. daily_summary.json に変更があったか確認し、変更があればPush
 SUMMARY_FILE="data/daily_summary.json"
-if ! git diff --quiet --exit-code "$SUMMARY_FILE"; then
+
+# git diffの代わりに、より確実なファイルのハッシュ値を比較する方法で変更を検知します。
+
+# HEAD（最新のコミット）にあるファイル内容のハッシュ値を取得
+HASH_BEFORE=""
+# git cat-fileはファイルが存在しないとエラーになるため、事前に存在確認
+if git cat-file -e HEAD:"$SUMMARY_FILE" 2>/dev/null; then
+    HASH_BEFORE=$(git cat-file -p HEAD:"$SUMMARY_FILE" | shasum | awk '{print $1}')
+fi
+
+# 現在のワーキングツリーにあるファイル内容のハッシュ値を取得
+HASH_AFTER=$(shasum < "$SUMMARY_FILE" | awk '{print $1}')
+
+# ハッシュ値が異なる場合、ファイル内容に変更があったと判断
+if [ "$HASH_BEFORE" != "$HASH_AFTER" ]; then
     echo "$SUMMARY_FILE に変更を検出しました。GitHubにプッシュします。"
     
     git add "$SUMMARY_FILE"

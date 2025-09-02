@@ -52,20 +52,22 @@ def load_all_data():
         'ekiden_data': EKIDEN_DATA_FILE,
         'rank_history': RANK_HISTORY_FILE,
     }
-    try:
-        for key, file_path in files_to_load.items():
+    for key, file_path in files_to_load.items():
+        try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 data[key] = json.load(f)
-    except FileNotFoundError as e:
-        if key != 'manager_comments':
-            print(f"エラー: 必須データファイル '{e.filename}' が見つかりません。")
+        except FileNotFoundError:
+            # manager_comments.json は任意ファイルなので、見つからなくても処理を続行
+            if key == 'manager_comments':
+                print(f"情報: {file_path} が見つからないため、監督コメントはスキップされます。")
+                data[key] = [] # 空のリストをセット
+            # それ以外の必須ファイルが見つからない場合はエラーで終了
+            else:
+                print(f"エラー: 必須データファイル '{file_path}' が見つかりません。")
+                exit(1)
+        except json.JSONDecodeError as e:
+            print(f"エラー: JSONファイルの形式が正しくありません: {file_path} - {e}")
             exit(1)
-        else:
-            print(f"情報: {e.filename} が見つからないため、監督コメントはスキップされます。")
-            data[key] = []
-    except json.JSONDecodeError as e:
-        print(f"エラー: JSONファイルの形式が正しくありません: {e}")
-        exit(1)
     return data
 
 def format_ranking_table(report_data):
@@ -85,7 +87,6 @@ def format_ranking_table(report_data):
         f"{pad_str('総合距離', 10)} "
         f"{pad_str('トップ差', 10)} "
         f"{pad_str('順位変動(前日)', 16)} "
-        f"{pad_str('次走者', 10)}"
     )
     table_lines.append(header)
 
@@ -107,9 +108,7 @@ def format_ranking_table(report_data):
         rank_change_str = f"ー (－)" if prev_rank == 0 else f"ー ({prev_rank})"
         rank_change_str = pad_str(rank_change_str, 16)
 
-        next_runner_str = pad_str(team.get('nextRunner', ''), 10)
-
-        line = f"{rank_str} {name_str} {runner_str} {today_dist_str} {total_dist_str} {gap_str} {rank_change_str} {next_runner_str}"
+        line = f"{rank_str} {name_str} {runner_str} {today_dist_str} {total_dist_str} {gap_str} {rank_change_str}"
         table_lines.append(line)
     
     return "\n".join(table_lines)
