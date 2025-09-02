@@ -18,7 +18,7 @@ echo "--- $(date +'%Y-%m-%d %H:%M:%S') ---"
 echo "監督談話室のコメント更新を開始します..."
 
 # 1. Pythonスクリプトを実行して manager_comments.json を更新
-${PYTHON_CMD} fetch_manager_comments.py
+${PYTHON_CMD} script/fetch_manager_comments.py
 
 # 2. manager_comments.json に変更があったかを確認
 if ! git diff --quiet --exit-code data/manager_comments.json; then
