@@ -22,8 +22,8 @@ echo "日次サマリー記事の生成とコミット処理を開始します..
 source venv/bin/activate || { echo "エラー: Python仮想環境(venv)の有効化に失敗しました。"; exit 1; }
 
 # 2. 日次サマリー生成スクリプトを実行 (パスを修正)
-echo "generate_daily_summary.py を実行中..."
-python scripts/generate_daily_summary.py
+echo "generate_daily_summary_bymoment.py を実行中..."
+python scripts/generate_daily_summary_bymoment.py
 
 # 3. daily_summary.json に変更があったか確認し、変更があればPush
 SUMMARY_FILE="data/daily_summary.json"
