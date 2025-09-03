@@ -250,11 +250,22 @@ class DailySummaryGenerator:
     def _build_prompt(self):
         """Builds the complete prompt for the Gemini API call."""
         realtime_data = self.all_data.get('realtime_report', {})
+        ekiden_data = self.all_data.get('ekiden_data', {})
         race_day = realtime_data.get('raceDay', 'N/A')
         race_status_summary = "レース集計中"
         if realtime_data.get('teams'):
             top_team = realtime_data['teams'][0]
             race_status_summary = "トップチームはゴールしました" if top_team.get('runner') == 'ゴール' else f"トップは第{top_team.get('currentLeg', 'N/A')}区を走行中"
+
+        # 大学と都道府県のリストを作成
+        team_prefecture_list = []
+        if ekiden_data.get('teams'):
+            for team in ekiden_data['teams']:
+                team_name = team.get('name', '不明')
+                prefectures = team.get('prefectures', '不明')
+                team_prefecture_list.append(f"- {team_name}: {prefectures}")
+        
+        team_prefecture_text = "\n".join(team_prefecture_list)
 
         prompt_parts = [
             "あなたは、長年にわたり「全国大学対抗高温駅伝」を追い続けてきた、日本で唯一の専門スポーツ解説者です。あなたの解説は、単なる事実の羅列ではなく、レースの裏側にあるドラマや選手の想いを描き出し、多くのファンを熱狂させてきました。これから、その深い知見と情熱を込めて、本日のレースを総括する解説記事を執筆していただきます。",
@@ -263,9 +274,13 @@ class DailySummaryGenerator:
             "以下の情報は、あなたが解説する上での基礎知識です。記事内でこれらのルールを直接説明する必要はありませんが、この設定を完全に理解した上で、物語を紡いでください。",
             "",
             "## 大会概要",
+            "- **背景**: 高温大学駅伝は、インターネット掲示板5chで2011年から続いている、伝統ある架空の駅伝大会です。",
             "- **正式名称**: 第15回 全国大学対抗高温駅伝",
-            "- **スタート日**: 2025年7月23日",
+            "- **スタート日**: 2025年9月1日",
             "- **コース**: (旧)気象庁庁舎前(東京) ～ 下関駅前(山口) 全10区間 1055km",
+            "",
+            "## 出場大学と担当都道府県",
+            team_prefecture_text,
             "",
             "## 基本ルール: 走行距離と順位",
             "- **走行距離 = 最高気温**: 各選手が1日に進む距離(km)は、その選手に割り当てられたアメダス観測地点の「最高気温(℃)」と等しくなります。35.0℃なら35.0km進みます。",
@@ -286,7 +301,7 @@ class DailySummaryGenerator:
             "",
             "## チーム編成と特別ルール",
             "- **チーム編成**: 各大学は、指定された都道府県のアメダス観測地点から選手10名と補欠選手を選抜してチームを構成します。",
-            "- **学連選抜**: 全大学のエントリーから漏れた有力地点の選手で構成される、夢の混成チームです。その日限りの結束力で強豪校に挑みます。",
+            "- **学連選抜**: 全大学のエントリーから漏れた有力地点の選手で構成される、混成チームです。その日限りの結束力で強豪校に挑みます。",
             "- **シード権**: 総合10位以内に入ったチームは、次年度大会のシード権を獲得します。終盤の熾烈なシード権争いは、この駅伝の大きな見どころの一つです。",
             "",
             "## 駅伝用語の正しい使い方",
