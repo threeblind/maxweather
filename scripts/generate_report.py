@@ -749,10 +749,13 @@ def append_to_realtime_log(results):
                 if r['runner'] == 'ゴール' or r.get('currentTempForLog') is None:
                     continue
                 
+                # runner_nameに区間番号を付与して一意性を担保する
+                runner_name_with_leg = f"{r['currentLegNumber']}{r['runner']}"
+
                 log_entry = {
                     "timestamp": now_iso,
                     "team_id": r['id'],
-                    "runner_name": r['runner'], # '1穴吹' のような形式
+                    "runner_name": runner_name_with_leg, # '3穴吹' のような形式
                     "distance": r.get('currentTempForLog')
                 }
                 f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')

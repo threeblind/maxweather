@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>第１５回全国大学対抗高温駅伝大会 速報</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <!-- 1. date-fnsが内蔵されたアダプターを読み込みます -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <!-- 2. 日本語ロケールスクリプトが参照できるように、グローバルに受け皿となるオブジェクトを定義します -->
@@ -1005,6 +1006,33 @@
             position: relative;
             background-color: #ffffff; /* Default for manager */
         }
+        /* --- Player Profile Modal --- */
+        .profile-header { text-align: center; padding-bottom: 1rem; margin-bottom: 1rem; }
+        .profile-header .profile-name { font-size: 1.8rem; margin: 0 0 0.25rem 0; font-weight: 700; color: var(--text-color); }
+        .profile-header .profile-team { font-size: 1.1rem; margin: 0; font-weight: bold; }
+
+        .profile-section { margin-bottom: 2rem; }
+        .profile-section h4 { font-size: 1.1rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; color: var(--text-color); font-weight: 600; }
+
+        .profile-comment { font-size: 1.1rem; font-style: italic; border-left: 4px solid; padding: 0.8rem 1.2rem; margin: 0; color: #343a40; background-color: #f8f9fa; border-radius: 0 8px 8px 0; }
+
+        .profile-image-container { text-align: center; margin: 1.5rem 0 1rem 0; }
+        .profile-image { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+        .profile-meta-info { text-align: center; font-size: 0.85rem; color: var(--text-muted-color); margin-bottom: 2rem; padding: 0.75rem; background-color: #f8f9fa; border-radius: 8px; }
+        .profile-meta-info p { margin: 0.2rem 0; }
+
+        .profile-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .profile-table th, .profile-table td { border: 1px solid var(--border-color); padding: 0.5rem; text-align: center; }
+        .profile-table thead th { background-color: #f8f9fa; }
+        .profile-table tbody tr:nth-child(even) { background-color: #fdfdff; }
+
+        .profile-chart-container {
+            height: 200px; /* グラフの高さ */
+            margin-bottom: 20px;
+            position: relative;
+        }
+
         .modal-content.wide {
             max-width: 800px; /* グラフ用に幅を広げる */
         }
@@ -1199,48 +1227,6 @@
             <!-- 開催概要は app.js によって動的に生成されます -->
         </div>
 
-        <!-- The Modal -->
-        <div id="playerRecordsModal" class="modal">
-          <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h3 id="modalPlayerName"></h3>
-            <table id="modalRecordsTable">
-              <thead>
-                <tr>
-                  <th>区間</th>
-                  <th>日付</th>
-                  <th>距離</th>
-                </tr>
-              </thead>
-              <tbody id="modalRecordsBody">
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- The Team Details Modal (for mobile) -->
-        <div id="teamDetailsModal" class="modal">
-          <div class="modal-content">
-            <span class="close-button" id="closeTeamModal">&times;</span>
-            <h3 id="modalTeamName"></h3>
-            <div id="modalTeamDetailsBody">
-              <!-- Details will be injected here by JS -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Player Total Chart Modal -->
-        <div id="playerTotalChartModal" class="modal">
-          <div class="modal-content wide">
-            <span class="close-button" id="closePlayerTotalChartModal">&times;</span>
-            <h3 id="modalTotalChartPlayerName"></h3>
-            <div class="chart-wrapper" style="height: 400px; position: relative;">
-                <canvas id="playerTotalChart"></canvas>
-            </div>
-            <div id="playerTotalChartStatus" class="result loading" style="display: none;"></div>
-          </div>
-        </div>
-
         <!-- Player Total Chart Modal -->
         <div id="playerTotalChartModal" class="modal">
           <div class="modal-content wide">
@@ -1263,84 +1249,17 @@
             </div>
           </div>
         </div>
-
-        <div id="section-amedas-search" class="amedas-features" style="margin-top: 40px;">
-            <h2>🌡️ アメダス地点検索</h2>
-            <div class="search-box">
-                <input type="text" id="locationInput" placeholder="地点名を入力してください（例：東京、大阪、札幌）" />
-                <button onclick="searchTemperature()">検索</button>
+        
+        <!-- The Team Details Modal (for mobile) -->
+        <div id="teamDetailsModal" class="modal">
+          <div class="modal-content">
+            <span class="close-button" id="closeTeamModal">&times;</span>
+            <h3 id="modalTeamName"></h3>
+            <div id="modalTeamDetailsBody">
+              <!-- Details will be injected here by JS -->
             </div>
-            <div id="result"></div>
-
-            <div class="suggestions">
-                <h3>検索履歴</h3>
-                <div class="suggestion-list">
-                    <!-- 検索履歴は app.js によって動的に生成されます -->
-                </div>
-            </div>
+          </div>
         </div>
-    </div>
-
-    <!-- Runner Daily Chart Modal -->
-    <div id="runnerDailyChartModal" class="modal">
-      <div class="modal-content wide">
-        <span class="close-button" id="closeRunnerDailyChartModal">&times;</span>
-        <h3 id="modalChartPlayerName">選手の走行記録</h3>
-        <!-- 上段：サマリー棒グラフ -->
-        <div class="chart-container" style="height: 180px; margin-bottom: 20px; position: relative;">
-            <canvas id="runnerSummaryChart"></canvas>
-        </div>
-        <!-- 下段：日次詳細折れ線グラフ -->
-        <div class="chart-container" style="height: 280px; position: relative;">
-            <canvas id="runnerDailyChart"></canvas>
-        </div>
-        <div id="runnerDailyChartStatus" class="result loading" style="display: none;"></div>
-      </div>
-    </div>
-
-    <!-- Player Total Chart Modal -->
-    <div id="playerTotalChartModal" class="modal">
-      <div class="modal-content wide">
-        <span class="close-button" id="closePlayerTotalChartModal">&times;</span>
-        <h3 id="modalTotalChartPlayerName"></h3>
-        <div class="chart-wrapper" style="height: 400px; position: relative;">
-            <canvas id="playerTotalChart"></canvas>
-        </div>
-        <div id="playerTotalChartStatus" class="result loading" style="display: none;"></div>
-      </div>
-    </div>
-
-    <!-- Player Total Chart Modal -->
-    <div id="playerTotalChartModal" class="modal">
-      <div class="modal-content wide">
-        <span class="close-button" id="closePlayerTotalChartModal">&times;</span>
-        <h3 id="modalTotalChartPlayerName"></h3>
-        <div class="chart-wrapper" style="height: 400px; position: relative;">
-            <canvas id="playerTotalChart"></canvas>
-        </div>
-        <div id="playerTotalChartStatus" class="result loading" style="display: none;"></div>
-      </div>
-    </div>
-
-
-    <!-- The Modal for Player Records (Text-based) -->
-    <div id="playerRecordsModal" class="modal">
-      <div class="modal-content">
-        <span class="close-button">&times;</span>
-        <h3 id="modalPlayerName"></h3>
-        <table id="modalRecordsTable">
-          <thead>
-            <tr>
-              <th>区間</th>
-              <th>日付</th>
-              <th>距離</th>
-            </tr>
-          </thead>
-          <tbody id="modalRecordsBody">
-          </tbody>
-        </table>
-      </div>
-    </div>
 
     <!-- The Team Details Modal (for mobile) -->
     <div id="teamDetailsModal" class="modal">
@@ -1375,6 +1294,24 @@
         <div id="modalIntramuralRankingStatus" class="result loading" style="display: none;"></div>
       </div>
     </div>
+    
+    <div id="section-amedas-search" class="amedas-features" style="margin-top: 40px;">
+        <h2>🌡️ アメダス地点検索</h2>
+        <div class="search-box">
+            <input type="text" id="locationInput" placeholder="地点名を入力してください（例：東京、大阪、札幌）" />
+            <button onclick="searchTemperature()">検索</button>
+        </div>
+        <div id="result"></div>
+
+        <div class="suggestions">
+            <h3>検索履歴</h3>
+            <div class="suggestion-list">
+                <!-- 検索履歴は app.js によって動的に生成されます -->
+            </div>
+        </div>
+    </div>
+</div>
+
 
     <!-- Back to Top Button -->
     <a href="#page-top" id="back-to-top" class="back-to-top-btn" title="トップに戻る">↑</a>
@@ -1383,7 +1320,7 @@
     <div id="playerProfileModal" class="modal">
       <div class="modal-content wide">
         <span class="close-button" id="closePlayerProfileModal">&times;</span>
-        <div id="playerProfileContent">
+        <div id="playerProfileContent" class="profile-card">
             <!-- ここにJSで選手情報が挿入されます -->
         </div>
       </div>
