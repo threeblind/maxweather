@@ -159,7 +159,8 @@ class DailySummaryGenerator:
     def format_ranking_table(self):
         report_data = self.all_data.get('realtime_report', {})
         table_lines = []
-        teams = report_data.get('teams', [])
+        # is_shadow_confederationがtrueのチーム（区間記録連合）を除外する
+        teams = [t for t in report_data.get('teams', []) if not t.get('is_shadow_confederation')]
         if not teams: return "表示するチームデータがありません。"
         top_distance = teams[0]['totalDistance'] if teams else 0
         header = (
@@ -218,7 +219,9 @@ class DailySummaryGenerator:
         for team_history in rank_history.get('teams', []):
             if len(team_history.get('distances', [])) > last_day_index:
                 yesterday_distances[team_history['id']] = team_history['distances'][last_day_index]
-        for team_state in realtime_data.get('teams', []):
+        # is_shadow_confederationがtrueのチーム（区間記録連合）を除外する
+        teams_to_check = [t for t in realtime_data.get('teams', []) if not t.get('is_shadow_confederation')]
+        for team_state in teams_to_check:
             yesterday_dist = yesterday_distances.get(team_state.get('id'), 0.0)
             today_dist = team_state.get('totalDistance', 0.0)
             for i, boundary in enumerate(leg_boundaries):
