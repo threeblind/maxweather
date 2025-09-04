@@ -6,7 +6,8 @@
     "runner_name": "美濃",
     "total_distance_km": 141.3,
     "latitude": 35.139920222476036,
-    "longitude": 138.6693277594403
+    "longitude": 138.6693277594403,
+    "is_shadow_confederation": false
   },
   {
     "rank": 2,
@@ -15,7 +16,8 @@
     "runner_name": "古河",
     "total_distance_km": 140.4,
     "latitude": 35.142772780167185,
-    "longitude": 138.6785727615778
+    "longitude": 138.6785727615778,
+    "is_shadow_confederation": false
   },
   {
     "rank": 3,
@@ -24,70 +26,78 @@
     "runner_name": "和田山",
     "total_distance_km": 139.9,
     "latitude": 35.14458243412186,
-    "longitude": 138.68353703824883
+    "longitude": 138.68353703824883,
+    "is_shadow_confederation": false
   },
   {
     "rank": 4,
+    "team_name": "立命館大学",
+    "team_short_name": "立命",
+    "runner_name": "福知山",
+    "total_distance_km": 139.7,
+    "latitude": 35.14582679950675,
+    "longitude": 138.68512505561264,
+    "is_shadow_confederation": false
+  },
+  {
+    "rank": 5,
     "team_name": "上武大学",
     "team_short_name": "上武",
     "runner_name": "越谷",
     "total_distance_km": 139.5,
     "latitude": 35.14633490585771,
-    "longitude": 138.68696898493178
-  },
-  {
-    "rank": 5,
-    "team_name": "立命館大学",
-    "team_short_name": "立命",
-    "runner_name": "福知山",
-    "total_distance_km": 138.6,
-    "latitude": 35.14467822588998,
-    "longitude": 138.6966372461985
+    "longitude": 138.68696898493178,
+    "is_shadow_confederation": false
   },
   {
     "rank": 6,
     "team_name": "金沢大学",
     "team_short_name": "金沢",
     "runner_name": "小浜",
-    "total_distance_km": 138.3,
-    "latitude": 35.14370685662905,
-    "longitude": 138.69902783711547
+    "total_distance_km": 138.9,
+    "latitude": 35.14523045254589,
+    "longitude": 138.6934144924429,
+    "is_shadow_confederation": false
   },
   {
-    "rank": 6,
+    "rank": 7,
     "team_name": "四国大学",
     "team_short_name": "四国",
     "runner_name": "大三島",
-    "total_distance_km": 138.3,
-    "latitude": 35.14370685662905,
-    "longitude": 138.69902783711547
+    "total_distance_km": 138.6,
+    "latitude": 35.14467822588998,
+    "longitude": 138.6966372461985,
+    "is_shadow_confederation": false
   },
   {
     "rank": 8,
+    "team_name": "鳥取大学",
+    "team_short_name": "鳥取",
+    "runner_name": "鳥取",
+    "total_distance_km": 135.7,
+    "latitude": 35.13881222579642,
+    "longitude": 138.72653282628903,
+    "is_shadow_confederation": false
+  },
+  {
+    "rank": 9,
     "team_name": "熊本学園大学",
     "team_short_name": "熊学",
     "runner_name": "岱明",
     "total_distance_km": 135.5,
     "latitude": 35.138340812991125,
-    "longitude": 138.72864615017835
-  },
-  {
-    "rank": 9,
-    "team_name": "鳥取大学",
-    "team_short_name": "鳥取",
-    "runner_name": "鳥取",
-    "total_distance_km": 135.4,
-    "latitude": 35.1380681037633,
-    "longitude": 138.72969200412425
+    "longitude": 138.72864615017835,
+    "is_shadow_confederation": false
   },
   {
     "rank": 10,
     "team_name": "福岡大学",
     "team_short_name": "福岡",
     "runner_name": "福岡",
-    "total_distance_km": 134.8,
-    "latitude": 35.137009517885964,
-    "longitude": 138.73614088364073
+    "total_distance_km": 135.0,
+    "latitude": 35.137327472719534,
+    "longitude": 138.7339807575034,
+    "is_shadow_confederation": false
   },
   {
     "rank": 11,
@@ -96,25 +106,28 @@
     "runner_name": "五條",
     "total_distance_km": 134.5,
     "latitude": 35.13653258563561,
-    "longitude": 138.73938107284673
+    "longitude": 138.73938107284673,
+    "is_shadow_confederation": false
   },
   {
     "rank": 12,
     "team_name": "福島大学",
     "team_short_name": "福島",
     "runner_name": "石川",
-    "total_distance_km": 133.0,
-    "latitude": 35.1329852377591,
-    "longitude": 138.7552545584328
+    "total_distance_km": 133.9,
+    "latitude": 35.135201820446426,
+    "longitude": 138.74575530050055,
+    "is_shadow_confederation": false
   },
   {
     "rank": 13,
     "team_name": "山梨学院大学",
     "team_short_name": "山学",
     "runner_name": "南信濃",
-    "total_distance_km": 132.8,
-    "latitude": 35.132492663828586,
-    "longitude": 138.75736550463998
+    "total_distance_km": 133.2,
+    "latitude": 35.133477811689616,
+    "longitude": 138.75314361222564,
+    "is_shadow_confederation": false
   },
   {
     "rank": 14,
@@ -123,16 +136,18 @@
     "runner_name": "加計",
     "total_distance_km": 132.6,
     "latitude": 35.13202862832337,
-    "longitude": 138.75948507354383
+    "longitude": 138.75948507354383,
+    "is_shadow_confederation": false
   },
   {
     "rank": 15,
     "team_name": "琉球大学",
     "team_short_name": "琉球",
     "runner_name": "北原",
-    "total_distance_km": 131.2,
-    "latitude": 35.12900623514738,
-    "longitude": 138.77438848526722
+    "total_distance_km": 131.4,
+    "latitude": 35.12950842379866,
+    "longitude": 138.7722810371471,
+    "is_shadow_confederation": false
   },
   {
     "rank": 16,
@@ -141,24 +156,37 @@
     "runner_name": "川内（鹿児島）",
     "total_distance_km": 128.0,
     "latitude": 35.11905133409451,
-    "longitude": 138.80720950457774
+    "longitude": 138.80720950457774,
+    "is_shadow_confederation": false
   },
   {
     "rank": 17,
     "team_name": "東北大学",
     "team_short_name": "東北",
     "runner_name": "帯広",
-    "total_distance_km": 103.5,
-    "latitude": 35.174385990043014,
-    "longitude": 139.01256985539254
+    "total_distance_km": 104.1,
+    "latitude": 35.17294339342326,
+    "longitude": 139.0078922096506,
+    "is_shadow_confederation": false
   },
   {
     "rank": 18,
     "team_name": "学連選抜",
     "team_short_name": "学連",
     "runner_name": "美幌",
-    "total_distance_km": 94.7,
-    "latitude": 35.20926509641642,
-    "longitude": 139.0620663008147
+    "total_distance_km": 95.2,
+    "latitude": 35.21363754289506,
+    "longitude": 139.06172494215505,
+    "is_shadow_confederation": false
+  },
+  {
+    "rank": null,
+    "team_name": "区間記録連合",
+    "team_short_name": "区間記録",
+    "runner_name": "佐野",
+    "total_distance_km": 140.7,
+    "latitude": 35.141821927603466,
+    "longitude": 138.67549109419866,
+    "is_shadow_confederation": true
   }
 ]
