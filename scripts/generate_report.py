@@ -35,7 +35,8 @@ LEG_RANK_HISTORY_FILE = DATA_DIR / 'leg_rank_history.json'
 RUNNER_LOCATIONS_OUTPUT_FILE = DATA_DIR / 'runner_locations.json'
 INTRAMURAL_RANKINGS_FILE = DATA_DIR / 'intramural_rankings.json'
 STATE_FILE = DATA_DIR / 'ekiden_state.json'
-REALTIME_LOG_FILE = LOGS_DIR / 'realtime_log.jsonl'
+STATE_FILE = DATA_DIR / 'ekiden_state.json' 
+REALTIME_LOG_FILE = DATA_DIR / 'realtime_log.jsonl'
 
 # --- 定数 ---
 EKIDEN_START_DATE = '2025-09-01'
