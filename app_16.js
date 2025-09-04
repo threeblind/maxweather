@@ -479,6 +479,12 @@ function setupTeamTracker(teams) {
     courseOption.textContent = 'コース全体を表示';
     selectEl.appendChild(courseOption);
 
+    // 「区間記録連合」追跡オプションを追加
+    const shadowOption = document.createElement('option');
+    shadowOption.value = 'shadow_confederation';
+    shadowOption.textContent = '区間最高記録';
+    selectEl.appendChild(shadowOption);
+
     // Add event listener
     selectEl.addEventListener('change', (event) => {
         trackedTeamName = event.target.value;
@@ -506,16 +512,37 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
 
     runnerLocations.forEach(runner => {
         const color = teamColorMap.get(runner.team_name) || '#808080'; // Default to grey
-        const teamInitial = runner.team_short_name || '??';
+
+        // マーカーに表示する文字を決定
+        // is_shadow_confederation フラグが true の場合（区間記録連合）は「最高」と表示
+        let teamInitial;
+        if (runner.is_shadow_confederation) {
+            teamInitial = '最高';
+        } else {
+            teamInitial = runner.team_short_name || '??';
+        }
+
         const icon = createRunnerIcon(teamInitial, color);
         const latLng = [runner.latitude, runner.longitude];
         const marker = L.marker(latLng, { icon: icon });
-
-        const popupContent = `
-            <b>${runner.rank}位: ${runner.team_short_name} (${runner.team_name})</b><br>
-            走者: ${formatRunnerName(runner.runner_name)}<br>
-            総距離: ${runner.total_distance_km.toFixed(1)} km
-        `;
+        
+        let popupContent;
+        if (runner.is_shadow_confederation) {
+            // 区間記録連合用のポップアップ内容
+            const editionText = runner.edition ? `：第${runner.edition}回` : '';
+            popupContent = `
+                <b>区間記録${editionText}</b><br>
+                走者: ${formatRunnerName(runner.runner_name)}<br>
+                総距離: ${runner.total_distance_km.toFixed(1)} km
+            `;
+        } else {
+            // 通常チーム用のポップアップ内容
+            popupContent = `
+                <b>${runner.rank}位: ${runner.team_short_name} (${runner.team_name})</b><br>
+                走者: ${formatRunnerName(runner.runner_name)}<br>
+                総距離: ${runner.total_distance_km.toFixed(1)} km
+            `;
+        }
         marker.bindPopup(popupContent);
 
         // Add click event to scroll to the ranking table and highlight the row
@@ -541,24 +568,37 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         const allRunnerLatLngs = runnerLocations.map(r => [r.latitude, r.longitude]);
         const bounds = L.latLngBounds(allRunnerLatLngs);
         map.fitBounds(bounds.pad(0.1)); // .pad(0.1) for some margin
+    } else if (trackedTeamName === "shadow_confederation") {
+        // --- 「区間記録連合」と「先頭走者」を追跡 ---
+        const shadowRunner = runnerLocations.find(r => r.is_shadow_confederation);
+
+        // 正規の走行中トップ選手を探す (ゴール済みと区間記録連合は除く)
+        const activeTopRunner = runnerLocations.find(runner => {
+            return runner.total_distance_km < finalGoalDistance && !runner.is_shadow_confederation;
+        });
+
+        const trackingGroup = [];
+        if (shadowRunner) trackingGroup.push(shadowRunner);
+        if (activeTopRunner) trackingGroup.push(activeTopRunner);
+
+        if (trackingGroup.length > 0) {
+            const groupLatLngs = trackingGroup.map(r => [r.latitude, r.longitude]);
+            const bounds = L.latLngBounds(groupLatLngs);
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+        }
     } else if (trackedTeamName && trackedTeamName !== "lead_group") {
         // --- Track a specific team ---
         const trackedRunner = runnerLocations.find(r => r.team_name === trackedTeamName);
         if (trackedRunner) {
-            map.setView([trackedRunner.latitude, trackedRunner.longitude], 14, {
-                animate: true,
-                pan: {
-                    duration: 1
-                }
-            });
+            map.setView([trackedRunner.latitude, trackedRunner.longitude], 14);
         }
     } else { // Default is "lead_group"
         // --- 先頭集団を追跡（動的ロジック） ---
 
-        // 「走行中」の選手を、最終ゴール距離に到達していない選手として定義する
+        // 「走行中」の選手を、ゴールしておらず、かつ区間記録連合ではない正規選手として定義する
         // リストは既に順位でソート済み
         const activeRunners = runnerLocations.filter(runner => {
-            return runner.total_distance_km < finalGoalDistance;
+            return runner.total_distance_km < finalGoalDistance && !runner.is_shadow_confederation;
         });
 
         // 走行中の選手がいる場合、先頭の1〜2名に焦点を当てる
