@@ -181,7 +181,8 @@ def save_ekiden_state(state, file_path):
         team_state = {
             "id": s["id"], "name": s["name"], "totalDistance": s["totalDistance"],
             "currentLeg": s["newCurrentLeg"], "overallRank": s["overallRank"],
-            "finishDay": s.get("finishDay")
+            "finishDay": s.get("finishDay"),
+            "processedLegs": s.get("processedLegs", []) # シャドーチーム用の処理済み区間リスト
         }
         data_to_save.append(team_state)
     
@@ -464,6 +465,9 @@ def main():
         shadow_team_data = team_info_map.get(shadow_team_states[0]['id'])
         shadow_state = shadow_team_states[0]
         
+        # 状態ファイルから処理済み区間のリストを取得（なければ空リスト）
+        processed_legs = shadow_state.get('processedLegs', [])
+
         # 正規チームの区間ごとの状況を整理
         teams_by_leg = {}
         for team_result in regular_team_results:
@@ -493,10 +497,15 @@ def main():
 
             print(f"  {shadow_leg_num}区担当 {shadow_runner_name}選手、現在の状態: {status}")
 
-            if status == 'running':
+            # 走行中で、かつ、まだこの区間の距離を加算していない場合のみ加算
+            if status == 'running' and shadow_leg_num not in processed_legs:
                 # その日の気温ではなく、歴代記録（1日あたりの平均走行距離）を今日の距離とする
                 today_distance = shadow_runner_info.get('record', 0.0)
-        
+                processed_legs.append(shadow_leg_num) # 処理済みとして記録
+                print(f"  > {shadow_leg_num}区の記録 {today_distance:.1f}km を初めて加算しました。")
+            else:
+                print(f"  > {shadow_leg_num}区は既に処理済みか、走行開始前のため、本日の距離加算はスキップします。")
+
         new_total_distance = round(shadow_state['totalDistance'] + today_distance, 1)
         new_current_leg = shadow_state['currentLeg']
 
@@ -518,7 +527,8 @@ def main():
             "todayDistance": today_distance, "totalDistance": new_total_distance,
             "previousRank": None, "rawTempResult": max_temp_result, "finishDay": None,
             "group_id": 2, # 順位計算対象外グループ
-            "is_shadow_confederation": True
+            "is_shadow_confederation": True,
+            "processedLegs": processed_legs # 更新された処理済み区間リストを渡す
         })
 
     # --- Step 3: 結果の結合と順位計算 ---
