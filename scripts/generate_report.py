@@ -428,25 +428,37 @@ def main():
 
             today_distance = max_temp_result.get('temperature') or 0.0
 
-            if today_distance > 0:
-                runner_info = individual_results.setdefault(runner_name, {"totalDistance": 0, "teamId": team_data['id'], "records": []})
-                record_for_today = next((r for r in runner_info['records'] if r.get('day') == race_day), None)
-                if record_for_today:
-                    record_for_today['distance'] = today_distance
-                else:
-                    runner_info['records'].append({"day": race_day, "leg": team_state["currentLeg"], "distance": today_distance})
-                runner_info['totalDistance'] = round(sum(r['distance'] for r in runner_info['records']), 1)
-
         new_total_distance = round(team_state['totalDistance'] + today_distance, 1)
         new_current_leg = team_state['currentLeg']
         finish_day_today = finish_day
 
+        is_leg_change = False
         if new_current_leg <= len(ekiden_data['leg_boundaries']):
             boundary = ekiden_data['leg_boundaries'][new_current_leg - 1]
             if new_total_distance >= boundary:
                 new_current_leg += 1
+                is_leg_change = True
                 if new_current_leg > len(ekiden_data['leg_boundaries']) and finish_day_today is None:
                     finish_day_today = race_day
+
+        # 個人記録を、その日に実際に走った選手に紐付ける
+        if today_distance > 0:
+            runner_to_record_name = runner_name
+            leg_to_record = team_state["currentLeg"]
+            if is_leg_change:
+                # 区間変更があった日は、新しい区間の選手に記録を付ける
+                new_runner_index = team_state["currentLeg"] # 次の区間のインデックスは team_state["currentLeg"] と同じ
+                if new_runner_index < len(team_data.get('runners', [])):
+                    runner_to_record_name = team_data['runners'][new_runner_index]['name']
+                    leg_to_record = new_current_leg
+            
+            runner_info = individual_results.setdefault(runner_to_record_name, {"totalDistance": 0, "teamId": team_data['id'], "records": []})
+            record_for_today = next((r for r in runner_info['records'] if r.get('day') == race_day), None)
+            if record_for_today:
+                record_for_today['distance'] = today_distance
+            else:
+                runner_info['records'].append({"day": race_day, "leg": leg_to_record, "distance": today_distance})
+            runner_info['totalDistance'] = round(sum(r['distance'] for r in runner_info['records']), 1)
 
         regular_team_results.append({
             "id": team_state["id"], "name": team_data["name"], "runner": runner_name,
