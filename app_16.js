@@ -1869,32 +1869,84 @@ async function displayManagerComments() {
     }
 }
 
-// --- 学内ランキング機能 ---
+// --- 学内ランキング機能 (セクション版) ---
 
 /**
- * 学内ランキングをモーダルで表示します。
+ * 学内ランキングデータをもとに、大学選択のプルダウンメニューを生成します。
+ */
+async function populateIntramuralSelect() {
+    const selectEl = document.getElementById('intramural-team-select');
+    if (!selectEl) return;
+
+    try {
+        // 学内ランキングデータを取得 (キャッシュ or フェッチ)
+        if (!intramuralDataCache) {
+            const response = await fetch(`data/intramural_rankings.json?_=${new Date().getTime()}`);
+            if (!response.ok) {
+                // ファイルがない場合は機能自体を非表示にする
+                if (response.status === 404) {
+                    const section = document.getElementById('section-intramural-ranking');
+                    if(section) section.style.display = 'none';
+                    // メニューからも非表示にする
+                    const navLink = document.querySelector('a[href="#section-intramural-ranking"]');
+                    if (navLink) navLink.parentElement.style.display = 'none';
+                }
+                return; // エラー時は何もせず終了
+            }
+            intramuralDataCache = await response.json();
+        }
+
+        // チームIDでソート
+        const sortedTeams = [...intramuralDataCache.teams].sort((a, b) => a.id - b.id);
+
+        // プルダウンに大学を追加
+        sortedTeams.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team.id;
+            option.textContent = team.name;
+            selectEl.appendChild(option);
+        });
+
+        // デフォルトでID:1を選択状態にする
+        const defaultTeamId = 1;
+        if (sortedTeams.some(team => team.id === defaultTeamId)) {
+            selectEl.value = defaultTeamId;
+        }
+
+    } catch (error) {
+        console.error('学内ランキングのプルダウン生成に失敗:', error);
+        const section = document.getElementById('section-intramural-ranking');
+        if(section) section.style.display = 'none';
+    }
+}
+
+
+/**
+ * 学内ランキングをセクション内に表示します。
  * 距離と順位は昨日時点のデータ、ステータスはリアルタイムデータを使用します。
  * @param {number} teamId 表示するチームのID
  */
-async function showIntramuralRankingModal(teamId) {
-    const modal = document.getElementById('intramuralRankingModal');
-    const modalTitle = document.getElementById('modalIntramuralTeamName');
-    const updateTimeEl = document.getElementById('modalIntramuralUpdateTime');
-    const tableBody = document.getElementById('modalIntramuralRankingBody');
-    const statusEl = document.getElementById('modalIntramuralRankingStatus');
+async function displayIntramuralRanking(teamId) {
+    const container = document.getElementById('intramural-ranking-container');
+    const contentDiv = document.getElementById('intramural-ranking-content');
+    const statusEl = document.getElementById('intramural-ranking-status');
+    const teamNameEl = document.getElementById('intramural-ranking-team-name');
+    const updateTimeEl = document.getElementById('intramural-ranking-update-time');
+    const tableBody = document.getElementById('intramural-ranking-body');
 
-    if (!modal || !modalTitle || !updateTimeEl || !tableBody || !statusEl) return;
+    if (!container || !contentDiv || !statusEl || !teamNameEl || !updateTimeEl || !tableBody) return;
 
-    // モーダルを準備
-    modal.style.display = 'block';
+    // 表示を準備
+    contentDiv.style.display = 'none';
     tableBody.innerHTML = '';
     statusEl.textContent = 'ランキングデータを読み込み中...';
     statusEl.className = 'result loading';
     statusEl.style.display = 'block';
 
     try {
-        // 1. 昨日時点の学内ランキングデータを取得 (キャッシュ or フェッチ)
+        // 1. 昨日時点の学内ランキングデータを取得 (キャッシュから)
         if (!intramuralDataCache) {
+            // populateIntramuralSelect でキャッシュされているはずだが、念のため
             const response = await fetch(`data/intramural_rankings.json?_=${new Date().getTime()}`);
             if (!response.ok) throw new Error('学内ランキングデータ(昨日時点)の取得に失敗しました。');
             intramuralDataCache = await response.json();
@@ -1902,7 +1954,10 @@ async function showIntramuralRankingModal(teamId) {
 
         // 2. リアルタイムデータと駅伝設定データを取得 (キャッシュから)
         if (!lastRealtimeData || !ekidenDataCache) {
-            throw new Error('リアルタイムデータまたは駅伝設定データが読み込まれていません。');
+            await fetchEkidenData(); // なければ取得を試みる
+            if (!lastRealtimeData || !ekidenDataCache) {
+                throw new Error('リアルタイムデータまたは駅伝設定データが読み込まれていません。');
+            }
         }
 
         // 3. 必要なデータを抽出
@@ -1914,9 +1969,9 @@ async function showIntramuralRankingModal(teamId) {
             throw new Error('チーム情報が見つかりませんでした。');
         }
 
-        // 4. モーダルのヘッダー情報を設定
-        modalTitle.textContent = `${intramuralTeamData.name} 学内ランキング`;
-        updateTimeEl.textContent = `距離・順位は ${intramuralDataCache.updateTime} 時点`;
+        // 4. ヘッダー情報を設定
+        teamNameEl.textContent = `${intramuralTeamData.name} 学内ランキング`;
+        updateTimeEl.textContent = `総距離は ${intramuralDataCache.updateTime} 時点のものです`;
 
         // 5. リアルタイムの選手ステータスを決定するための情報を準備
         const currentLeg = realtimeTeamData.currentLeg;
@@ -1956,20 +2011,22 @@ async function showIntramuralRankingModal(teamId) {
             if (rowClass) row.className = rowClass;
 
             row.innerHTML = `
-            <td>${index + 1}</td>
-            <td class="runner-name player-profile-trigger" data-runner-name="${runnerName}">${formatRunnerName(runnerName)}</td>
-            <td>${result.distance.toFixed(1)} km</td>
-            <td><span class="status-badge ${statusClass}">${currentStatus}</span></td>
-        `;
+                <td>${index + 1}</td>
+                <td class="runner-name player-profile-trigger" data-runner-name="${runnerName}">${formatRunnerName(runnerName)}</td>
+                <td>${result.distance.toFixed(1)} km</td>
+                <td><span class="status-badge ${statusClass}">${currentStatus}</span></td>
+            `;
             tableBody.appendChild(row);
         });
 
         statusEl.style.display = 'none';
+        contentDiv.style.display = 'block';
 
     } catch (error) {
-        console.error('学内ランキングモーダルの表示に失敗:', error);
+        console.error('学内ランキングの表示に失敗:', error);
         statusEl.textContent = `エラー: ${error.message}`;
         statusEl.className = 'result error';
+        contentDiv.style.display = 'none';
     }
 }
 
@@ -2475,7 +2532,7 @@ async function showPlayerProfileModal(rawRunnerName) {
 
 // --- 初期化処理 ---
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // chartjs-plugin-datalabels が読み込まれていれば、グローバルに登録
     if (window.ChartDataLabels) {
         Chart.register(window.ChartDataLabels);
@@ -2497,19 +2554,39 @@ document.addEventListener('DOMContentLoaded', function() {
     createEkidenHeader();
     createLegRankingHeader();
 
+    // --- 学内ランキング機能の初期化 ---
+    populateIntramuralSelect(); // プルダウンメニューを生成
+    const intramuralSelect = document.getElementById('intramural-team-select');
+    if (intramuralSelect) {
+        intramuralSelect.addEventListener('change', (event) => {
+            const teamId = parseInt(event.target.value, 10);
+            if (teamId) {
+                displayIntramuralRanking(teamId);
+            } else {
+                // 「大学を選択してください」が選ばれた時の処理
+                document.getElementById('intramural-ranking-content').style.display = 'none';
+                const statusEl = document.getElementById('intramural-ranking-status');
+                statusEl.textContent = '大学を選択すると、学内ランキングが表示されます。';
+                statusEl.className = 'result loading';
+                statusEl.style.display = 'block';
+            }
+        });
+    }
+
     // --- ページの主要コンテンツを非同期で読み込み ---
-    // 1. マップを初期化
-    initializeMap();
-    // 2. 最も重要な速報データを最初に取得して表示（マップのズームもここで行われる）
-    fetchEkidenData();
-    // 3. その他のコンテンツを読み込む
-    displayDailySummary(); // ★ 新しく追加: 日次サマリー記事
+    // 1. 最初にマップを初期化
+    await initializeMap();
+    // 2. 最も重要な速報データを取得して表示
+    await fetchEkidenData();
+    // 3. デフォルトの学内ランキングを表示
+    const defaultIntramuralTeamId = 1;
+    await displayIntramuralRanking(defaultIntramuralTeamId);
+    // 4. その他のコンテンツを読み込む
+    displayDailySummary();
     displayManagerComments(); // 監督談話室
     displayEntryList(); // エントリーリスト
     displayLegRankHistoryTable(); // 順位推移テーブル
     displayOutline(); // 大会概要
-    // ページ読み込み時に一度、即座にデータを取得して表示
-    fetchEkidenData();
     // 90秒ごとにデータを自動更新
     setInterval(fetchEkidenData, 90000);
 
@@ -2649,7 +2726,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const intramuralTarget = event.target.closest('.intramural-ranking-trigger');
             if (intramuralTarget) {
                 const teamId = parseInt(intramuralTarget.dataset.teamId, 10);
-                showIntramuralRankingModal(teamId);
+                // showIntramuralRankingModal(teamId); // この行は次のステップで新しい関数に置き換えます
             }
         });
     }
@@ -2673,18 +2750,6 @@ document.addEventListener('DOMContentLoaded', function() {
         closeProfileBtn.onclick = closeProfileModal;
         window.addEventListener('click', (event) => {
             if (event.target == profileModal) { closeProfileModal(); }
-        });
-    }
-
-    // 学内ランキングモーダルを閉じるイベントリスナー
-    const intramuralModal = document.getElementById('intramuralRankingModal');
-    const closeIntramuralBtn = document.getElementById('closeIntramuralRankingModal');
-    if (intramuralModal && closeIntramuralBtn) {
-        closeIntramuralBtn.onclick = () => intramuralModal.style.display = 'none';
-        window.addEventListener('click', (event) => {
-            if (event.target == intramuralModal) {
-                intramuralModal.style.display = 'none';
-            }
         });
     }
     // --- Order Simulator Initialization (このページでは使用しないため無効化) ---

@@ -1095,8 +1095,9 @@
                 <li><a href="#section-leg-rank-history">推移</a></li>
                 <li><a href="#section-leg-ranking">個人記録</a></li>
                 <li><a href="#section-leg-prize">区間記録</a></li>
+                <li><a href="#section-intramural-ranking">学内ランキング</a></li>
                 <li><a href="#section-digest">ダイジェスト</a></li>
-               <li class="dropdown">
+                <li class="dropdown">
                     <a class="dropbtn">その他 ▼</a>
                     <div class="dropdown-content">
                         <a href="#section-entry-list">エントリー</a>
@@ -1198,6 +1199,36 @@
             </div>
         </div>
 
+        <!-- ========== 学内ランキング ========== -->
+        <section id="section-intramural-ranking" class="content-section ekiden-section-wrapper">
+            <h2><i class="fas fa-university"></i> 🏫 学内ランキング</h2>
+            <div class="header-controls">
+                <select id="intramural-team-select">
+                    <option value="">大学を選択してください</option>
+                </select>
+            </div>
+            <div id="intramural-ranking-container">
+                <p id="intramural-ranking-status" class="result loading">大学を選択すると、学内ランキングが表示されます。</p>
+                <div id="intramural-ranking-content" style="display: none;">
+                    <h3 id="intramural-ranking-team-name"></h3>
+                    <p id="intramural-ranking-update-time" class="ranking-update-time"></p>
+                    <div class="ekiden-ranking-container">
+                        <table id="intramural-ranking-table" class="ranking-table">
+                            <thead>
+                                <tr>
+                                    <th>順位</th>
+                                    <th>選手名</th>
+                                    <th>総距離</th>
+                                    <th>ステータス</th>
+                                </tr>
+                            </thead>
+                            <tbody id="intramural-ranking-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="section-digest" class="ekiden-section-wrapper">
             <h2>🎬 レースダイジェスト</h2>
             
@@ -1213,8 +1244,6 @@
                 </div>
             </div>
         </section>
-
-
 
         <div id="section-entry-list" class="entry-list-container">
             <h2>📝 エントリーリスト</h2>
@@ -1272,29 +1301,6 @@
       </div>
     </div>
 
-    <!-- Intramural Ranking Modal -->
-    <div id="intramuralRankingModal" class="modal">
-      <div class="modal-content wide">
-        <span class="close-button" id="closeIntramuralRankingModal">&times;</span>
-        <h3 id="modalIntramuralTeamName"></h3>
-        <p id="modalIntramuralUpdateTime" style="text-align: right; font-size: 0.9rem; color: #6c757d; margin-top: -1.5rem; margin-bottom: 1rem;"></p>
-        <div class="ekiden-ranking-container">
-            <table id="modalIntramuralRankingTable">
-                <thead>
-                    <tr>
-                        <th>順位</th>
-                        <th>選手名</th>
-                        <th>昨日の距離</th>
-                        <th>現在のステータス</th>
-                    </tr>
-                </thead>
-                <tbody id="modalIntramuralRankingBody"></tbody>
-            </table>
-        </div>
-        <div id="modalIntramuralRankingStatus" class="result loading" style="display: none;"></div>
-      </div>
-    </div>
-    
     <div id="section-amedas-search" class="amedas-features" style="margin-top: 40px;">
         <h2>🌡️ アメダス地点検索</h2>
         <div class="search-box">
