@@ -354,9 +354,24 @@ let coursePolyline = null; // コースのポリラインをグローバルに�
  * Initializes the interactive map, draws the course, and places relay point markers.
  */
 async function initializeMap() {
+    // Leafletのアイコンパスが自動検出できない問題への対処
+    try {
+        delete L.Icon.Default.prototype._getIconUrl;
+        L.Icon.Default.mergeOptions({
+            iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        });
+    } catch (e) { console.error("Leaflet icon path fix failed:", e); }
+
     // 1. Initialize the map if it hasn't been already
     if (map) return;
-    map = L.map('map');
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+        console.error("Map container #map not found. Aborting map initialization.");
+        return;
+    }
+    map = L.map(mapContainer);
 
     // 2. Add the base map layer (OpenStreetMap)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -424,7 +439,7 @@ async function initializeMap() {
         }
     } catch (error) {
         console.error('Error initializing map:', error);
-        document.getElementById('map').innerHTML = `<p class="result error">マップの読み込みに失敗しました: ${error.message}</p>`;
+        mapContainer.innerHTML = `<p class="result error">マップの読み込みに失敗しました: ${error.message}</p>`;
     }
 }
 
@@ -2479,6 +2494,7 @@ async function showPlayerProfileModal(rawRunnerName) {
     const modal = document.getElementById('playerProfileModal');
     const contentDiv = document.getElementById('playerProfileContent');
 
+
     if (!modal || !contentDiv) {
         console.error('モーダル要素が見つかりません。');
         return;
@@ -2496,11 +2512,11 @@ async function showPlayerProfileModal(rawRunnerName) {
 
         const createSectionTitle = (title) => `<h4 style="border-bottom-color: ${teamColor}; color: ${teamColor};">${title}</h4>`;
 
+        // --- 各タブパネルのHTMLを生成 ---
         let currentPerformanceHtml = '';
         if (currentPerformance && currentPerformance.records && currentPerformance.records.length > 0) {
             currentPerformanceHtml = `
-                <div class="profile-section">
-                    ${createSectionTitle(`今大会の成績 (第${CURRENT_EDITION}回)`)}
+                <div id="profile-panel-current" class="profile-tab-panel active">
                     <div class="profile-chart-container" style="height: 250px;">
                         <canvas id="profileSummaryChart"></canvas>
                     </div>
@@ -2511,16 +2527,14 @@ async function showPlayerProfileModal(rawRunnerName) {
                 </div>`;
         } else {
             currentPerformanceHtml = `
-                <div class="profile-section">
-                    ${createSectionTitle(`今大会の成績 (第${CURRENT_EDITION}回)`)}
+                <div id="profile-panel-current" class="profile-tab-panel active">
                     <p>今大会の出場記録はありません。</p>
                 </div>`;
         }
 
         const pastEditions = Object.keys(profile.performance || {}).filter(e => parseInt(e, 10) !== CURRENT_EDITION).sort((a, b) => b - a);
         const pastPerformanceHtml = pastEditions.length > 0 ? `
-            <div class="profile-section">
-                ${createSectionTitle('過去大会成績')}
+            <div id="profile-panel-past" class="profile-tab-panel">
                 <div style="overflow-x: auto;">
                     <table class="profile-table">
                         <thead><tr><th>大会</th><th>区間</th><th>区間順位</th><th>総距離</th><th>平均距離</th></tr></thead>
@@ -2541,8 +2555,7 @@ async function showPlayerProfileModal(rawRunnerName) {
             </div>` : '';
 
         const personalBestHtml = (profile.personal_best && profile.personal_best.length > 0) ? `
-            <div class="profile-section">
-                ${createSectionTitle('主な区間賞')}
+            <div id="profile-panel-best" class="profile-tab-panel">
                 <div style="overflow-x: auto;">
                     <table class="profile-table">
                         <thead><tr><th>大会</th><th>区間</th><th>記録</th><th>備考</th></tr></thead>
@@ -2559,27 +2572,35 @@ async function showPlayerProfileModal(rawRunnerName) {
                 </div>
             </div>` : '';
 
+        // --- モーダル全体のHTMLを組み立て ---
         contentDiv.innerHTML = `
             <div class="profile-header" style="border-bottom-color: ${teamColor};">
                 <h3 class="profile-name">${profile.name}</h3>
                 <p class="profile-team" style="color: ${teamColor};">${profile.team_name}</p>
             </div>
-            <div class="profile-section">
-                <blockquote class="profile-comment" style="border-left-color: ${teamColor};">
-                    "${profile.comment || 'コメントはありません。'}"
-                </blockquote>
+            <div class="profile-main-info-wrapper">
+                <div class="profile-image-container">
+                    <img src="${profile.image_url}" alt="${profile.name}" class="profile-image">
+                </div>
+                <div class="profile-meta-info">
+                    <p><b>出身:</b> ${profile.prefecture || '未設定'}</p>
+                    <p><b>地点:</b> ${profile.address} (標高: ${profile.elevation}m)</p>
+                    <p><b>開始:</b> ${profile.start_date}</p>
+                    <blockquote class="profile-comment" style="border-left-color: ${teamColor}; margin-top: 0.5rem; padding: 0.5rem 0.8rem;">
+                        "${profile.comment || 'コメントはありません。'}"
+                    </blockquote>
+                </div>
             </div>
-            ${currentPerformanceHtml}
-            <div class="profile-image-container">
-                <img src="${profile.image_url}" alt="${profile.name}" class="profile-image">
+            <div class="profile-tabs">
+                <button class="profile-tab active" data-tab="current">今大会</button>
+                ${pastPerformanceHtml ? '<button class="profile-tab" data-tab="past">過去大会</button>' : ''}
+                ${personalBestHtml ? '<button class="profile-tab" data-tab="best">区間賞</button>' : ''}
             </div>
-            <div class="profile-meta-info">
-                <p>出身都道府県: ${profile.prefecture || '未設定'}</p>
-                <p>観測地点: ${profile.address} (標高: ${profile.elevation}m)</p>
-                <p>観測開始: ${profile.start_date}</p>
+            <div class="profile-tab-content">
+                ${currentPerformanceHtml}
+                ${pastPerformanceHtml}
+                ${personalBestHtml}
             </div>
-            ${pastPerformanceHtml}
-            ${personalBestHtml}
         `;
 
         // グラフデータがあれば描画
@@ -2588,6 +2609,27 @@ async function showPlayerProfileModal(rawRunnerName) {
             await renderProfileCharts(rawRunnerName, raceDay);
         }
 
+        // タブ切り替えのイベントリスナーを設定
+        const tabs = contentDiv.querySelectorAll('.profile-tab'); // タブボタンを取得
+        const panels = contentDiv.querySelectorAll('.profile-tab-content > div'); // 各タブパネルを取得
+
+        tabs.forEach(tab => { // 各タブボタンにクリックイベントを設定
+            tab.addEventListener('click', () => {
+                // すべてのタブとパネルからactiveクラスを削除
+                tabs.forEach(t => t.classList.remove('active'));
+                panels.forEach(p => p.classList.remove('active'));
+
+                // クリックされたタブをアクティブにする
+                tab.classList.add('active');
+
+                // 対応するパネルを表示する
+                const targetPanelId = `profile-panel-${tab.dataset.tab}`;
+                const targetPanel = document.getElementById(targetPanelId);
+                if (targetPanel) {
+                    targetPanel.classList.add('active');
+                }
+            });
+        });
     } catch (error) {
         contentDiv.innerHTML = `<p class="result error">データの表示に失敗しました: ${error.message}</p>`;
         console.error('選手プロファイルモーダルの表示エラー:', error);

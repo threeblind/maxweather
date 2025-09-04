@@ -1006,6 +1006,18 @@
             position: relative;
             background-color: #ffffff; /* Default for manager */
         }
+        /* --- Player Profile Modal Tabs --- */
+        .profile-tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 1.5rem; }
+        .profile-tab { padding: 0.75rem 1.25rem; cursor: pointer; border: none; background-color: transparent; font-size: 1rem; font-weight: 500; color: var(--text-muted-color); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color 0.2s, border-color 0.2s; }
+        .profile-tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+
+        .profile-tab-panel { display: none; } /* .profile-tab-content を .profile-tab-panel に変更 */
+        .profile-tab-panel.active { display: block; animation: tab-fade-in 0.4s ease; } /* .profile-tab-content を .profile-tab-panel に変更 */
+        @keyframes tab-fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         /* --- Player Profile Modal --- */
         .profile-header { text-align: center; padding-bottom: 1rem; margin-bottom: 1rem; }
         .profile-header .profile-name { font-size: 1.8rem; margin: 0 0 0.25rem 0; font-weight: 700; color: var(--text-color); }
@@ -1031,6 +1043,24 @@
             height: 200px; /* グラフの高さ */
             margin-bottom: 20px;
             position: relative;
+        }
+
+        @media (max-width: 768px) {
+            .profile-main-info-wrapper { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem; }
+            .profile-image-container { margin: 0; }
+            .profile-image { width: 80px; height: 80px; }
+            .profile-header { text-align: left; margin: 0; padding: 0; flex: 1; }
+            .profile-header .profile-name { font-size: 1.4rem; margin-bottom: 0.1rem; }
+            .profile-header .profile-team { font-size: 1rem; }
+            .profile-comment { font-size: 1rem; padding: 1rem; }
+            .profile-table { font-size: 0.85rem; }
+            .profile-table th, .profile-table td { padding: 0.4rem; }
+            .profile-meta-info { text-align: left; padding: 0.8rem; margin-bottom: 1.5rem; }
+            .modal-content { padding: 1.5rem; }
+            .profile-section { margin-bottom: 1.5rem; }
+            .profile-section h4 { font-size: 1rem; margin-bottom: 0.5rem; }
+            .profile-chart-container { height: 180px; }
+
         }
 
         .modal-content.wide {
