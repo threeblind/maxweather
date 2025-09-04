@@ -2194,6 +2194,21 @@ async function renderProfileCharts(rawRunnerName, raceDay) {
     if (dailyRunnerChartInstance) dailyRunnerChartInstance.destroy();
 
     try {
+        // --- 0. デフォルトで表示する日を決定する ---
+        const runnerRecords = allIndividualData[rawRunnerName]?.records;
+        if (!runnerRecords || runnerRecords.length === 0) {
+            // 今大会の記録がない場合は、グラフ描画処理を中断
+            summaryCanvas.style.display = 'none';
+            dailyCanvas.style.display = 'none';
+            statusEl.style.display = 'none';
+            return;
+        }
+
+        // 選手が走った最終日をデフォルト表示日とする
+        // これにより、走行中の選手は本日が、走り終えた選手は最後の走行日が選択される
+        const lastDayRun = Math.max(...runnerRecords.map(r => r.day));
+        let selectedDayForDetail = lastDayRun;
+
         // --- 1. 必要なデータを準備 ---
         const runnerData = allIndividualData[rawRunnerName];
         const teamId = runnerData.teamId;
@@ -2202,6 +2217,13 @@ async function renderProfileCharts(rawRunnerName, raceDay) {
         // --- 2. 下段：日次詳細グラフを更新する内部関数 ---
         const updateDailyDetailChart = async (targetDay) => {
             if (dailyRunnerChartInstance) dailyRunnerChartInstance.destroy();
+
+            // 選手がその日に走った記録があるか確認
+            const recordForDay = sortedRecords.find(r => r.day === targetDay);
+            if (!recordForDay) {
+                dailyCanvas.style.display = 'none'; // 記録がなければグラフを非表示
+                return;
+            }
 
             const targetDate = new Date(EKIDEN_START_DATE);
             targetDate.setDate(targetDate.getDate() + targetDay - 1);
@@ -2223,7 +2245,7 @@ async function renderProfileCharts(rawRunnerName, raceDay) {
             } catch (e) { console.error(`ログファイル ${logFilePath} の読み込みエラー:`, e); }
 
             const dailyChartData = { labels: [], distances: [] };
-            const runnerKeyForLog = `${sortedRecords.find(r => r.day === targetDay).leg}${rawRunnerName}`;
+            const runnerKeyForLog = `${recordForDay.leg}${rawRunnerName}`;
 
             allLogLines.forEach(log => {
                 if (log.team_id == teamId && log.runner_name === runnerKeyForLog && log.timestamp.startsWith(targetDateStr)) {
@@ -2267,10 +2289,10 @@ async function renderProfileCharts(rawRunnerName, raceDay) {
         // --- 3. 上段：サマリー棒グラフを描画 ---
         const summaryLabels = sortedRecords.map(r => `${r.day}日目`);
         const summaryData = sortedRecords.map(r => r.distance);
-        const todayIndex = sortedRecords.findIndex(r => r.day === raceDay);
+        const initialSelectedIndex = sortedRecords.findIndex(r => r.day === selectedDayForDetail);
 
-        const backgroundColors = summaryLabels.map((_, index) => index === todayIndex ? 'rgba(255, 99, 132, 0.6)' : 'rgba(54, 162, 235, 0.2)');
-        const borderColors = summaryLabels.map((_, index) => index === todayIndex ? 'rgba(255, 99, 132, 1)' : 'rgba(54, 162, 235, 0.5)');
+        const backgroundColors = summaryLabels.map((_, index) => index === initialSelectedIndex ? 'rgba(255, 99, 132, 0.6)' : 'rgba(54, 162, 235, 0.2)');
+        const borderColors = summaryLabels.map((_, index) => index === initialSelectedIndex ? 'rgba(255, 99, 132, 1)' : 'rgba(54, 162, 235, 0.5)');
 
         summaryChartInstance = new Chart(summaryCanvas, {
             type: 'bar',
@@ -2304,11 +2326,11 @@ async function renderProfileCharts(rawRunnerName, raceDay) {
                     const points = summaryChartInstance.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
                     if (points.length) {
                         const clickedIndex = points[0].index;
-                        const clickedDay = sortedRecords[clickedIndex].day;
+                        selectedDayForDetail = sortedRecords[clickedIndex].day;
                         summaryChartInstance.data.datasets[0].backgroundColor = summaryLabels.map((_, index) => index === clickedIndex ? 'rgba(255, 99, 132, 0.6)' : 'rgba(54, 162, 235, 0.2)');
                         summaryChartInstance.data.datasets[0].borderColor = summaryLabels.map((_, index) => index === clickedIndex ? 'rgba(255, 99, 132, 1)' : 'rgba(54, 162, 235, 0.5)');
                         summaryChartInstance.update();
-                        await updateDailyDetailChart(clickedDay);
+                        await updateDailyDetailChart(selectedDayForDetail);
                     }
                 }
             }
@@ -2317,8 +2339,8 @@ async function renderProfileCharts(rawRunnerName, raceDay) {
         statusEl.style.display = 'none';
         summaryCanvas.style.display = 'block';
 
-        // --- 4. 初期表示として、本日の詳細グラフを描画 ---
-        await updateDailyDetailChart(raceDay);
+        // --- 4. 初期表示として、決定された日の詳細グラフを描画 ---
+        await updateDailyDetailChart(selectedDayForDetail);
 
     } catch (error) {
         console.error('選手プロファイルグラフの描画エラー:', error);
