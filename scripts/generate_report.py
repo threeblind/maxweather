@@ -7,9 +7,8 @@ import shutil
 import sys
 import argparse
 import re
-import xml.etree.ElementTree as ET
-from bs4 import BeautifulSoup
 import unicodedata
+from bs4 import BeautifulSoup
 from geopy.distance import geodesic
 
 # --- ディレクトリ定義 ---
@@ -18,22 +17,17 @@ DATA_DIR = Path('data')
 LOGS_DIR = Path('logs')
 HISTORY_DATA_DIR = Path('history_data')
 
-# --- 定数 ---
-# 設定ファイル
+# --- ファイルパス定義 ---
 EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
+SHADOW_TEAM_FILE = CONFIG_DIR / 'shadow_team.json'
 AMEDAS_STATIONS_FILE = CONFIG_DIR / 'amedas_stations.json'
 OUTLINE_FILE = CONFIG_DIR / 'outline.json'
-KML_FILE = CONFIG_DIR / 'ekiden_map.kml'
 COURSE_PATH_FILE = CONFIG_DIR / 'course_path.json'
-
-# 履歴データ
 STORY_SETTINGS_FILE = HISTORY_DATA_DIR / 'ekiden_story_settings.json'
 PAST_RESULTS_FILE = HISTORY_DATA_DIR / 'past_results.json'
 LEG_AWARD_HISTORY_FILE = HISTORY_DATA_DIR / 'leg_award_history.json'
 TOURNAMENT_RECORDS_FILE = HISTORY_DATA_DIR / 'tournament_records.json'
 LEG_BEST_RECORDS_FILE = HISTORY_DATA_DIR / 'leg_best_records.json'
-
-# 出力ファイル (data)
 REALTIME_REPORT_FILE = DATA_DIR / 'realtime_report.json'
 INDIVIDUAL_STATE_FILE = DATA_DIR / 'individual_results.json'
 RANK_HISTORY_FILE = DATA_DIR / 'rank_history.json'
@@ -41,37 +35,42 @@ LEG_RANK_HISTORY_FILE = DATA_DIR / 'leg_rank_history.json'
 RUNNER_LOCATIONS_OUTPUT_FILE = DATA_DIR / 'runner_locations.json'
 INTRAMURAL_RANKINGS_FILE = DATA_DIR / 'intramural_rankings.json'
 STATE_FILE = DATA_DIR / 'ekiden_state.json'
+REALTIME_LOG_FILE = LOGS_DIR / 'realtime_log.jsonl'
 
-# 状態・ログファイル (logs)
-REALTIME_LOG_FILE = DATA_DIR / 'realtime_log.jsonl'
-
-# その他
+# --- 定数 ---
 EKIDEN_START_DATE = '2025-09-01'
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
 
-# 5chからスクレイピングする際のリクエストヘッダー
-HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-}
 # --- グローバル変数 ---
 stations_data = []
-ekiden_data = {} # ekiden_data.json
-story_settings = {} # ekiden_story_settings.json
-past_results = [] # past_results.json
-leg_award_history = [] # leg_award_history.json
-tournament_records = [] # tournament_records.json
-leg_best_records = {} # leg_best_records.json
-intramural_rankings = {} # intramural_rankings.json
-
-# --- 関数定義 ---
+all_teams_data = [] # 正規チームとシャドーチームを結合したデータ
+ekiden_data = {}
+story_settings = {}
+past_results = []
+leg_award_history = []
+tournament_records = []
+leg_best_records = {}
+intramural_rankings = {}
 
 def load_all_data():
     """必要なJSONファイルをすべて読み込む"""
-    global stations_data, ekiden_data, story_settings, past_results, leg_award_history, tournament_records, leg_best_records, intramural_rankings
+    global stations_data, all_teams_data, ekiden_data, story_settings, past_results, leg_award_history, tournament_records, leg_best_records, intramural_rankings
     try:
         with open(AMEDAS_STATIONS_FILE, 'r', encoding='utf-8') as f:
             stations_data = json.load(f)
         with open(EKIDEN_DATA_FILE, 'r', encoding='utf-8') as f:
             ekiden_data = json.load(f)
+        
+        # シャドーチームの定義を読み込む
+        try:
+            with open(SHADOW_TEAM_FILE, 'r', encoding='utf-8') as f:
+                shadow_team_data = json.load(f)
+            # 正規チームとシャドーチームの情報を結合
+            all_teams_data = ekiden_data.get('teams', []) + [shadow_team_data]
+        except FileNotFoundError:
+            print(f"情報: '{SHADOW_TEAM_FILE}' が見つかりません。シャドーチームなしで処理を続行します。")
+            all_teams_data = ekiden_data.get('teams', [])
+
         # --- 歴史データを読み込む ---
         with open(STORY_SETTINGS_FILE, 'r', encoding='utf-8') as f:
             story_settings = json.load(f)
@@ -86,10 +85,10 @@ def load_all_data():
 
     except FileNotFoundError as e:
         print(f"エラー: 必須データファイルが見つかりません。 {e.filename}")
-        exit(1)
+        sys.exit(1)
     except json.JSONDecodeError as e:
         print(f"エラー: JSONファイルの形式が正しくありません: {e}")
-        exit(1)
+        sys.exit(1)
 
     # 学内ランキングは任意ファイルとして読み込む
     try:
@@ -97,7 +96,7 @@ def load_all_data():
             intramural_rankings = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         print(f"情報: '{INTRAMURAL_RANKINGS_FILE}' が見つからないか不正なため、学内ランキング関連の機能はスキップされます。")
-        intramural_rankings = {} # 空の辞書をセット
+        intramural_rankings = {}
 
 def find_station_by_name(name):
     """地点名から観測所情報を検索"""
@@ -110,19 +109,15 @@ def fetch_max_temperature(pref_code, station_code):
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
-
         record_high_li = soup.find('li', class_='recordHigh')
         if not record_high_li or record_high_li.find('dt').text.strip() != '最高':
             return {'temperature': None, 'error': '気温データなし'}
-
         dd = record_high_li.find('dd')
         if not dd:
             return {'temperature': None, 'error': '気温情報解析失敗'}
-
         temp_value_str = dd.contents[0].strip()
         temperature = float(temp_value_str)
         return {'temperature': temperature, 'error': None}
-
     except requests.RequestException as e:
         return {'temperature': None, 'error': f"通信エラー: {e}"}
     except (ValueError, TypeError):
@@ -137,15 +132,12 @@ def fetch_current_temperature(pref_code, station_code):
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
-
         main_data = soup.find('p', class_='mainData')
         if not main_data:
             return {'temperature': None, 'error': '現在気温データなし'}
-
         temp_span = main_data.find('span')
         if not temp_span or not temp_span.contents:
             return {'temperature': None, 'error': '現在気温情報解析失敗'}
-
         temp_value_str = temp_span.contents[0].strip()
         temperature = float(temp_value_str)
         return {'temperature': temperature, 'error': None}
@@ -157,48 +149,43 @@ def fetch_current_temperature(pref_code, station_code):
         return {'temperature': None, 'error': '不明な解析エラー'}
 
 def load_ekiden_state(file_path):
-    """駅伝の現在の状態を読み込む"""
+    """駅伝の現在の状態を読み込む。ファイルがなければ全チームの初期状態を生成。"""
     if not os.path.exists(file_path):
+        print(f"情報: '{file_path}' が見つかりません。全チームの初期状態を生成します。")
         return [
             {
                 "id": team["id"], "name": team["name"],
-                "totalDistance": 0, "currentLeg": 1, "overallRank": 0, "finishDay": None
-            } for team in ekiden_data['teams']
+                "totalDistance": 0.0, "currentLeg": 1, "overallRank": 0, "finishDay": None
+            } for team in all_teams_data
         ]
     with open(file_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def load_individual_results(file_path):
-    """選手個人の結果を読み込む"""
+    """選手個人の結果を読み込む。ファイルがなければ初期状態を生成。"""
     if not os.path.exists(file_path):
-        # 初期状態を生成
         runners_state = {}
-        for team in ekiden_data['teams']:
+        for team in all_teams_data:
             for runner_obj in team.get('runners', []):
                 runner_name = runner_obj.get('name')
-                if not runner_name:
-                    continue
-                # 選手名をキーとして、総距離、チームID、記録配列を保存
-                runners_state[runner_name] = {
-                    "totalDistance": 0,
-                    "teamId": team['id'],
-                    "records": []
-                }
+                if not runner_name: continue
+                runners_state[runner_name] = {"totalDistance": 0, "teamId": team['id'], "records": []}
         return runners_state
     with open(file_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def save_ekiden_state(state, file_path):
     """駅伝の現在の状態を保存する"""
-    data_to_save = [
-        {
+    data_to_save = []
+    for s in state:
+        team_state = {
             "id": s["id"], "name": s["name"], "totalDistance": s["totalDistance"],
             "currentLeg": s["newCurrentLeg"], "overallRank": s["overallRank"],
             "finishDay": s.get("finishDay")
-        } for s in state
-    ]
-    # ディレクトリが存在しない場合は作成
-    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        }
+        data_to_save.append(team_state)
+    
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(data_to_save, f, indent=2, ensure_ascii=False)
 
@@ -214,81 +201,7 @@ def get_east_asian_width_count(text):
 
 def pad_str(text, length, char='＿'):
     """指定した文字幅になるように文字列をパディング"""
-    padding = length - get_east_asian_width_count(text)
-    return text + char * (padding if padding > 0 else 0)
-
-def get_manager_tripcodes(ekiden_data):
-    """ekiden_data.jsonから監督のコテハンと公式監督名を抽出し、辞書で返す"""
-    managers = {}
-    # ◆の後にスペースが任意で入る場合に対応し、トリップ部分をキャプチャ
-    trip_pattern = re.compile(r'◆\s?([a-zA-Z0-9./]+)')
-    for team in ekiden_data.get('teams', []):
-        manager_str = team.get('manager', '')
-        match = trip_pattern.search(manager_str)
-        if match:
-            tripcode = f"◆{match.group(1).strip()}"
-            official_name = manager_str.split('◆')[0].strip()
-            managers[tripcode] = official_name
-    return managers
-
-def get_thread_url():
-    """outline.jsonからスレッドのURLを取得する"""
-    try:
-        with open(OUTLINE_FILE, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        return data.get('mainThreadUrl')
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"エラー: {OUTLINE_FILE} の読み込みに失敗しました: {e}")
-        return None
-
-def fetch_daytime_manager_comment(ekiden_data):
-    """
-    日中（7:00-18:59）に投稿された最新の監督コメントを1件取得する。
-    """
-    now = datetime.now()
-    if not (7 <= now.hour < 19):
-        return None
-    manager_tripcodes = get_manager_tripcodes(ekiden_data)
-    thread_url = get_thread_url()
-    if not manager_tripcodes or not thread_url:
-        return None
-
-    try:
-        response = requests.get(thread_url, headers=HEADERS, timeout=20)
-        response.raise_for_status()
-        response.encoding = response.apparent_encoding
-    except requests.RequestException:
-        return None # 通信エラー時は何も返さない
-
-    soup = BeautifulSoup(response.text, 'html.parser')
-    posts = soup.find_all('div', class_='post')
-    trip_pattern = re.compile(r'(◆[a-zA-Z0-9./]+)')
-
-    # 新しい投稿が下にあるので、逆順にループして最新のものを探す
-    for post in reversed(posts):
-        username_span = post.find('span', class_='postusername')
-        date_span = post.find('span', class_='date')
-        content_div = post.find('div', class_='post-content')
-
-        if not (username_span and date_span and content_div):
-            continue
-
-        trip_match = trip_pattern.search(username_span.get_text())
-        if not trip_match or trip_match.group(1) not in manager_tripcodes:
-            continue
-
-        date_match = re.search(r'(\d{4}/\d{2}/\d{2})\(.\)\s*(\d{2}:\d{2}:\d{2})', date_span.text.strip())
-        if not date_match:
-            continue
-
-        post_datetime = datetime.strptime(f"{date_match.group(1)} {date_match.group(2)}", '%Y/%m/%d %H:%M:%S')
-        # 日中(7-19時)かつ、投稿が10分以内であるかチェック
-        if time(7, 0) <= post_datetime.time() < time(19, 0) and (now - post_datetime) < timedelta(minutes=10):
-            posted_name = username_span.get_text().split('◆')[0].strip()
-            content_text = content_div.get_text(separator=' ', strip=True)
-            return {'name': posted_name, 'content': content_text}
-
-    return None # 対象時間内のコメントが見つからなかった場合
+    return text + char * (length - get_east_asian_width_count(text))
 
 def save_realtime_report(results, race_day, breaking_news_comment, breaking_news_timestamp, breaking_news_full_text=""):
     """速報用のJSONデータを生成して保存する"""
@@ -302,28 +215,34 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
         "teams": []
     }
 
-    # resultsは既に総合順位でソートされている想定
+    team_info_map = {t['id']: t for t in all_teams_data}
+
     for r in results:
-        team_info = next(t for t in ekiden_data['teams'] if t['id'] == r['id'])
-        # ゴール済みの場合は区間番号を付けずに「ゴール」と表示
-        runner_display = "ゴール" if r['runner'] == 'ゴール' else f"{r['currentLegNumber']}{r['runner']}"
-        next_runner_name = team_info['runners'][r['currentLegNumber']]['name'] if r['currentLegNumber'] < len(team_info['runners']) else '----'
+        team_info = team_info_map.get(r['id'])
+        if not team_info: continue
+
+        runner_display = "ゴール"
+        if r['runner'] != 'ゴール':
+            if r.get('is_shadow_confederation'):
+                runner_display = r['runner']
+            else:
+                runner_display = f"{r['currentLegNumber']}{r['runner']}"
+
+        next_runner_name = '----'
+        if r['currentLegNumber'] < len(team_info.get('runners', [])):
+            next_runner_name = team_info['runners'][r['currentLegNumber']]['name']
+        
         next_runner_str = 'ゴール' if next_runner_name == '----' else f"{r['currentLegNumber'] + 1}{next_runner_name}"
 
         report_data["teams"].append({
-            "id": r["id"],
-            "name": r["name"],
+            "id": r["id"], "name": r["name"],
             "short_name": team_info.get("short_name", r["name"]),
-            "currentLeg": r["currentLegNumber"],
-            "runner": runner_display,
-            "todayDistance": r["todayDistance"],
-            "todayRank": r["todayRank"],
-            "totalDistance": r["totalDistance"],
-            "overallRank": r["overallRank"],
-            "previousRank": r["previousRank"],
-            "nextRunner": next_runner_str,
-            "error": r['rawTempResult']['error'],
-            "finishDay": r.get("finishDay")
+            "currentLeg": r["currentLegNumber"], "runner": runner_display,
+            "todayDistance": r["todayDistance"], "todayRank": r["todayRank"],
+            "totalDistance": r["totalDistance"], "overallRank": r["overallRank"],
+            "previousRank": r["previousRank"], "nextRunner": next_runner_str,
+            "error": r['rawTempResult']['error'], "finishDay": r.get("finishDay"),
+            "is_shadow_confederation": r.get("is_shadow_confederation", False)
         })
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -331,39 +250,28 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
         json.dump(report_data, f, indent=2, ensure_ascii=False)
 
 def update_rank_history(results, race_day, rank_history_file_path):
-    """
-    Updates the daily rank history file (e.g., rank_history.json).
-    - results: List of today's results, sorted by overall rank.
-    - race_day: The current day of the race.
-    - rank_history_file_path: Path to the rank history file.
-    """
+    """日々の総合順位と距離の履歴を更新する"""
     try:
         with open(rank_history_file_path, 'r', encoding='utf-8') as f:
             history = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        # ファイルがない、または不正な場合は初期化
         history = {
             "dates": [],
-            "teams": [{"id": t["id"], "name": t["name"], "ranks": [], "distances": []} for t in ekiden_data['teams']]
+            "teams": [{"id": t["id"], "name": t["name"], "ranks": [], "distances": []} for t in all_teams_data]
         }
 
     today_str = (datetime.strptime(EKIDEN_START_DATE, '%Y-%m-%d') + timedelta(days=race_day - 1)).strftime('%Y-%m-%d')
 
-    # 日付のインデックスを取得または新規追加
     try:
         date_index = history["dates"].index(today_str)
     except ValueError:
         history["dates"].append(today_str)
         date_index = len(history["dates"]) - 1
-        # 新しい日付の場合、全チームの履歴配列を拡張
         for team_history in history["teams"]:
             team_history["ranks"].append(None)
             team_history["distances"].append(None)
 
-    # チームIDをキーにした辞書を作成して効率化
     history_teams_map = {team['id']: team for team in history['teams']}
-
-    # 今日の結果を履歴に反映
     for result in results:
         team_id = result['id']
         if team_id in history_teams_map:
@@ -371,332 +279,30 @@ def update_rank_history(results, race_day, rank_history_file_path):
             team_history['ranks'][date_index] = result['overallRank']
             team_history['distances'][date_index] = result['totalDistance']
 
-    # ファイルに保存
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(rank_history_file_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2, ensure_ascii=False)
 
-def update_leg_rank_history(results, previous_day_state, leg_rank_history_file_path, is_commit_mode=False):
-    """
-    Updates the leg-by-leg rank history file (leg_rank_history.json).
-    This function records the overall rank of a team at the moment it completes a leg.
-
-    - results: List of today's results, sorted by overall rank.
-    - previous_day_state: The state of the ekiden from the *start* of the day (before today's results).
-    - leg_rank_history_file_path: Path to the leg rank history file.
-    - is_commit_mode: If True, overwrites any existing rank for a leg completed today.
-                      If False (realtime), only records if the rank is not yet set.
-    """
-    num_legs = len(ekiden_data['leg_boundaries'])
-
-    try:
-        with open(leg_rank_history_file_path, 'r', encoding='utf-8') as f:
-            history = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        # Initialize if file doesn't exist or is invalid
-        history = {
-            "teams": [
-                {
-                    "id": t["id"], "name": t["name"],
-                    "leg_ranks": [None] * num_legs
-                } for t in ekiden_data['teams']
-            ]
-        }
-
-    # Create maps for efficient lookups
-    previous_state_map = {team['id']: team for team in previous_day_state}
-    history_teams_map = {team['id']: team for team in history['teams']}
-
-    # Iterate through today's results
-    for result in results:
-        team_id = result['id']
-        prev_state = previous_state_map.get(team_id)
-        team_history = history_teams_map.get(team_id)
-
-        if not prev_state or not team_history:
-            continue
-
-        # The team started the day in `prev_state['currentLeg']`.
-        # It is now in `result['newCurrentLeg']`.
-        # We update the ranks for all legs completed today with the current overall rank.
-        start_leg_today = prev_state['currentLeg']
-        last_completed_leg = result['newCurrentLeg'] - 1
-
-        # Iterate from the leg they started today up to the last leg they completed.
-        for leg_number in range(start_leg_today, last_completed_leg + 1):
-            leg_index = leg_number - 1
-            if 0 <= leg_index < len(team_history['leg_ranks']):
-                # In commit mode, always overwrite.
-                # In realtime mode, update continuously as requested.
-                # The previous logic of only writing once (if None) is removed
-                # to allow for continuous updates.
-                team_history['leg_ranks'][leg_index] = result['overallRank']
-
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    with open(leg_rank_history_file_path, 'w', encoding='utf-8') as f:
-        json.dump(history, f, indent=2, ensure_ascii=False)
-
-def _generate_lead_change_comment(current_results, previous_report_data):
-    """首位交代のコメントを生成"""
-    if current_results and previous_report_data.get('teams'):
-        current_leader_id = current_results[0]['id']
-        previous_leader_id = previous_report_data['teams'][0]['id']
-        if current_leader_id != previous_leader_id:
-            current_leader_name = current_results[0]['name']
-            return f"【首位交代】{current_leader_name}がトップに浮上！レースが大きく動きました！"
-    return None
-
-def _generate_record_challenge_comment(current_results):
-    """区間記録や歴代記録への挑戦に関するコメントを生成"""
-    for r in current_results:
-        if r['todayRank'] == 1 and r['todayDistance'] > 0:
-            leg_num = r['currentLegNumber']
-            leg_records = next((item for item in leg_best_records.get('leg_records', []) if item['leg'] == leg_num), None)
-            if leg_records:
-                # 今日の記録が歴代10位以内に入るかチェック
-                for i, best_record in enumerate(leg_records['top10']):
-                    if r['todayDistance'] >= best_record['record']:
-                        rank_in_history = i + 1
-                        runner_name = r['runner'].replace(str(r['currentLegNumber']), '')
-                        return f"【記録への挑戦】{r['name']}の{runner_name}選手、{leg_num}区で歴代{rank_in_history}位に相当する好タイム！歴史に名を刻むか！"
-    return None
-
-def _generate_champion_comeback_comment(current_results, previous_ranks):
-    """優勝経験校の走りに関するコメントを生成"""
-    champion_teams = story_settings.get('commentary_settings', {}).get('champion_teams', {})
-    for team_name, wins in champion_teams.items():
-        team_result = next((r for r in current_results if r['name'] == team_name), None)
-        if team_result:
-            prev_rank = previous_ranks.get(team_result['id'])
-            if team_result['overallRank'] <= 3 and prev_rank and team_result['overallRank'] < prev_rank:
-                return f"【王者の走り】優勝{wins}回、{team_name}がじわりと順位を上げ現在{team_result['overallRank']}位！さすがの勝負強さです！"
-    return None
-
-def _generate_revenge_run_comment(current_results):
-    """昨年の雪辱を果たす走りに関するコメントを生成"""
-    last_year_results_data = next((r for r in reversed(past_results) if r['year'] == datetime.now().year - 1), None)
-    if not last_year_results_data:
-        return None
-    last_year_ranks = {team['team_name']: team['rank'] for team in last_year_results_data['results']}
-
-    for r in current_results:
-        last_year_rank = last_year_ranks.get(r['name'])
-        if last_year_rank and (last_year_rank - r['overallRank'] >= 5):
-            return f"【昨年の雪辱へ】{r['name']}、昨年の{last_year_rank}位から今年は{r['overallRank']}位と大躍進！このまま上位を維持できるか！"
-    return None
-
-def _generate_ace_leg_comment(current_results):
-    """エース区間の快走に関するコメントを生成"""
-    ace_legs_info = story_settings.get('commentary_settings', {}).get('ace_legs', {})
-    ace_legs = ace_legs_info.get('main', []) + ace_legs_info.get('sub', [])
-    threshold = story_settings.get('commentary_settings', {}).get('thresholds', {}).get('ace_leg_rank', 3)
-
-    for r in current_results:
-        if r['currentLegNumber'] in ace_legs and r['todayRank'] <= threshold:
-            runner_name = r['runner'].replace(str(r['currentLegNumber']), '')
-            leg_name = "花の" if r['currentLegNumber'] in ace_legs_info.get('main', []) else ""
-            return f"【エースの走り】{leg_name}{r['currentLegNumber']}区で{r['name']}・{runner_name}選手が区間{r['todayRank']}位の快走！チームを勢いづけます！"
-    return None
-
-def _generate_cinderella_comment(current_results, intramural_rankings):
-    """学内ランキング下位選手の活躍（シンデレラボーイ）に関するコメントを生成"""
-    if not intramural_rankings or 'teams' not in intramural_rankings:
-        return None
-
-    threshold = story_settings.get('commentary_settings', {}).get('thresholds', {}).get('cinderella_rank', 10)
-    
-    for r in current_results:
-        team_ranking = next((t for t in intramural_rankings['teams'] if t['id'] == r['id']), None)
-        if not team_ranking:
-            continue
-
-        runner_name_only = r['runner'].replace(str(r['currentLegNumber']), '')
-        runner_rank_info = next((runner for runner in team_ranking['daily_results'] if runner['runner_name'] == runner_name_only), None)
-        
-        if runner_rank_info:
-            # 学内順位はインデックス+1で計算
-            intramural_rank = team_ranking['daily_results'].index(runner_rank_info) + 1
-            # 正規メンバー（10人）のうち下位（7位以降）かつ、今日の区間順位が閾値以内
-            if intramural_rank >= 7 and r['todayRank'] <= threshold:
-                 return f"【シンデレラボーイ登場か！？】学内ランキングでは目立たなかった{r['name']}の{runner_name_only}選手が、この大舞台で区間{r['todayRank']}位の走りを見せています！"
-    return None
-
-def _generate_leg_finish_comment(current_results, previous_report_data):
-    """区間走破に関するコメントを生成"""
-    previous_teams_map = {team['id']: team for team in previous_report_data.get('teams', [])}
-    leg_finishers_by_leg = {}
-
-    for team in current_results:
-        if team['id'] in previous_teams_map:
-            previous_team = previous_teams_map[team['id']]
-            if team['newCurrentLeg'] > previous_team['currentLeg']:
-                completed_leg = previous_team['currentLeg']
-                if completed_leg not in leg_finishers_by_leg:
-                    leg_finishers_by_leg[completed_leg] = []
-                leg_finishers_by_leg[completed_leg].append(team['name'])
-
-    if leg_finishers_by_leg:
-        comments = [f"{'、'.join(teams)}が{leg}区を走りきりました！" for leg, teams in sorted(leg_finishers_by_leg.items())]
-        return "【区間走破】" + " ".join(comments)
-    return None
-
-def _generate_heatwave_comment(current_results, previous_report_data):
-    """酷暑・猛暑に関するコメントを生成"""
-    previous_temps_map = {team['id']: team.get('todayDistance', 0) for team in previous_report_data.get('teams', [])}
-    
-    hottest_runners = [r for r in current_results if r.get('todayDistance', 0) >= 40.0 and r['todayDistance'] > previous_temps_map.get(r['id'], 0)]
-    if hottest_runners:
-        runner_details = [f"{r['name']}の{r['runner']}選手({r['todayDistance']:.1f}km)" for r in hottest_runners]
-        return f"【酷暑】{', '.join(runner_details)}が脅威の走りで酷暑日超え、これは強烈な走り！！"
-
-    hotter_runners = [r for r in current_results if r.get('todayDistance', 0) >= 39.0 and r['todayDistance'] > previous_temps_map.get(r['id'], 0)]
-    if hotter_runners:
-        runner_details = [f"{r['name']}の{r['runner']}選手({r['todayDistance']:.1f}km)" for r in hotter_runners]
-        return f"【猛暑】{', '.join(runner_details)}が39kmを超える走りをみせています！素晴らしい走りです！"
-    return None
-
-def _generate_rank_change_comment(current_results, previous_ranks):
-    """順位変動に関するコメントを生成"""
-    current_teams_map = {team['id']: team for team in current_results}
-    
-    jump_up_teams = [
-        {"name": current_teams_map[team_id]['name'], "jump": previous_ranks[team_id] - rank, "current_rank": rank}
-        for team_id, rank in {t['id']: t['overallRank'] for t in current_results}.items()
-        if team_id in previous_ranks and previous_ranks[team_id] - rank >= 3
-    ]
-    if jump_up_teams:
-        best_jumper = max(jump_up_teams, key=lambda x: x['jump'])
-        return f"【ジャンプアップ】{best_jumper['name']}が{best_jumper['jump']}ランクアップで{best_jumper['current_rank']}位に浮上！"
-
-    rank_down_teams = [
-        {"name": current_teams_map[team_id]['name'], "drop": rank - previous_ranks[team_id]}
-        for team_id, rank in {t['id']: t['overallRank'] for t in current_results}.items()
-        if team_id in previous_ranks and rank - previous_ranks[team_id] >= 5
-    ]
-    if rank_down_teams:
-        worst_dropper = max(rank_down_teams, key=lambda x: x['drop'])
-        return f"【波乱】{worst_dropper['name']}が{worst_dropper['drop']}ランクダウン。厳しい展開です。"
-    return None
-
-def _generate_close_race_comment(current_results, previous_report_data):
-    """接戦に関するコメントを生成"""
-    previous_distances = {team['id']: team['totalDistance'] for team in previous_report_data.get('teams', [])}
-    
-    # 首位争い
-    if len(current_results) > 1:
-        t1, t2 = current_results[0], current_results[1]
-        if 0 <= (t1['totalDistance'] - t2['totalDistance']) < 1.0:
-            return f"【首位争い】トップ{t1['name']}に2位{t2['name']}が肉薄！その差わずか{(t1['totalDistance'] - t2['totalDistance']):.1f}km！"
-
-    # シード権争い
-    if len(current_results) > 10:
-        t10, t11 = current_results[9], current_results[10]
-        prev_dist_10, prev_dist_11 = previous_distances.get(t10['id']), previous_distances.get(t11['id'])
-        if prev_dist_10 is not None and prev_dist_11 is not None:
-            current_gap = t10['totalDistance'] - t11['totalDistance']
-            if 0 <= current_gap < 0.5 and current_gap < (prev_dist_10 - prev_dist_11):
-                return f"【シード権争い】10位{t10['name']}と11位{t11['name']}が熾烈な争い！"
-    return None
-
-def _generate_timed_report_comment(current_results, previous_report_data):
-    """定時速報コメントを生成"""
-    now = datetime.now()
-    last_comment = previous_report_data.get('breakingNewsComment', "")
-    last_timestamp_str = previous_report_data.get('breakingNewsTimestamp')
-    can_show_timed_report = True
-
-    if last_comment and last_timestamp_str:
-        try:
-            if (now - datetime.fromisoformat(last_timestamp_str)) < timedelta(hours=1) and not last_comment.startswith("【定時速報】"):
-                can_show_timed_report = False
-        except (ValueError, TypeError):
-            pass
-
-    if can_show_timed_report:
-        if now.minute == 15 and current_results:
-            top_team = current_results[0]
-            return f"【定時速報】現在トップは{top_team['name']}！総合距離{top_team['totalDistance']:.1f}kmです！"
-        if now.minute == 45 and current_results:
-            top_performer = max(current_results, key=lambda x: x.get('todayDistance', 0))
-            if top_performer.get('todayDistance', 0) > 0:
-                return f"【定時速報】本日のトップは{top_performer['runner']}選手！{top_performer['todayDistance']:.1f}kmと素晴らしい走りです！"
-    return None
-
-def generate_breaking_news_comment(current_results, previous_report_data, individual_results, intramural_rankings):
-    """前回と今回の結果を比較し、注目すべき変動があれば速報コメントを生成する"""
-    now = datetime.now()
-    # 夜間（19時以降）と早朝（7時前）は速報を生成しない
-    if not (7 <= now.hour < 19):
-        return ""
-    if not previous_report_data:
-        return ""
-
-    previous_ranks = {team['id']: team['overallRank'] for team in previous_report_data.get('teams', [])}
-
-    comment_generators = [
-        _generate_lead_change_comment,
-        _generate_record_challenge_comment,
-        _generate_champion_comeback_comment,
-        _generate_revenge_run_comment,
-        _generate_ace_leg_comment,
-        _generate_cinderella_comment,
-        _generate_leg_finish_comment,
-        _generate_heatwave_comment,
-        _generate_rank_change_comment,
-        _generate_close_race_comment,
-        _generate_timed_report_comment,
-    ]
-
-    for generator in comment_generators:
-        # 各生成関数に必要な引数を渡す
-        if generator in [_generate_cinderella_comment]:
-             comment = generator(current_results, intramural_rankings)
-        elif generator in [_generate_champion_comeback_comment, _generate_rank_change_comment]:
-            comment = generator(current_results, previous_ranks)
-        elif generator in [_generate_revenge_run_comment, _generate_ace_leg_comment, _generate_record_challenge_comment]:
-            comment = generator(current_results)
-        else:
-            comment = generator(current_results, previous_report_data)
-        
-        if comment:
-            return comment
-
-    return ""
-
-def get_leg_number_from_name(name):
-    """'第１区'のようなPlacemark名から区間番号を抽出します。"""
-    match = re.search(r'第(\d+)区', name)
-    if match:
-        return int(match.group(1))
-    return float('inf') # マッチしない場合は最後にソートされるように大きな数を返す
-
 def calculate_and_save_runner_locations(teams_data):
-    """
-    course_path.jsonとリアルタイムレポートから、各チームの現在位置（緯度経度）を計算する。
-    """
-    # 1. 事前に生成されたコースパスファイルを読み込む
+    """各チームの現在位置（緯度経度）を計算して保存する"""
     try:
         with open(COURSE_PATH_FILE, 'r', encoding='utf-8') as f:
             all_points = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"エラー: {COURSE_PATH_FILE} の読み込みに失敗しました: {e}")
-        print("ヒント: `python process_kml.py` を実行して、コースファイルを生成してください。")
+        print(f"エラー: {COURSE_PATH_FILE} の読み込みに失敗: {e}")
         return
 
     if not all_points:
-        print(f"エラー: {COURSE_PATH_FILE} にコースの座標データが見つかりませんでした。")
+        print(f"エラー: {COURSE_PATH_FILE} にコースデータがありません。")
         return
 
-    # 2. 各チームの距離に基づいて座標を特定
     runner_locations = []
     print("各チームの現在位置を計算中...")
-
-    team_info_map = {t['id']: t for t in ekiden_data['teams']}
+    team_info_map = {t['id']: t for t in all_teams_data}
 
     for team in teams_data:
         target_distance_km = team.get('totalDistance', 0)
         cumulative_distance_km = 0.0
-        # デフォルトはコースのスタート地点に設定
         team_lat, team_lon = all_points[0]['lat'], all_points[0]['lon']
         location_found = False
 
@@ -705,7 +311,6 @@ def calculate_and_save_runner_locations(teams_data):
             p2 = (all_points[i]['lat'], all_points[i]['lon'])
             segment_distance_km = geodesic(p1, p2).kilometers
 
-            # ターゲット距離が現在のセグメント内にあるかチェック
             if segment_distance_km > 0 and cumulative_distance_km <= target_distance_km < cumulative_distance_km + segment_distance_km:
                 distance_into_segment = target_distance_km - cumulative_distance_km
                 fraction = distance_into_segment / segment_distance_km
@@ -715,7 +320,6 @@ def calculate_and_save_runner_locations(teams_data):
                 break
             cumulative_distance_km += segment_distance_km
         
-        # ループ内で位置が見つからず、かつ総距離がコース長以上の場合（＝完走後）はゴール地点に配置
         if not location_found and target_distance_km >= cumulative_distance_km:
             team_lat, team_lon = all_points[-1]['lat'], all_points[-1]['lon']
         
@@ -726,36 +330,31 @@ def calculate_and_save_runner_locations(teams_data):
             "rank": team.get('overallRank'), "team_name": team.get('name'),
             "team_short_name": short_name,
             "runner_name": team.get('runner'), "total_distance_km": team.get('totalDistance'),
-            "latitude": team_lat, "longitude": team_lon
+            "latitude": team_lat, "longitude": team_lon,
+            "is_shadow_confederation": team.get("is_shadow_confederation", False)
         })
-        print(f"  {team.get('overallRank')}位 {team.get('name'):<10} @ {team.get('totalDistance'):.1f} km -> ({team_lat:.6f}, {team_lon:.6f})")
+        if not team.get("is_shadow_confederation", False):
+            print(f"  {str(team.get('overallRank')) or 'N/A':>3}位 {team.get('name'):<10} @ {team.get('totalDistance'):.1f} km -> ({team_lat:.6f}, {team_lon:.6f})")
 
-    # 3. 結果をJSONファイルに保存
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(RUNNER_LOCATIONS_OUTPUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(runner_locations, f, indent=2, ensure_ascii=False)
-
-    print(f"\n計算完了: {len(runner_locations)}チームの位置を特定しました。")
-    print(f"結果を {RUNNER_LOCATIONS_OUTPUT_FILE} に保存しました。")
+    print(f"\n計算完了: {len(runner_locations)}チームの位置を {RUNNER_LOCATIONS_OUTPUT_FILE} に保存しました。")
 
 def append_to_realtime_log(results):
-    """リアルタイムログファイルに現在の走行データ（現在気温）を追記する。"""
+    """リアルタイムログファイルに現在の走行データ（現在気温）を追記する"""
     now_iso = datetime.now().isoformat()
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     try:
         with open(REALTIME_LOG_FILE, 'a', encoding='utf-8') as f:
             for r in results:
-                # ゴール済みの選手や、現在気温が取得できなかった選手はログに記録しない
                 if r['runner'] == 'ゴール' or r.get('currentTempForLog') is None:
                     continue
                 
-                # runner_nameに区間番号を付与して一意性を担保する
                 runner_name_with_leg = f"{r['currentLegNumber']}{r['runner']}"
-
                 log_entry = {
-                    "timestamp": now_iso,
-                    "team_id": r['id'],
-                    "runner_name": runner_name_with_leg, # '3穴吹' のような形式
+                    "timestamp": now_iso, "team_id": r['id'],
+                    "runner_name": runner_name_with_leg,
                     "distance": r.get('currentTempForLog')
                 }
                 f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
@@ -766,30 +365,14 @@ def append_to_realtime_log(results):
 def main():
     """メイン処理"""
     parser = argparse.ArgumentParser(description='高温大学駅伝のレポートを生成します。')
-    parser.add_argument('--realtime', action='store_true', help='リアルタイム速報用のJSON (realtime_report.json) を生成します。')
-    parser.add_argument('--commit', action='store_true', help='本日の結果を状態ファイル (ekiden_state.json) に保存します。')
-    # テスト用のファイルパスを指定するオプションを追加
+    parser.add_argument('--realtime', action='store_true', help='リアルタイム速報用のJSONを生成します。')
+    parser.add_argument('--commit', action='store_true', help='本日の結果を状態ファイルに保存します。')
     parser.add_argument('--state-file', default=STATE_FILE, help=f'チームの状態ファイルパス (デフォルト: {STATE_FILE})')
     parser.add_argument('--individual-state-file', default=INDIVIDUAL_STATE_FILE, help=f'個人の状態ファイルパス (デフォルト: {INDIVIDUAL_STATE_FILE})')
-    parser.add_argument('--history-file', default=RANK_HISTORY_FILE, help=f'Daily rank history file path (default: {RANK_HISTORY_FILE})')
-    parser.add_argument('--leg-history-file', default=LEG_RANK_HISTORY_FILE, help=f'Leg-by-leg rank history file path (default: {LEG_RANK_HISTORY_FILE})')
+    parser.add_argument('--history-file', default=RANK_HISTORY_FILE, help=f'順位履歴ファイルパス (デフォルト: {RANK_HISTORY_FILE})')
     args = parser.parse_args()
 
     load_all_data()
-
-    # Copy the previous report for comparison
-    previous_report_file = 'data/realtime_report_previous.json'
-    realtime_report_file = 'data/realtime_report.json'
-    previous_report_data = None # 変数を初期化
-    if os.path.exists(realtime_report_file):
-        shutil.copy(realtime_report_file, previous_report_file)
-        try:
-            with open(previous_report_file, 'r', encoding='utf-8') as f:
-                # previous_report_data はこの後の速報コメント生成で利用される
-                previous_report_data = json.load(f)
-        except (json.JSONDecodeError, FileNotFoundError):
-            print(f"警告: {previous_report_file} の読み込みに失敗しました。")
-            previous_report_data = None # 読み込み失敗時も変数をNoneに設定
 
     start_date = datetime.strptime(EKIDEN_START_DATE, '%Y-%m-%d')
     race_day = (datetime.now().date() - start_date.date()).days + 1
@@ -797,40 +380,47 @@ def main():
     current_state = load_ekiden_state(args.state_file)
     previous_rank_map = {s['id']: s['overallRank'] for s in current_state}
     individual_results = load_individual_results(args.individual_state_file)
+    
+    team_info_map = {t['id']: t for t in all_teams_data}
 
-    # intramural_rankings は load_all_data でグローバル変数に読み込まれている
-    results = []
-    print("速報を生成中... 全チームの気温データを取得しています。")
+    # --- Step 1: 正規チームの結果を計算 ---
+    regular_team_results = []
+    shadow_team_states = []
+    print("Step 1: 正規チームの走行結果を計算中...")
     for team_state in current_state:
-        team_data = next(t for t in ekiden_data['teams'] if t['id'] == team_state['id'])
+        team_data = team_info_map.get(team_state['id'])
+        if not team_data:
+            print(f"警告: ID {team_state['id']} のチーム定義が見つかりません。スキップします。")
+            continue
         
+        if team_data.get("is_shadow_confederation"):
+            shadow_team_states.append(team_state)
+            continue
+
         finish_day = team_state.get("finishDay")
         is_finished_yesterday = finish_day is not None and finish_day < race_day
 
         if is_finished_yesterday:
             print(f"  {team_data['name']} (順位確定済み)")
-            results.append({
-                "id": team_state["id"], "name": team_state["name"], "runner": "ゴール",
+            regular_team_results.append({
+                "id": team_state["id"], "name": team_data["name"], "runner": "ゴール",
                 "currentLegNumber": team_state["currentLeg"], "newCurrentLeg": team_state["currentLeg"],
                 "todayDistance": 0.0, "totalDistance": team_state["totalDistance"],
                 "previousRank": previous_rank_map.get(team_state["id"], 0),
                 "rawTempResult": {'temperature': 0, 'error': None},
-                "finishDay": finish_day,
-                "group_id": 1 # 順位確定グループ
+                "finishDay": finish_day, "group_id": 1
             })
             continue
 
-        # --- 走行中または本日ゴールのチーム ---
         print(f"  {team_data['name']} のデータを取得中...")
         runner_index = team_state['currentLeg'] - 1
         runner_name, max_temp_result, current_temp_for_log, today_distance = "ゴール", {'temperature': 0, 'error': None}, None, 0.0
 
-        if runner_index < len(team_data['runners']):
+        if runner_index < len(team_data.get('runners', [])):
             runner_name = team_data['runners'][runner_index]['name']
             station = find_station_by_name(runner_name)
             if station:
                 max_temp_result = fetch_max_temperature(station['pref_code'], station['code'])
-                # リアルタイムログ用に現在の気温も取得
                 current_temp_result = fetch_current_temperature(station['pref_code'], station['code'])
                 current_temp_for_log = current_temp_result.get('temperature')
             else:
@@ -849,7 +439,7 @@ def main():
 
         new_total_distance = round(team_state['totalDistance'] + today_distance, 1)
         new_current_leg = team_state['currentLeg']
-        finish_day_today = finish_day # 前日のゴール情報を引き継ぐ
+        finish_day_today = finish_day
 
         if new_current_leg <= len(ekiden_data['leg_boundaries']):
             boundary = ekiden_data['leg_boundaries'][new_current_leg - 1]
@@ -858,132 +448,139 @@ def main():
                 if new_current_leg > len(ekiden_data['leg_boundaries']) and finish_day_today is None:
                     finish_day_today = race_day
 
-        results.append({
-            "id": team_state["id"], "name": team_state["name"], "runner": runner_name,
+        regular_team_results.append({
+            "id": team_state["id"], "name": team_data["name"], "runner": runner_name,
             "currentLegNumber": team_state["currentLeg"], "newCurrentLeg": new_current_leg,
             "todayDistance": today_distance, "totalDistance": new_total_distance,
             "previousRank": previous_rank_map.get(team_state["id"], 0),
-            "rawTempResult": max_temp_result,
-            "finishDay": finish_day_today,
-            "group_id": 0, # 順位変動グループ
-            "currentTempForLog": current_temp_for_log
+            "rawTempResult": max_temp_result, "finishDay": finish_day_today,
+            "group_id": 0, "currentTempForLog": current_temp_for_log
         })
 
-    # 今日の順位を計算 (Standard competition ranking)
-    results.sort(key=lambda x: x['todayDistance'], reverse=True)
-    last_score = -1
-    last_rank = 0
-    for i, r in enumerate(results):
-        if r['todayDistance'] != last_score:
-            last_rank = i + 1
-            last_score = r['todayDistance']
-        r['todayRank'] = last_rank
-
-    # 総合順位を計算 (新しいルール)
-    results.sort(key=lambda x: (x.get('group_id', 0), x['totalDistance']), reverse=True)
-    last_score = -1
-    last_rank = 0
-    for i, r in enumerate(results):
-        if r['totalDistance'] != last_score:
-            last_rank = i + 1
-            last_score = r['totalDistance']
-        r['overallRank'] = last_rank
+    # --- Step 2: 区間記録連合の結果を計算 ---
+    shadow_team_results = []
+    print("\nStep 2: 区間記録連合の走行結果を計算中...")
+    if shadow_team_states:
+        shadow_team_data = team_info_map.get(shadow_team_states[0]['id'])
+        shadow_state = shadow_team_states[0]
         
-    # レポート生成
-    now = datetime.now()
-    report = []
-    report.append(f"{now.month}月{now.day}日　{race_day}日目　 速報（{now.strftime('%H:%M')}現在）\n")
-    report.append('　 　 　 　 　 　 　　 　 　　本日　.　.　.　.　.総合')
-    report.append('　大学名　.　.　走者　.　距離 . 順位　.　距離　. 　順位　. 次走者　.　被交代選手　')
+        # 正規チームの区間ごとの状況を整理
+        teams_by_leg = {}
+        for team_result in regular_team_results:
+            leg = team_result.get('newCurrentLeg')
+            if leg not in teams_by_leg:
+                teams_by_leg[leg] = []
+            teams_by_leg[leg].append(team_result)
 
-    for i, r in enumerate(results):
-        team_info = next(t for t in ekiden_data['teams'] if t['id'] == r['id'])
-        next_runner_name = team_info['runners'][r['currentLegNumber']]['name'] if r['currentLegNumber'] < len(team_info['runners']) else '----'
-        next_runner_str = 'ゴール' if next_runner_name == '----' else f"{r['currentLegNumber'] + 1}{next_runner_name}"
+        # シャドーチームの現在のランナーを特定
+        shadow_leg_num = shadow_state['currentLeg']
+        runner_index = shadow_leg_num - 1
+        
+        shadow_runner_name, today_distance, max_temp_result = "ゴール", 0.0, {'temperature': 0, 'error': None}
+        
+        if runner_index < len(shadow_team_data.get('runners', [])):
+            shadow_runner_info = shadow_team_data['runners'][runner_index]
+            shadow_runner_name = shadow_runner_info['name']
+            
+            # シャドーランナーの状態を判断 (waiting, running, finished)
+            status = 'waiting'
+            # 誰かが次の区間(shadow_leg_num + 1)に到達していたら、この区間のシャドーは 'finished'
+            if any(team.get('newCurrentLeg') > shadow_leg_num for team in regular_team_results):
+                status = 'finished'
+            # 誰かがこの区間(shadow_leg_num)を走っていたら 'running'
+            elif any(team.get('newCurrentLeg') == shadow_leg_num for team in regular_team_results):
+                status = 'running'
 
-        # 各パーツをフォーマット
-        name_part = pad_str(r['name'], 10)
-        runner_part = pad_str(f"{r['currentLegNumber']}{r['runner']}", 9)
-        today_dist_part = f"{r['todayDistance']:.1f}".rjust(4) if not r['rawTempResult']['error'] else '----'.rjust(4)
-        today_rank_part = f"{r['todayRank']:02d}"
-        total_dist_part = f"{r['totalDistance']:05.1f}" # 総合距離をゼロ埋め
-        prev_rank_part = f"({r['previousRank']:02d})" if r['previousRank'] > 0 else '(－)'
-        overall_rank_part = f"{r['overallRank']:02d}{prev_rank_part}"
+            print(f"  {shadow_leg_num}区担当 {shadow_runner_name}選手、現在の状態: {status}")
 
-        line = (
-            f"{name_part}.　{runner_part}　{today_dist_part}　.　"
-            f"{today_rank_part}　.　{total_dist_part}　.　"
-            f"{overall_rank_part}　{next_runner_str}"
-        )
-        report.append(line)
-        if i == 9:
-            report.append('---------------------------------------------------　')
+            if status == 'running':
+                # その日の気温ではなく、歴代記録（1日あたりの平均走行距離）を今日の距離とする
+                today_distance = shadow_runner_info.get('record', 0.0)
+        
+        new_total_distance = round(shadow_state['totalDistance'] + today_distance, 1)
+        new_current_leg = shadow_state['currentLeg']
+
+        # タスキ渡し（次の区間への移行）判定
+        if new_current_leg <= len(ekiden_data['leg_boundaries']):
+            # 正規チームの誰かが次の区間に到達したら、シャドーも次の区間に進む
+            if any(team.get('newCurrentLeg') > new_current_leg for team in regular_team_results):
+                new_current_leg += 1
+                # ワープ処理: 次の区間に入った正規チームのトップの距離に合わせる
+                teams_in_next_leg = [t for t in regular_team_results if t.get('newCurrentLeg') == new_current_leg]
+                if teams_in_next_leg:
+                    leader_in_next_leg = max(teams_in_next_leg, key=lambda x: x['totalDistance'])
+                    new_total_distance = leader_in_next_leg['totalDistance']
+                    print(f"  区間記録連合が {new_current_leg}区へタスキ渡し。トップの {leader_in_next_leg['name']} に合わせてワープします。")
+
+        shadow_team_results.append({
+            "id": shadow_state["id"], "name": shadow_team_data["name"], "runner": shadow_runner_name,
+            "currentLegNumber": shadow_state["currentLeg"], "newCurrentLeg": new_current_leg,
+            "todayDistance": today_distance, "totalDistance": new_total_distance,
+            "previousRank": None, "rawTempResult": max_temp_result, "finishDay": None,
+            "group_id": 2, # 順位計算対象外グループ
+            "is_shadow_confederation": True
+        })
+
+    # --- Step 3: 結果の結合と順位計算 ---
+    print("\nStep 3: 順位計算とレポート生成...")
+    all_results = regular_team_results + shadow_team_results
+
+    # 日間順位の計算 (正規チームのみ)
+    ranked_teams_today = sorted([r for r in all_results if not r.get('is_shadow_confederation')], key=lambda x: x['todayDistance'], reverse=True)
+    for i, team in enumerate(ranked_teams_today):
+        team['todayRank'] = i + 1
+    for team in all_results:
+        if team.get('is_shadow_confederation'):
+            team['todayRank'] = None
+
+    # 総合順位の計算 (正規チームのみ)
+    # 順位計算対象のチーム（正規チーム）のみを抽出
+    teams_for_ranking = [r for r in all_results if not r.get('is_shadow_confederation')]
+
+    # 1. ゴール済みチームの順位付け (ゴール日、ゴール時の距離でソート)
+    finished_teams = sorted([r for r in teams_for_ranking if r.get('group_id') == 1], key=lambda x: (x.get('finishDay', float('inf')), -x.get('totalDistance', 0)))
+    # 2. 走行中チームの順位付け (総距離でソート)
+    running_teams = sorted([r for r in teams_for_ranking if r.get('group_id') == 0], key=lambda x: x.get('totalDistance', 0), reverse=True)
+
+    # 3. 結合して最終的な順位を割り振る (同順位を考慮)
+    ranked_teams = finished_teams + running_teams
+    last_rank, last_key_val = 0, None
+    for i, team in enumerate(ranked_teams):
+        key_val = (team.get('finishDay', float('inf')), -team.get('totalDistance', 0)) if team.get('group_id') == 1 else -team.get('totalDistance', 0)
+        if key_val != last_key_val:
+            last_rank = i + 1
+        team['overallRank'] = last_rank
+        last_key_val = key_val
+
+    for team in all_results:
+        if team.get('is_shadow_confederation'):
+            team['overallRank'] = None
+    
+    # 最終的な表示のために、総合順位でソートし直す (シャドーは最後尾)
+    all_results.sort(key=lambda x: (x.get('overallRank') is None, x.get('overallRank', float('inf'))))
 
     print("\n--- 速報生成完了 ---")
-    print("\n".join(report))
 
     if args.realtime:
-        comment_to_save = ""
-        timestamp_to_save = ""
-        full_text_to_save = ""
-
-        # 1. 監督の日中コメントを最優先でチェック
-        daytime_comment = fetch_daytime_manager_comment(ekiden_data)
-        if daytime_comment:
-            content_snippet = daytime_comment['content']
-            full_text = f"【{daytime_comment['name']}監督コメント】\n\n{daytime_comment['content']}"
-            if len(content_snippet) > 50:
-                content_snippet = content_snippet[:50] + '…'
-            
-            formatted_comment = f"【{daytime_comment['name']}監督コメント】{content_snippet}"
-            
-            # 前回と同じコメントでなければ採用
-            if previous_report_file and formatted_comment != previous_report_data.get('breakingNewsComment', ''):
-                comment_to_save = formatted_comment
-                full_text_to_save = full_text
-                timestamp_to_save = datetime.now().isoformat()
-                print(f"Generated breaking news from manager comment: '{comment_to_save}'")
-
-        # 2. 監督コメントがない場合、通常の速報生成ロジックを実行
-        if not comment_to_save and previous_report_data:
-            new_comment_text = generate_breaking_news_comment(results, previous_report_data, individual_results, intramural_rankings)
-            if new_comment_text:
-                comment_to_save = new_comment_text
-                full_text_to_save = "" # 通常の速報には全文はない
-                timestamp_to_save = datetime.now().isoformat()
-                print(f"Generated breaking news: '{comment_to_save}'")
-
-        # 3. 新しい速報がない場合、古いコメントを1時間維持するか検討
-        if not comment_to_save and previous_report_data:
-            old_comment, old_timestamp = previous_report_data.get('breakingNewsComment', ""), previous_report_data.get('breakingNewsTimestamp', "")
-            old_full_text = previous_report_data.get('breakingNewsFullText', "")
-            if old_timestamp and (datetime.now() - datetime.fromisoformat(old_timestamp)) < timedelta(hours=1):
-                comment_to_save = old_comment
-                timestamp_to_save = old_timestamp
-                full_text_to_save = old_full_text
-
-        # リアルタイムログに追記
-        append_to_realtime_log(results)
-
-        # 各種速報ファイルを保存
-        save_realtime_report(results, race_day, comment_to_save, timestamp_to_save, full_text_to_save)
-        update_rank_history(results, race_day, args.history_file)
-        update_leg_rank_history(results, current_state, args.leg_history_file)
+        append_to_realtime_log(all_results)
+        save_realtime_report(all_results, race_day, "", "", "")
+        update_rank_history(all_results, race_day, args.history_file)
         save_individual_results(individual_results, args.individual_state_file)
-        if results:
-            calculate_and_save_runner_locations(results)
-        print(f"\n--- [Realtime Mode] Saved report data to {realtime_report_file}, {args.history_file}, {args.leg_history_file}, {args.individual_state_file}, and {RUNNER_LOCATIONS_OUTPUT_FILE} ---")
+        if all_results:
+            calculate_and_save_runner_locations(all_results)
+        print(f"\n--- [Realtime Mode] 各種速報ファイルを保存しました ---")
 
     if args.commit:
-        save_ekiden_state(results, args.state_file)
-        update_rank_history(results, race_day, args.history_file)
-        update_leg_rank_history(results, current_state, args.leg_history_file, is_commit_mode=True)
+        save_ekiden_state(all_results, args.state_file)
+        update_rank_history(all_results, race_day, args.history_file)
         save_individual_results(individual_results, args.individual_state_file)
-        if results:
-            calculate_and_save_runner_locations(results)
-        print(f"\n--- [Commit Mode] Saved final results to {args.state_file}, {args.individual_state_file}, {args.history_file}, {args.leg_history_file}, and {RUNNER_LOCATIONS_OUTPUT_FILE} ---")
-    elif not args.realtime:
-        print("\n--- [Preview Mode] To save results, run `python generate_report.py --commit` ---")
+        if all_results:
+            calculate_and_save_runner_locations(all_results)
+        print(f"\n--- [Commit Mode] 最終結果を保存しました ---")
+    
+    if not args.realtime and not args.commit:
+        print("\n--- [Preview Mode] 結果を保存するには --realtime または --commit オプションを使用してください ---")
+
 
 if __name__ == '__main__':
     main()

@@ -1232,6 +1232,11 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
     const referenceTeamRank = activeTopTeam ? activeTopTeam.overallRank : 1;
 
     realtimeData.teams.forEach(team => {
+        // 総合順位(overallRank)が null または undefined のチーム（例: 区間記録連合）は表示しない
+        if (team.overallRank == null) {
+            return; // このチームの処理をスキップして次のチームへ
+        }
+
         const row = document.createElement('tr');
         row.id = `team-rank-row-${team.overallRank}`; // Add a unique ID for each row
 
