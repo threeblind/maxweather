@@ -1170,10 +1170,7 @@ async function displayLegRankHistoryTable() {
                 const displayRank = rank !== null ? rank : '-';
                 return `<td ${cellClass}>${displayRank}</td>`;
             }).join('');
-            const hasIntramuralData = intramuralTeamIds.has(team.id);
-            const tdClass = hasIntramuralData ? 'team-name intramural-ranking-trigger' : 'team-name';
-            const dataAttr = hasIntramuralData ? `data-team-id="${team.id}"` : '';
-            return `<tr><td class="${tdClass}" ${dataAttr}>${teamNameHtml}</td>${cellsHtml}</tr>`;
+            return `<tr><td class="team-name">${teamNameHtml}</td>${cellsHtml}</tr>`;
         }).join('');
 
         statusEl.style.display = 'none';
@@ -1372,6 +1369,73 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         rankingBody.appendChild(row);
     });
 };
+
+/**
+ * 定期的に速報マップと総合順位のみを更新します。
+ */
+async function refreshRealtimeData() {
+    try {
+        // Fetch only the data needed for map and overall ranking
+        const [realtimeRes, runnerLocationsRes] = await Promise.all([
+            fetch(`data/realtime_report.json?_=${new Date().getTime()}`),
+            fetch(`data/runner_locations.json?_=${new Date().getTime()}`)
+        ]);
+
+        if (!realtimeRes.ok || !runnerLocationsRes.ok) {
+            console.error('Failed to fetch realtime data for refresh.');
+            return;
+        }
+
+        const realtimeData = await realtimeRes.json();
+        const runnerLocations = await runnerLocationsRes.json();
+
+        // Use cached ekidenData
+        if (!ekidenDataCache) {
+            console.error('Ekiden data cache is not available for refresh.');
+            return;
+        }
+        
+        lastRealtimeData = realtimeData; // Update global cache
+
+        // Sort runner locations
+        runnerLocations.sort((a, b) => a.rank - b.rank);
+
+        // Update title and update time
+        const titleEl = document.getElementById('ekidenRankingTitle');
+        const updateTimeEl = document.getElementById('ekidenRankingUpdateTime');
+        if (titleEl) titleEl.textContent = `🏆 ${realtimeData.raceDay}日目 総合順位`;
+        if (updateTimeEl) updateTimeEl.textContent = `(更新: ${realtimeData.updateTime})`;
+
+        // Update breaking news
+        const newsContainer = document.getElementById('breaking-news-container');
+        if (newsContainer && realtimeData.breakingNewsComment && realtimeData.breakingNewsTimestamp) {
+            const comment = realtimeData.breakingNewsComment;
+            const date = new Date(realtimeData.breakingNewsTimestamp);
+            const timeStr = date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            newsContainer.textContent = `${comment} (${timeStr}時点)`;
+            newsContainer.style.display = 'block';
+
+            if (realtimeData.breakingNewsFullText) {
+                newsContainer.classList.add('clickable');
+                newsContainer.onclick = () => showBreakingNewsModal(realtimeData.breakingNewsFullText);
+            } else {
+                newsContainer.classList.remove('clickable');
+                newsContainer.onclick = null;
+            }
+        } else if (newsContainer) {
+            newsContainer.style.display = 'none';
+            newsContainer.classList.remove('clickable');
+            newsContainer.onclick = null;
+        }
+
+        // Update the two required sections
+        updateEkidenRankingTable(realtimeData, ekidenDataCache);
+        updateRunnerMarkers(runnerLocations, ekidenDataCache);
+
+    } catch (error) {
+        console.error('Error during realtime data refresh:', error);
+    }
+}
 
 let isTrackerInitialized = false; // Flag to ensure the tracker is only set up once
 
@@ -2587,8 +2651,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     displayEntryList(); // エントリーリスト
     displayLegRankHistoryTable(); // 順位推移テーブル
     displayOutline(); // 大会概要
-    // 90秒ごとにデータを自動更新
-    setInterval(fetchEkidenData, 90000);
+    // 90秒ごとにマップと総合順位を自動更新
+    setInterval(refreshRealtimeData, 90000);
 
     // スマホ表示でのPC/SP版表示切り替えボタンのイベントリスナー
     const toggleBtn = document.getElementById('toggle-ranking-view-btn');
