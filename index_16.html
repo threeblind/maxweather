@@ -558,6 +558,22 @@
         .toggle-prize-view button:hover {
             background-color: #5a6268;
         }
+        /* 個人記録テーブルのステータス別スタイル */
+        #legRankingTable tbody tr.leg-runner-running {
+            background-color: #fff3cd; /* 薄い黄色 */
+            font-weight: bold;
+        }
+        #legRankingTable tbody tr.leg-runner-running td.runner-name {
+            color: #dc3545; /* 走行中の選手名を赤くしてさらに強調 */
+        }
+        #legRankingTable tbody tr.leg-runner-finished-today {
+            /* 本日走行済みはデフォルトスタイル */
+        }
+        #legRankingTable tbody tr.leg-runner-past {
+            opacity: 0.65;
+            background-color: #f8f9fa; /* 少し背景色を変える */
+        }
+
         /* Leg Tabs Styles */
         .leg-tabs {
             display: flex;
