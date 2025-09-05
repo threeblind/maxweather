@@ -443,16 +443,10 @@ def main():
 
         # 個人記録を、その日に実際に走った選手に紐付ける
         if today_distance > 0:
-            runner_to_record_name = runner_name
+            # ★★★ 修正点: 記録は常にその日に走った選手(runner_name)と、その選手が走っていた区間(team_state["currentLeg"])に紐付ける
             leg_to_record = team_state["currentLeg"]
-            if is_leg_change:
-                # 区間変更があった日は、新しい区間の選手に記録を付ける
-                new_runner_index = team_state["currentLeg"] # 次の区間のインデックスは team_state["currentLeg"] と同じ
-                if new_runner_index < len(team_data.get('runners', [])):
-                    runner_to_record_name = team_data['runners'][new_runner_index]['name']
-                    leg_to_record = new_current_leg
-            
-            runner_info = individual_results.setdefault(runner_to_record_name, {"totalDistance": 0, "teamId": team_data['id'], "records": []})
+            runner_info = individual_results.setdefault(runner_name, {"totalDistance": 0, "teamId": team_data['id'], "records": []})
+
             record_for_today = next((r for r in runner_info['records'] if r.get('day') == race_day), None)
             if record_for_today:
                 record_for_today['distance'] = today_distance
