@@ -666,7 +666,7 @@ const createLegRankingHeader = () => {
             <th>順位</th>
             <th>走者</th>
             <th>大学名</th>
-            <th>区間距離</th>
+            <th>区間平均距離</th>
         </tr>
     `;
 };
