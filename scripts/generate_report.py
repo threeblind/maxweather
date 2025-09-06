@@ -226,6 +226,69 @@ def _generate_lead_change_comment(current_results, previous_report_data):
             return f"【首位交代】{current_leader_name}がトップに浮上！レースが大きく動きました！"
     return None
 
+def _generate_leg_finish_comment(current_results, previous_report_data):
+    """区間走破のコメントを生成"""
+    previous_teams_map = {team['id']: team for team in previous_report_data.get('teams', [])}
+    previous_distances = {team['id']: team['totalDistance'] for team in previous_report_data.get('teams', [])}
+    leg_finishers_by_leg = {}
+
+    for team in current_results:
+        team_id = team['id']
+        if team_id in previous_teams_map:
+            previous_team = previous_teams_map[team_id]
+            previous_total_distance = previous_distances.get(team_id)
+            leg_to_check_completion = previous_team['currentLeg']
+
+            if leg_to_check_completion <= len(ekiden_data['leg_boundaries']) and previous_total_distance is not None:
+                boundary = ekiden_data['leg_boundaries'][leg_to_check_completion - 1]
+                if team['totalDistance'] >= boundary and previous_total_distance < boundary:
+                    completed_leg = leg_to_check_completion
+                    if completed_leg not in leg_finishers_by_leg:
+                        leg_finishers_by_leg[completed_leg] = []
+                    leg_finishers_by_leg[completed_leg].append(team['name'])
+
+    if leg_finishers_by_leg:
+        comments = [f"{'、'.join(teams)}が{leg}区を走りきりました！" for leg, teams in sorted(leg_finishers_by_leg.items())]
+        return "【区間走破】" + " ".join(comments)
+    return None
+
+def _generate_heat_wave_comment(current_results, previous_report_data):
+    """猛暑・酷暑に関するコメントを生成"""
+    previous_temps_map = {team['id']: team.get('todayDistance', 0) for team in previous_report_data.get('teams', [])}
+
+    hottest_runners = [r for r in current_results if r.get('todayDistance', 0) >= 40.0 and r['todayDistance'] > previous_temps_map.get(r['id'], 0)]
+    if hottest_runners:
+        runner_details = [f"{r['name']}の{r['runner']}選手({r['todayDistance']:.1f}km)" for r in hottest_runners]
+        return f"【酷暑】{', '.join(runner_details)}が脅威の走りで酷暑日超え、これは強烈な走り！！"
+
+    hotter_runners = [r for r in current_results if r.get('todayDistance', 0) >= 39.0 and r['todayDistance'] > previous_temps_map.get(r['id'], 0)]
+    if hotter_runners:
+        runner_details = [f"{r['name']}の{r['runner']}選手({r['todayDistance']:.1f}km)" for r in hotter_runners]
+        return f"【猛暑】{', '.join(runner_details)}が39kmを超える走りをみせています！素晴らしい走りです！"
+    return None
+
+def _generate_closing_gap_comment(current_results, previous_report_data):
+    """追い上げに関するコメントを生成"""
+    previous_distances = {team['id']: team['totalDistance'] for team in previous_report_data.get('teams', [])}
+    closing_gap_teams = []
+    for i in range(1, len(current_results)):
+        current_team = current_results[i]
+        team_ahead = current_results[i-1]
+        current_gap = team_ahead['totalDistance'] - current_team['totalDistance']
+        prev_team_dist = previous_distances.get(current_team['id'])
+        prev_ahead_dist = previous_distances.get(team_ahead['id'])
+
+        if prev_team_dist is not None and prev_ahead_dist is not None:
+            previous_gap = prev_ahead_dist - prev_team_dist
+            gap_closed = previous_gap - current_gap
+            if gap_closed >= 2.0:
+                closing_gap_teams.append({"name": current_team['name'], "gap_closed": gap_closed})
+    
+    if closing_gap_teams:
+        best_closer = max(closing_gap_teams, key=lambda x: x['gap_closed'])
+        return f"【追い上げ】{best_closer['name']}が猛追！前のチームとの差を{best_closer['gap_closed']:.1f}km縮めました！"
+    return None
+
 def _generate_rank_change_comment(current_results, previous_ranks):
     """順位変動に関するコメントを生成"""
     current_teams_map = {team['id']: team for team in current_results}
@@ -269,6 +332,31 @@ def _generate_close_race_comment(current_results, previous_report_data):
                 return f"【シード権争い】10位{t10['name']}と11位{t11['name']}が熾烈な争い！"
     return None
 
+def _generate_timed_report_comment(current_results, previous_report_data):
+    """定時速報コメントを生成"""
+    now = datetime.now()
+    can_show_timed_report = True
+    last_comment = previous_report_data.get('breakingNewsComment', "")
+    last_timestamp_str = previous_report_data.get('breakingNewsTimestamp')
+
+    if last_comment and last_timestamp_str:
+        try:
+            last_timestamp = datetime.fromisoformat(last_timestamp_str)
+            if (now - last_timestamp) < timedelta(hours=1) and not last_comment.startswith("【定時速報】"):
+                can_show_timed_report = False
+        except (ValueError, TypeError):
+            pass
+
+    if can_show_timed_report:
+        if current_results and now.minute == 45:
+            top_performer = max(current_results, key=lambda x: x.get('todayDistance', 0))
+            if top_performer.get('todayDistance', 0) > 0:
+                return f"【定時速報】本日のトップは{top_performer['runner']}選手！{top_performer['todayDistance']:.1f}kmと素晴らしい走りです！"
+        if current_results and now.minute == 15:
+            top_team = current_results[0]
+            return f"【定時速報】現在トップは{top_team['name']}！総合距離{top_team['totalDistance']:.1f}kmです！"
+    return None
+
 def generate_breaking_news_comment(current_results, previous_report_data):
     """前回と今回の結果を比較し、注目すべき変動があれば速報コメントを生成する"""
     now = datetime.now()
@@ -279,8 +367,12 @@ def generate_breaking_news_comment(current_results, previous_report_data):
 
     comment_generators = [
         _generate_lead_change_comment,
+        _generate_leg_finish_comment,
+        _generate_heat_wave_comment,
         _generate_rank_change_comment,
+        _generate_closing_gap_comment,
         _generate_close_race_comment,
+        _generate_timed_report_comment,
     ]
 
     for generator in comment_generators:
