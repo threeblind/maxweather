@@ -1411,7 +1411,18 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
 
         row.appendChild(createCell(gapDisplay, 'gap hide-on-mobile'));
         row.appendChild(createRankChangeCell(team));
-        row.appendChild(createCell(formatRunnerName(team.nextRunner), 'next-runner hide-on-mobile'));
+
+        // 次走者セル。選手名鑑を呼び出せるようにする
+        const nextRunnerName = team.nextRunner;
+        // "3山形（山形）" のような名前から先頭の数字を取り除き、"山形（山形）" のように整形
+        const nextRunnerKey = nextRunnerName ? nextRunnerName.replace(/^\d+/, '') : '';
+        const nextRunnerCell = createCell(formatRunnerName(nextRunnerName), 'next-runner hide-on-mobile');
+        if (nextRunnerKey && playerProfiles[nextRunnerKey]) {
+            nextRunnerCell.classList.add('player-profile-trigger');
+            nextRunnerCell.classList.add('runner-name'); // クリック可能なスタイルを適用するためのクラスを追加
+            nextRunnerCell.dataset.runnerName = nextRunnerKey;
+        }
+        row.appendChild(nextRunnerCell);
 
         rankingBody.appendChild(row);
     });
