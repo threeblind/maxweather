@@ -2539,14 +2539,14 @@ async function showPlayerProfileModal(rawRunnerName) {
         const profile = playerProfiles[rawRunnerName];
         if (!profile) throw new Error('選手名鑑に情報が見つかりません。');
 
-        const currentPerformance = allIndividualData[rawRunnerName];
+        const currentPerformanceData = allIndividualData[rawRunnerName];
         const teamColor = teamColorMap.get(profile.team_name) || '#6c757d';
 
         const createSectionTitle = (title) => `<h4 style="border-bottom-color: ${teamColor}; color: ${teamColor};">${title}</h4>`;
 
-        // --- 各タブパネルのHTMLを生成 ---
-        let currentPerformanceHtml = '';
-        if (currentPerformance && currentPerformance.records && currentPerformance.records.length > 0) {
+        // --- 各セクションのHTMLを生成 ---
+        let currentPerformanceHtml = createSectionTitle('今大会の成績');
+        if (currentPerformanceData && currentPerformanceData.records && currentPerformanceData.records.length > 0) {
             currentPerformanceHtml = `
                 <div id="profile-panel-current" class="profile-tab-panel active">
                     <div class="profile-chart-container" style="height: 250px;">
@@ -2558,51 +2558,52 @@ async function showPlayerProfileModal(rawRunnerName) {
                     <div id="profileChartStatus" class="result loading" style="display: none;"></div>
                 </div>`;
         } else {
-            currentPerformanceHtml = `
-                <div id="profile-panel-current" class="profile-tab-panel active">
-                    <p>今大会の出場記録はありません。</p>
-                </div>`;
+            currentPerformanceHtml += `<p>今大会の出場記録はありません。</p>`;
         }
 
         const pastEditions = Object.keys(profile.performance || {}).filter(e => parseInt(e, 10) !== CURRENT_EDITION).sort((a, b) => b - a);
-        const pastPerformanceHtml = pastEditions.length > 0 ? `
-            <div id="profile-panel-past" class="profile-tab-panel">
+        let pastPerformanceHtml = '';
+        if (pastEditions.length > 0) {
+            pastPerformanceHtml = `
+                ${createSectionTitle('過去大会の成績')}
                 <div style="overflow-x: auto;">
-                    <table class="profile-table">
-                        <thead><tr><th>大会</th><th>区間</th><th>区間順位</th><th>総距離</th><th>平均距離</th></tr></thead>
-                        <tbody>
-                            ${pastEditions.map(edition => {
-                                const perf = profile.performance[edition].summary;
-                                return `<tr>
-                                    <td>第${edition}回</td>
-                                    <td>${perf.legs_run.map(l => `${l}区`).join(', ') || '-'}</td>
-                                    <td>${perf.best_leg_rank ? `${perf.best_leg_rank}位` : '-'}</td>
-                                    <td>${perf.total_distance.toFixed(1)} km</td>
-                                    <td>${perf.average_distance.toFixed(3)} km</td>
-                                </tr>`;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>` : '';
+                <table class="profile-table">
+                    <thead><tr><th>大会</th><th>区間</th><th>区間順位</th><th>総距離</th><th>平均距離</th></tr></thead>
+                    <tbody>
+                        ${pastEditions.map(edition => {
+                            const perf = profile.performance[edition].summary;
+                            return `<tr>
+                                <td>第${edition}回</td>
+                                <td>${perf.legs_run.map(l => `${l}区`).join(', ') || '-'}</td>
+                                <td>${perf.best_leg_rank ? `${perf.best_leg_rank}位` : '-'}</td>
+                                <td>${perf.total_distance.toFixed(1)} km</td>
+                                <td>${perf.average_distance.toFixed(3)} km</td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+                </div>`;
+        }
 
-        const personalBestHtml = (profile.personal_best && profile.personal_best.length > 0) ? `
-            <div id="profile-panel-best" class="profile-tab-panel">
+        let personalBestHtml = '';
+        if (profile.personal_best && profile.personal_best.length > 0) {
+            personalBestHtml = `
+                ${createSectionTitle('区間賞・自己ベスト')}
                 <div style="overflow-x: auto;">
-                    <table class="profile-table">
-                        <thead><tr><th>大会</th><th>区間</th><th>記録</th><th>備考</th></tr></thead>
-                        <tbody>
-                            ${[...profile.personal_best].sort((a, b) => b.edition - a.edition).map(best => `
-                                <tr>
-                                    <td>第${best.edition}回</td>
-                                    <td>${best.leg}区</td>
-                                    <td>${best.record.toFixed(3)}</td>
-                                    <td>${best.notes.join(', ') || '-'}</td>
-                                </tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>` : '';
+                <table class="profile-table">
+                    <thead><tr><th>大会</th><th>区間</th><th>記録</th><th>備考</th></tr></thead>
+                    <tbody>
+                        ${[...profile.personal_best].sort((a, b) => b.edition - a.edition).map(best => `
+                            <tr>
+                                <td>第${best.edition}回</td>
+                                <td>${best.leg}区</td>
+                                <td>${best.record.toFixed(3)}</td>
+                                <td>${best.notes.join(', ') || '-'}</td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>
+                </div>`;
+        }
 
         // --- モーダル全体のHTMLを組み立て ---
         contentDiv.innerHTML = `
@@ -2623,45 +2624,17 @@ async function showPlayerProfileModal(rawRunnerName) {
                     </blockquote>
                 </div>
             </div>
-            <div class="profile-tabs">
-                <button class="profile-tab active" data-tab="current">今大会</button>
-                ${pastPerformanceHtml ? '<button class="profile-tab" data-tab="past">過去大会</button>' : ''}
-                ${personalBestHtml ? '<button class="profile-tab" data-tab="best">区間賞</button>' : ''}
-            </div>
-            <div class="profile-tab-content">
-                ${currentPerformanceHtml}
-                ${pastPerformanceHtml}
-                ${personalBestHtml}
-            </div>
+            ${currentPerformanceHtml}
+            ${pastPerformanceHtml}
+            ${personalBestHtml}
         `;
 
         // グラフデータがあれば描画
-        if (currentPerformance && currentPerformance.records && currentPerformance.records.length > 0) {
+        if (currentPerformanceData && currentPerformanceData.records && currentPerformanceData.records.length > 0) {
             const raceDay = lastRealtimeData ? lastRealtimeData.raceDay : 1;
             await renderProfileCharts(rawRunnerName, raceDay);
         }
 
-        // タブ切り替えのイベントリスナーを設定
-        const tabs = contentDiv.querySelectorAll('.profile-tab'); // タブボタンを取得
-        const panels = contentDiv.querySelectorAll('.profile-tab-content > div'); // 各タブパネルを取得
-
-        tabs.forEach(tab => { // 各タブボタンにクリックイベントを設定
-            tab.addEventListener('click', () => {
-                // すべてのタブとパネルからactiveクラスを削除
-                tabs.forEach(t => t.classList.remove('active'));
-                panels.forEach(p => p.classList.remove('active'));
-
-                // クリックされたタブをアクティブにする
-                tab.classList.add('active');
-
-                // 対応するパネルを表示する
-                const targetPanelId = `profile-panel-${tab.dataset.tab}`;
-                const targetPanel = document.getElementById(targetPanelId);
-                if (targetPanel) {
-                    targetPanel.classList.add('active');
-                }
-            });
-        });
     } catch (error) {
         contentDiv.innerHTML = `<p class="result error">データの表示に失敗しました: ${error.message}</p>`;
         console.error('選手プロファイルモーダルの表示エラー:', error);

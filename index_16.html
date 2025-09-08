@@ -1022,17 +1022,6 @@
             position: relative;
             background-color: #ffffff; /* Default for manager */
         }
-        /* --- Player Profile Modal Tabs --- */
-        .profile-tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 1.5rem; }
-        .profile-tab { padding: 0.75rem 1.25rem; cursor: pointer; border: none; background-color: transparent; font-size: 1rem; font-weight: 500; color: var(--text-muted-color); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color 0.2s, border-color 0.2s; }
-        .profile-tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
-
-        .profile-tab-panel { display: none; } /* .profile-tab-content を .profile-tab-panel に変更 */
-        .profile-tab-panel.active { display: block; animation: tab-fade-in 0.4s ease; } /* .profile-tab-content を .profile-tab-panel に変更 */
-        @keyframes tab-fade-in {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
 
         /* --- Player Profile Modal --- */
         .profile-header { text-align: center; padding-bottom: 1rem; margin-bottom: 1rem; }
@@ -1040,8 +1029,8 @@
         .profile-header .profile-team { font-size: 1.1rem; margin: 0; font-weight: bold; }
 
         .profile-section { margin-bottom: 2rem; }
-        .profile-section h4 { font-size: 1.1rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; color: var(--text-color); font-weight: 600; }
-
+        .profile-section h4, #playerProfileContent h4 { font-size: 1.1rem; margin-top: 2rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; color: var(--text-color); font-weight: 600; border-bottom: 2px solid; }
+        
         .profile-comment { font-size: 1.1rem; font-style: italic; border-left: 4px solid; padding: 0.8rem 1.2rem; margin: 0; color: #343a40; background-color: #f8f9fa; border-radius: 0 8px 8px 0; }
 
         .profile-image-container { text-align: center; margin: 1.5rem 0 1rem 0; }
@@ -1070,7 +1059,7 @@
             .profile-header .profile-team { font-size: 1rem; }
             .profile-comment { font-size: 1rem; padding: 1rem; }
             .profile-table { font-size: 0.85rem; }
-            .profile-table th, .profile-table td { padding: 0.4rem; }
+            .profile-table th, .profile-table td { padding: 0.4rem; } 
             .profile-meta-info { text-align: left; padding: 0.8rem; margin-bottom: 1.5rem; }
             .modal-content { padding: 1.5rem; }
             .profile-section { margin-bottom: 1.5rem; }
