@@ -1679,93 +1679,6 @@ function showBreakingNewsModal(fullText) {
 }
 
 /**
- * ekiden_data.json をもとにエントリーリストを生成して表示します。
- */
-async function displayEntryList() {
-    const entryListDiv = document.getElementById('entryList');
-    if (!entryListDiv) return;
-
-    try {
-        const response = await fetch('config/ekiden_data.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-
-        entryListDiv.innerHTML = ''; // Clear previous content
-
-        data.teams.forEach(team => {
-            const card = document.createElement('div');
-            card.className = 'team-card';
-
-            // ゼッケン番号は削除し、タイトルに統合
-            const title = document.createElement('h4');
-            title.style.borderBottomColor = team.color;
-            const titleText = `No.${team.id} ${team.status_symbol || ''} ${team.name} ${team.prefectures || ''}`.trim();
-            title.textContent = titleText;
-            card.appendChild(title);
-
-            if (team.manager) {
-                const manager = document.createElement('span');
-                manager.className = 'manager-name';
-                manager.textContent = team.manager;
-                card.appendChild(manager);
-            }
-
-            // 正規メンバー
-            const runnersContainer = document.createElement('div');
-            runnersContainer.className = 'runners-container';
-            team.runners.forEach((runner, index) => {
-                const runnerSpan = document.createElement('span');
-                runnerSpan.className = 'runner-item player-profile-trigger'; // クリック用のクラスを追加
-                runnerSpan.dataset.runnerName = runner.name; // 生の選手名をdata属性に保存
-                // 数字を全角に変換
-                const fullWidthNumber = String(index + 1).replace(/[0-9]/g, s => String.fromCharCode(s.charCodeAt(0) + 0xFEE0));
-                const formattedName = formatRunnerName(runner.name);
-                runnerSpan.textContent = `${fullWidthNumber}${formattedName}`;
-                runnersContainer.appendChild(runnerSpan);
-            });
-            card.appendChild(runnersContainer);
-
-            // 補欠メンバー
-            if (team.substitutes && team.substitutes.length > 0) {
-                const substitutesContainer = document.createElement('div');
-                substitutesContainer.className = 'substitutes-container';
-                
-                const label = document.createElement('div');
-                label.className = 'substitutes-label';
-                label.textContent = '補欠';
-                substitutesContainer.appendChild(label);
-
-                team.substitutes.forEach(substitute => {
-                    const subSpan = document.createElement('span');
-                    subSpan.className = 'runner-item player-profile-trigger'; // クリック用のクラスを追加
-                    subSpan.dataset.runnerName = substitute.name; // 生の選手名をdata属性に保存
-                    const formattedName = formatRunnerName(substitute.name);
-                    subSpan.textContent = formattedName;
-                    substitutesContainer.appendChild(subSpan);
-                });
-                card.appendChild(substitutesContainer);
-            }
-
-            // チーム紹介文
-            if (team.description) {
-                const descriptionP = document.createElement('p');
-                descriptionP.className = 'team-description';
-                descriptionP.textContent = team.description;
-                card.appendChild(descriptionP);
-            }
-
-            entryListDiv.appendChild(card);
-        });
-
-    } catch (error) {
-        console.error('エントリーリストの生成に失敗:', error);
-        entryListDiv.innerHTML = '<p class="result error">エントリーリストの読み込みに失敗しました。</p>';
-    }
-}
-
-/**
  * outline.json を読み込み、大会概要をページに表示します。
  */
 async function displayOutline() {
@@ -2652,6 +2565,232 @@ async function showPlayerProfileModal(rawRunnerName) {
     }
 }
 
+/**
+ * 出場校一覧セクションを初期化する
+ */
+async function initializeTeamDirectory() {
+    const navContainer = document.getElementById('team-directory-nav');
+    const statusEl = document.getElementById('team-directory-status');
+
+    if (!navContainer || !statusEl) return;
+
+    statusEl.textContent = '出場校データを読み込み中...';
+    statusEl.style.display = 'block';
+
+    try {
+        // データがキャッシュされていなければ待つ
+        if (!ekidenDataCache) {
+            await fetchEkidenData();
+        }
+        if (!ekidenDataCache) {
+            throw new Error('駅伝データの読み込みに失敗しました。');
+        }
+
+        navContainer.innerHTML = ''; // クリア
+
+        // チームIDでソートしてボタンを生成
+        const sortedTeams = [...ekidenDataCache.teams].sort((a, b) => a.id - b.id);
+
+        sortedTeams.forEach(team => {
+            // 区間記録連合は除外
+            if (team.is_shadow_confederation) return;
+
+            const button = document.createElement('button');
+            const teamColor = team.color || '#6c757d';
+
+            button.className = 'team-logo-btn';
+            button.textContent = team.short_name || team.name;
+            button.dataset.teamId = team.id;
+            
+            // ボタンにチームカラーを適用
+            button.style.borderColor = teamColor;
+            button.style.color = teamColor;
+
+            button.addEventListener('click', () => {
+                displayTeamDetails(team.id);
+                // アクティブなボタンのスタイルを更新
+                updateActiveButton(team.id);
+            });
+            navContainer.appendChild(button);
+        });
+
+        statusEl.style.display = 'none';
+
+        // デフォルトで最初のチームを表示
+        if (sortedTeams.length > 0) {
+            const firstTeamId = sortedTeams[0].id;
+            displayTeamDetails(firstTeamId); // チーム詳細を表示
+            updateActiveButton(firstTeamId); // アクティブなボタンのスタイルを更新
+        }
+
+    } catch (error) {
+        console.error('出場校一覧の初期化エラー:', error);
+        statusEl.textContent = `エラー: ${error.message}`;
+        statusEl.className = 'result error';
+    }
+}
+
+/**
+ * 大学選択ボタンのアクティブ状態のスタイルを更新する
+ * @param {number} activeTeamId - アクティブにするチームのID
+ */
+function updateActiveButton(activeTeamId) {
+    const buttons = document.querySelectorAll('.team-directory-nav .team-logo-btn');
+    buttons.forEach(btn => {
+        const buttonTeamId = parseInt(btn.dataset.teamId, 10);
+        const team = ekidenDataCache.teams.find(t => t.id === buttonTeamId);
+        if (!team) return;
+
+        if (buttonTeamId === activeTeamId) {
+            btn.classList.add('active');
+            btn.style.backgroundColor = team.color;
+            btn.style.color = getContrastingTextColor(team.color);
+        } else {
+            btn.classList.remove('active');
+            btn.style.backgroundColor = 'transparent';
+            btn.style.color = team.color;
+        }
+    });
+}
+
+/**
+ * 背景色に応じて、コントラストが十分な文字色（白または黒）を返します。
+ * @param {string} hexColor - 背景色の16進数カラーコード (e.g., "#RRGGBB")
+ * @returns {string} - "#ffffff" (白) または "#000000" (黒)
+ */
+function getContrastingTextColor(hexColor) {
+    if (!hexColor) return '#000000';
+    const r = parseInt(hexColor.substr(1, 2), 16);
+    const g = parseInt(hexColor.substr(3, 2), 16);
+    const b = parseInt(hexColor.substr(5, 2), 16);
+    // YIQ 色空間の輝度を計算
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    // 輝度が128以上なら黒、未満なら白を返す
+    return (yiq >= 128) ? '#000000' : '#ffffff';
+}
+
+function hexToRgba(hex, alpha = 0.1) {
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+/**
+ * 指定されたチームの詳細情報を表示する
+ * @param {number} teamId - 表示するチームのID
+ */
+function displayTeamDetails(teamId) {
+    const contentContainer = document.getElementById('team-directory-content');
+    if (!contentContainer) return;
+
+    const teamConfig = ekidenDataCache.teams.find(t => t.id === teamId);
+    const realtimeTeamData = lastRealtimeData ? lastRealtimeData.teams.find(t => t.id === teamId) : null;
+
+    if (!teamConfig) {
+        contentContainer.innerHTML = '<p class="result error">チーム情報が見つかりません。</p>';
+        return;
+    }
+
+    const currentLeg = realtimeTeamData ? realtimeTeamData.currentLeg : 1;
+
+    // 区間エントリー選手のHTMLを生成
+    const kukanEntriesHtml = teamConfig.runners.map((runnerObj, index) => {
+        const runnerName = runnerObj.name;
+        const runnerLeg = index + 1;
+        const profile = playerProfiles[runnerName] || {};
+        const formattedRunnerName = formatRunnerName(runnerName);
+        const runnerImage = profile.image_url || 'https://via.placeholder.com/60';
+        const runnerComment = profile.comment || 'コメントはありません。';
+        const runnerMeta = `${profile.grade || ''} / ${profile.prefecture || ''} / ${profile.address || ''}`;
+
+        // --- ステータスと今大会成績の計算 ---
+        let statusHtml = '';
+        let currentPerformanceHtml = '';
+
+        if (realtimeTeamData) {
+            let statusText = '';
+            let statusClass = '';
+
+            if (runnerLeg < currentLeg) {
+                statusText = '走行済';
+                statusClass = 'status-finished';
+
+                // 走行済の場合、今大会の成績を表示
+                const performance = allIndividualData[runnerName];
+                if (performance && performance.records) {
+                    const legRecords = performance.records.filter(r => r.leg === runnerLeg);
+                    if (legRecords.length > 0) {
+                        const latestRecord = legRecords.sort((a, b) => b.day - a.day)[0];
+                        const totalDistance = legRecords.reduce((sum, r) => sum + r.distance, 0);
+                        const avgDistance = totalDistance / legRecords.length;
+                        currentPerformanceHtml = `<span class="runner-current-perf">（${latestRecord.legRank}位 / 平均 ${avgDistance.toFixed(3)}km）</span>`;
+                    }
+                }
+            } else if (runnerLeg === currentLeg) {
+                statusText = '走行中';
+                statusClass = 'status-running';
+            } else {
+                statusText = '走行前';
+                statusClass = 'status-upcoming';
+            }
+            statusHtml = `<span class="runner-status ${statusClass}">${statusText}</span>`;
+        }
+
+        return `
+            <tr>
+                <th>${runnerLeg}区 ${statusHtml}</th>
+                <td>
+                    <div class="runner-info">
+                        <img src="${runnerImage}" alt="${formattedRunnerName}" class="runner-image">
+                        <div class="runner-details">
+                            <div class="runner-name-details">
+                                <span class="runner-name player-profile-trigger" data-runner-name="${runnerName}">${formattedRunnerName}</span>${currentPerformanceHtml}
+                                <div class="runner-meta">${runnerMeta}</div>
+                            </div>
+                            <p class="runner-comment">"${runnerComment}"</p>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    // 補欠選手のHTMLを生成
+    const substitutesHtml = (teamConfig.substitutes && teamConfig.substitutes.length > 0)
+        ? `
+            <div class="team-substitutes-container">
+                <h4>補欠</h4>
+                <ul class="team-substitutes-list">
+                    ${teamConfig.substitutes.map(sub => {
+                        return `<li class="player-profile-trigger" data-runner-name="${sub.name}">${formatRunnerName(sub.name)}</li>`;
+                    }).join('')}
+                </ul>
+            </div>
+        `
+        : '';
+
+    // 全体のHTMLを組み立て
+    const teamColor = teamConfig.color || '#6c757d';
+    const textColor = getContrastingTextColor(teamColor);
+    const descriptionBgColor = hexToRgba(teamColor, 0.1);
+
+    contentContainer.innerHTML = `
+        <div class="team-details-container">
+            <div class="team-details-description-wrapper">
+                <div class="team-details-title" style="background-color: ${teamColor}; color: ${textColor};">
+                    ${teamConfig.name} <span>${teamConfig.manager || ''}</span>
+                </div>
+                <div class="team-details-text" style="background-color: ${descriptionBgColor};">${teamConfig.description || 'チーム紹介はありません。'}</div>
+            </div>
+            
+            <table class="team-kukan-table">
+                <tbody>
+                    ${kukanEntriesHtml}
+                </tbody>
+            </table>
+
+            ${substitutesHtml}
+        </div>
+    `;
+}
 // --- 初期化処理 ---
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -2705,8 +2844,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     await displayIntramuralRanking(defaultIntramuralTeamId);
     // 4. その他のコンテンツを読み込む
     displayDailySummary();
+    initializeTeamDirectory(); // ★ 新しい関数呼び出しを追加
     displayManagerComments(); // 監督談話室
-    displayEntryList(); // エントリーリスト
     displayLegRankHistoryTable(); // 順位推移テーブル
     displayOutline(); // 大会概要
     // 90秒ごとにマップと総合順位を自動更新

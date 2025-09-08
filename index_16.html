@@ -1068,6 +1068,101 @@
 
         }
 
+        /* --- Team Directory --- */
+        .team-directory-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .team-directory-nav .team-logo-btn {
+            padding: 0.6rem 1.2rem;
+            border: 2px solid; /* JSで色を設定 */
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            /* デフォルトの背景と文字色をJSで設定 */
+            background-color: transparent;
+            color: inherit;
+        }
+        .team-directory-nav .team-logo-btn:hover {
+            background-color: #f8f9fa;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+        .team-directory-nav .team-logo-btn.active {
+            background-color: var(--primary-color);
+            color: #fff;
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 123, 255, 0.3);
+        }
+
+        .team-details-container {
+            animation: fade-in 0.5s ease;
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Team Details Header & Description (New Style) --- */
+        .team-details-description-wrapper {
+            margin-bottom: 2rem;
+            border-radius: var(--border-radius);
+            overflow: hidden; /* Ensure child border-radius is clipped */
+            box-shadow: var(--box-shadow);
+            border: 1px solid var(--border-color);
+        }
+        .team-details-title {
+            padding: 1rem 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .team-details-title span {
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-left: 1rem;
+            opacity: 0.9;
+        }
+        .team-details-text { padding: 1.5rem; line-height: 1.8; }
+        
+        .team-kukan-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+        .team-kukan-table th, .team-kukan-table td { border: 1px solid var(--border-color); padding: 0.75rem; text-align: left; vertical-align: top; }
+        .team-kukan-table th { background-color: #f8f9fa; width: 80px; text-align: center; font-weight: bold; vertical-align: middle; }
+        .team-kukan-table .runner-info { display: flex; align-items: flex-start; gap: 1rem; }
+        .team-kukan-table .runner-status {
+            display: block;
+            font-size: 0.75rem;
+            padding: 0.2em 0.5em;
+            border-radius: 10px;
+            color: #fff;
+            margin-top: 0.4rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+        }
+        .team-kukan-table .runner-status.status-running { background-color: #dc3545; } /* 走行中: 赤 */
+        .team-kukan-table .runner-status.status-upcoming { background-color: #28a745; } /* 走行前: 緑 */
+        .team-kukan-table .runner-status.status-finished { background-color: #6c757d; } /* 走行済: 灰色 */
+
+        .team-kukan-table .runner-current-perf {
+            font-size: 0.8rem; color: var(--text-muted-color); margin-left: 0.5rem; font-weight: normal;
+        }
+        .team-kukan-table .runner-image { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; }
+        .team-kukan-table .runner-name-details .runner-name { font-weight: bold; font-size: 1.1rem; }
+        .team-kukan-table .runner-meta { font-size: 0.85rem; color: var(--text-muted-color); }
+        .team-kukan-table .runner-comment { font-size: 0.9rem; margin-top: 0.5rem; padding-left: 1rem; border-left: 3px solid var(--border-color); color: #333; }
+        
+        .team-substitutes-container h4 { font-size: 1.2rem; margin-bottom: 1rem; }
+        .team-substitutes-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+        .team-substitutes-list li { background-color: #f8f9fa; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.9rem; }
+
+
         .modal-content.wide {
             max-width: 800px; /* グラフ用に幅を広げる */
         }
@@ -1135,8 +1230,8 @@
                 <li class="dropdown">
                     <a class="dropbtn">その他 ▼</a>
                     <div class="dropdown-content">
-                        <a href="#section-entry-list">エントリー</a>
-                        <a href="#outlineContainer">大会開催概要</a>
+                        <a href="#section-team-directory">エントリー</a>
+                        <a href="#outlineContainer">大会概要</a>
                     </div>
                 </li>
             </ul>
@@ -1280,12 +1375,17 @@
             </div>
         </section>
 
-        <div id="section-entry-list" class="entry-list-container">
+        <!-- ========== 出場校＆選手一覧 ========== -->
+        <section id="section-team-directory" class="ekiden-section-wrapper">
             <h2>📝 エントリーリスト</h2>
-            <div id="entryList">
-                <!-- エントリーリストは app.js によって動的に生成されます -->
+            <div id="team-directory-nav" class="team-directory-nav">
+                <!-- 大学選択UIがここに挿入される -->
             </div>
-        </div>
+            <div id="team-directory-content">
+                <!-- 選択されたチームの詳細がここに挿入される -->
+            </div>
+            <p id="team-directory-status" class="result loading" style="display: none;"></p>
+        </section>
 
         <div id="outlineContainer" class="outline-container">
             <!-- 開催概要は app.js によって動的に生成されます -->
