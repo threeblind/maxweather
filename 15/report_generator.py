@@ -569,8 +569,12 @@ def generate_breaking_news_comment(current_results, previous_report_data):
 
     if can_show_timed_report:
         # 9. 定時速報 (選手)
-        if current_results and now.hour in range(7, 19) and now.minute == 45:
-            top_performer_today = max(current_results, key=lambda x: x.get('todayDistance', 0))
+        # 走行中のチーム（ゴールしておらず、区間記録連合でもない）に絞る
+        active_teams = [r for r in current_results if r.get('finishDay') is None and r.get('id') != 99]
+
+        if active_teams and now.hour in range(7, 19) and now.minute == 45:
+            # 走行中のチームの中から本日のトップを探す
+            top_performer_today = max(active_teams, key=lambda x: x.get('todayDistance', 0))
             if top_performer_today.get('todayDistance', 0) > 0:
                 runner_name = top_performer_today['runner']
                 distance = top_performer_today['todayDistance']
@@ -578,8 +582,9 @@ def generate_breaking_news_comment(current_results, previous_report_data):
 
         # 10. 定時速報 (チーム)
         if current_results and now.hour in range(7, 19) and now.minute == 15:
-            top_team = current_results[0]
-            team_name = top_team['name']
+            # 走行中のトップチームを取得
+            top_team = active_teams[0] if active_teams else current_results[0]
+            team_name = top_team['name'] # チーム名はゴール後も表示して良い
             total_distance = top_team['totalDistance']
             return f"【定時速報】現在トップは{team_name}！総合距離{total_distance:.1f}kmです！"
 
