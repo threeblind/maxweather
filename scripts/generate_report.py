@@ -348,12 +348,17 @@ def _generate_timed_report_comment(current_results, previous_report_data):
             pass
 
     if can_show_timed_report:
-        if current_results and now.minute == 45:
-            top_performer = max(current_results, key=lambda x: x.get('todayDistance', 0))
+        # 定時速報の対象は、区間記録連合を除いた正規チームのみ
+        active_teams = [r for r in current_results if not r.get('is_shadow_confederation')]
+
+        if active_teams and now.minute == 45:
+            # 本日の走行距離が最も長い選手
+            top_performer = max(active_teams, key=lambda x: x.get('todayDistance', 0))
             if top_performer.get('todayDistance', 0) > 0:
                 return f"【定時速報】本日のトップは{top_performer['runner']}選手！{top_performer['todayDistance']:.1f}kmと素晴らしい走りです！"
-        if current_results and now.minute == 15:
-            top_team = current_results[0]
+        if active_teams and now.minute == 15:
+            # all_resultsは総合順位でソート済みなので、active_teamsの先頭が正規チームのトップ
+            top_team = active_teams[0]
             return f"【定時速報】現在トップは{top_team['name']}！総合距離{top_team['totalDistance']:.1f}kmです！"
     return None
 
