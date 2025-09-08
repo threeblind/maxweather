@@ -2694,6 +2694,7 @@ function displayTeamDetails(teamId) {
     // 区間エントリー選手のHTMLを生成
     const kukanEntriesHtml = teamConfig.runners.map((runnerObj, index) => {
         const runnerName = runnerObj.name;
+        const isSubstitutedIn = runnerObj.is_substitute_in === true;
         const runnerLeg = index + 1;
         const profile = playerProfiles[runnerName] || {};
         const formattedRunnerName = formatRunnerName(runnerName);
@@ -2703,6 +2704,7 @@ function displayTeamDetails(teamId) {
 
         // --- ステータスと今大会成績の計算 ---
         let statusHtml = '';
+        let substitutionLabelHtml = isSubstitutedIn ? `<span class="runner-substitution-label">エントリー変更</span>` : '';
         let currentPerformanceHtml = '';
 
         if (realtimeTeamData) {
@@ -2742,7 +2744,7 @@ function displayTeamDetails(teamId) {
                         <img src="${runnerImage}" alt="${formattedRunnerName}" class="runner-image">
                         <div class="runner-details">
                             <div class="runner-name-details">
-                                <span class="runner-name player-profile-trigger" data-runner-name="${runnerName}">${formattedRunnerName}</span>${currentPerformanceHtml}
+                                <span class="runner-name player-profile-trigger" data-runner-name="${runnerName}">${formattedRunnerName}</span>${substitutionLabelHtml}${currentPerformanceHtml}
                                 <div class="runner-meta">${runnerMeta}</div>
                             </div>
                             <p class="runner-comment">"${runnerComment}"</p>

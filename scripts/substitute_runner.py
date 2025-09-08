@@ -44,6 +44,9 @@ def substitute_runner(team_id, old_runner, new_runner):
                 print(f"エラー: {team_to_update['name']} の substitutes に {new_runner} が見つかりません。")
                 return False
 
+            # 交代で入る選手にフラグを立てる
+            runner_in_obj['is_substitute_in'] = True
+
             # runnersリストの選手を交代
             runner_index = team_to_update['runners'].index(runner_out_obj)
             team_to_update['runners'][runner_index] = runner_in_obj
