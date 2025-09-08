@@ -2744,7 +2744,7 @@ function displayTeamDetails(teamId) {
                         <img src="${runnerImage}" alt="${formattedRunnerName}" class="runner-image">
                         <div class="runner-details">
                             <div class="runner-name-details">
-                                <span class="runner-name player-profile-trigger" data-runner-name="${runnerName}">${formattedRunnerName}</span>${substitutionLabelHtml}${currentPerformanceHtml}
+                                <a href="#" class="runner-name player-profile-trigger" data-runner-name="${runnerName}" onclick="event.preventDefault()" style="color: #007bff;">${formattedRunnerName}</a>${substitutionLabelHtml}${currentPerformanceHtml}
                                 <div class="runner-meta">${runnerMeta}</div>
                             </div>
                             <p class="runner-comment">"${runnerComment}"</p>
@@ -2762,7 +2762,7 @@ function displayTeamDetails(teamId) {
                 <h4>補欠</h4>
                 <ul class="team-substitutes-list">
                     ${teamConfig.substitutes.map(sub => {
-                        return `<li class="player-profile-trigger" data-runner-name="${sub.name}">${formatRunnerName(sub.name)}</li>`;
+                        return `<li><a href="#" class="runner-name player-profile-trigger" data-runner-name="${sub.name}" onclick="event.preventDefault()" style="color: #007bff;">${formatRunnerName(sub.name)}</a></li>`;
                     }).join('')}
                 </ul>
             </div>
@@ -2981,6 +2981,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             const target = event.target.closest('.player-profile-trigger');
             if (target) {
                 const runnerName = target.dataset.runnerName;
+                // aタグのデフォルトの動作を防ぐ
+                if (event.target.tagName === 'A') {
+                    event.preventDefault();
+                }
                 if (runnerName) {
                     showPlayerProfileModal(runnerName);
                 }
