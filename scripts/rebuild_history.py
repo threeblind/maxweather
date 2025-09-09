@@ -236,6 +236,7 @@ def rebuild_history():
 
         # 2. 履歴を更新
         update_rank_history(final_results_for_day, race_day, RANK_HISTORY_FILE)
+        # rebuild_history.py は常にコミットモードで区間順位履歴を更新する
         update_leg_rank_history(final_results_for_day, previous_day_state, LEG_RANK_HISTORY_FILE, is_commit_mode=True)
 
         # 3. この日の最終状態を次の日の入力とする

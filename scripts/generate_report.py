@@ -526,6 +526,7 @@ def update_rank_history(results, race_day, rank_history_file_path):
     with open(rank_history_file_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2, ensure_ascii=False)
 
+
 def calculate_and_save_runner_locations(teams_data):
     """各チームの現在位置（緯度経度）を計算して保存する"""
     try:
@@ -585,25 +586,79 @@ def calculate_and_save_runner_locations(teams_data):
     print(f"\n計算完了: {len(runner_locations)}チームの位置を {RUNNER_LOCATIONS_OUTPUT_FILE} に保存しました。")
 
 def append_to_realtime_log(results):
-    """リアルタイムログファイルに現在の走行データ（現在気温）を追記する"""
+    """リアルタイムログファイルに現在の走行データを追記する"""
     now_iso = datetime.now().isoformat()
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     try:
         with open(REALTIME_LOG_FILE, 'a', encoding='utf-8') as f:
             for r in results:
-                if r['runner'] == 'ゴール' or r.get('currentTempForLog') is None:
+                # 走行中の正規チームのみログに記録
+                if r['runner'] == 'ゴール' or r.get('is_shadow_confederation') or r.get('currentTempForLog') is None:
                     continue
                 
                 runner_name_with_leg = f"{r['currentLegNumber']}{r['runner']}"
                 log_entry = {
                     "timestamp": now_iso, "team_id": r['id'],
                     "runner_name": runner_name_with_leg,
-                    "distance": r.get('currentTempForLog')
+                    "distance": r.get('currentTempForLog'),
+                    "total_distance": r.get('totalDistance')
                 }
                 f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
         print(f"✅ リアルタイムログを '{REALTIME_LOG_FILE}' に追記しました。")
     except IOError as e:
         print(f"エラー: '{REALTIME_LOG_FILE}' への書き込みに失敗しました: {e}")
+
+def update_leg_rank_history(results, previous_data, leg_rank_history_file_path, is_commit_mode=False):
+    """区間通過順位の履歴を更新する。
+    - is_commit_mode=False (リアルタイム): 前回の速報データと比較し、この瞬間に区間を通過したチームの順位を記録する。
+    - is_commit_mode=True (コミット時): その日の開始時点のデータと比較し、その日に完了した全区間の最終順位を記録する。
+    """
+    num_legs = len(ekiden_data['leg_boundaries'])
+
+    try:
+        with open(leg_rank_history_file_path, 'r', encoding='utf-8') as f:
+            history = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        history = {"teams": [{"id": t["id"], "name": t["name"], "leg_ranks": [None] * num_legs} for t in all_teams_data]}
+
+    history_teams_map = {team['id']: team for team in history['teams']}
+
+    if is_commit_mode:
+        # --- コミットモード: その日1日で完了した全区間の最終順位を記録 ---
+        previous_state_map = {team['id']: team for team in previous_data}
+        for result in results:
+            team_id = result['id']
+            prev_state = previous_state_map.get(team_id)
+            team_history = history_teams_map.get(team_id)
+            if not prev_state or not team_history: continue
+
+            start_leg_today = prev_state['currentLeg']
+            last_completed_leg = result['newCurrentLeg'] - 1
+            for leg_number in range(start_leg_today, last_completed_leg + 1):
+                leg_index = leg_number - 1
+                if 0 <= leg_index < len(team_history['leg_ranks']):
+                    team_history['leg_ranks'][leg_index] = result['overallRank']
+    else:
+        # --- リアルタイムモード: この瞬間に区間を通過したチームのみ記録 ---
+        if not previous_data or not previous_data.get('teams'): return
+        previous_teams_map = {team['id']: team for team in previous_data.get('teams', [])}
+        for result in results:
+            team_id = result['id']
+            prev_team_data = previous_teams_map.get(team_id)
+            team_history = history_teams_map.get(team_id)
+            if not prev_team_data or not team_history: continue
+
+            leg_to_check = prev_team_data['currentLeg']
+            if leg_to_check <= len(ekiden_data['leg_boundaries']):
+                boundary = ekiden_data['leg_boundaries'][leg_to_check - 1]
+                if result['totalDistance'] >= boundary and prev_team_data['totalDistance'] < boundary:
+                    leg_index = leg_to_check - 1
+                    if 0 <= leg_index < len(team_history['leg_ranks']):
+                        team_history['leg_ranks'][leg_index] = result['overallRank']
+
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    with open(leg_rank_history_file_path, 'w', encoding='utf-8') as f:
+        json.dump(history, f, indent=2, ensure_ascii=False)
 
 def main():
     """メイン処理"""
@@ -612,7 +667,7 @@ def main():
     parser.add_argument('--commit', action='store_true', help='本日の結果を状態ファイルに保存します。')
     parser.add_argument('--state-file', default=STATE_FILE, help=f'チームの状態ファイルパス (デフォルト: {STATE_FILE})')
     parser.add_argument('--individual-state-file', default=INDIVIDUAL_STATE_FILE, help=f'個人の状態ファイルパス (デフォルト: {INDIVIDUAL_STATE_FILE})')
-    parser.add_argument('--history-file', default=RANK_HISTORY_FILE, help=f'順位履歴ファイルパス (デフォルト: {RANK_HISTORY_FILE})')
+    parser.add_argument('--history-file', default=RANK_HISTORY_FILE, help=f'日次順位履歴ファイルパス (デフォルト: {RANK_HISTORY_FILE})')
     args = parser.parse_args()
 
     # --- 前回レポートの読み込み ---
@@ -861,14 +916,17 @@ def main():
 
         save_realtime_report(all_results, race_day, comment_to_save, timestamp_to_save, full_text_to_save)
         update_rank_history(all_results, race_day, args.history_file)
+        update_leg_rank_history(all_results, previous_report_data, LEG_RANK_HISTORY_FILE, is_commit_mode=False)
         save_individual_results(individual_results, args.individual_state_file)
         if all_results:
             calculate_and_save_runner_locations(all_results)
         print(f"\n--- [Realtime Mode] 各種速報ファイルを保存しました ---")
 
     if args.commit:
+        # コミットモードでは、`current_state`（その日の開始時点の状態）を比較対象として渡す
         save_ekiden_state(all_results, args.state_file)
         update_rank_history(all_results, race_day, args.history_file)
+        update_leg_rank_history(all_results, current_state, LEG_RANK_HISTORY_FILE, is_commit_mode=True)
         save_individual_results(individual_results, args.individual_state_file)
         if all_results:
             calculate_and_save_runner_locations(all_results)
