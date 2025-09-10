@@ -1909,49 +1909,88 @@ async function displayManagerComments() {
 /**
  * 学内ランキングデータをもとに、大学選択のプルダウンメニューを生成します。
  */
-async function populateIntramuralSelect() {
-    const selectEl = document.getElementById('intramural-team-select');
-    if (!selectEl) return;
+async function setupResponsiveSelectors() {
+    const intramuralNav = document.getElementById('intramural-team-nav');
+    const intramuralSelect = document.getElementById('intramural-team-select');
+    const directoryNav = document.getElementById('team-directory-nav');
+    const directorySelect = document.getElementById('team-directory-select');
 
+    // --- データ取得 ---
     try {
-        // 学内ランキングデータを取得 (キャッシュ or フェッチ)
         if (!intramuralDataCache) {
             const response = await fetch(`data/intramural_rankings.json?_=${new Date().getTime()}`);
             if (!response.ok) {
-                // ファイルがない場合は機能自体を非表示にする
                 if (response.status === 404) {
                     const section = document.getElementById('section-intramural-ranking');
                     if(section) section.style.display = 'none';
-                    // メニューからも非表示にする
                     const navLink = document.querySelector('a[href="#section-intramural-ranking"]');
                     if (navLink) navLink.parentElement.style.display = 'none';
                 }
-                return; // エラー時は何もせず終了
+                return;
             }
             intramuralDataCache = await response.json();
         }
+    } catch (error) {
+        console.error('UI生成のためのデータ取得に失敗:', error);
+        const section = document.getElementById('section-intramural-ranking');
+        if(section) section.style.display = 'none';
+    }
 
-        // チームIDでソート
-        const sortedTeams = [...intramuralDataCache.teams].sort((a, b) => a.id - b.id);
+    // --- UI生成 ---
+    // ekidenDataCache からチームカラー情報を取得してマージするための準備
+    const teamInfoMap = ekidenDataCache ? new Map(ekidenDataCache.teams.map(t => [t.id, { color: t.color, short_name: t.short_name }])) : new Map();
 
-        // プルダウンに大学を追加
+    // 学内ランキングデータにチームカラーと短縮名をマージ
+    if (intramuralDataCache && intramuralDataCache.teams) {
+        intramuralDataCache.teams.forEach(team => {
+            const info = teamInfoMap.get(team.id);
+            if (info) {
+                team.color = team.color || info.color;
+                team.short_name = team.short_name || info.short_name;
+            }
+        });
+    }
+
+    const createSelectors = (teams, navEl, selectEl, callback) => {
+        if (!navEl || !selectEl) return;
+        const sortedTeams = [...teams].sort((a, b) => a.id - b.id);
+
         sortedTeams.forEach(team => {
+            const teamColor = team.color || '#6c757d';
+            // PC用ボタン
+            const button = document.createElement('button');
+            button.className = 'team-logo-btn';
+            button.textContent = team.short_name || team.name;
+            button.dataset.teamId = team.id;
+            button.style.borderColor = teamColor;
+            button.style.color = teamColor;
+            button.addEventListener('click', () => callback(team.id));
+            navEl.appendChild(button);
+            // SP用セレクト
             const option = document.createElement('option');
             option.value = team.id;
             option.textContent = team.name;
             selectEl.appendChild(option);
         });
+        selectEl.addEventListener('change', (e) => callback(parseInt(e.target.value, 10)));
+    };
 
-        // デフォルトでID:1を選択状態にする
-        const defaultTeamId = 1;
-        if (sortedTeams.some(team => team.id === defaultTeamId)) {
-            selectEl.value = defaultTeamId;
+    if (intramuralDataCache) {
+        createSelectors(intramuralDataCache.teams, intramuralNav, intramuralSelect, displayIntramuralRanking);
+        const defaultIntramuralTeamId = 1;
+        intramuralSelect.value = defaultIntramuralTeamId;
+        updateActiveButton('intramural-team-nav', defaultIntramuralTeamId);
+    }
+
+    if (ekidenDataCache) {
+        const regularTeams = ekidenDataCache.teams.filter(t => !t.is_shadow_confederation);
+        createSelectors(regularTeams, directoryNav, directorySelect, displayTeamDetails);
+        const firstTeamId = regularTeams.length > 0 ? regularTeams[0].id : null;
+        if (firstTeamId) {
+            directorySelect.value = firstTeamId;
+            updateActiveButton('team-directory-nav', firstTeamId);
+            displayTeamDetails(firstTeamId);
         }
-
-    } catch (error) {
-        console.error('学内ランキングのプルダウン生成に失敗:', error);
-        const section = document.getElementById('section-intramural-ranking');
-        if(section) section.style.display = 'none';
     }
 }
 
@@ -1962,6 +2001,7 @@ async function populateIntramuralSelect() {
  * @param {number} teamId 表示するチームのID
  */
 async function displayIntramuralRanking(teamId) {
+    updateActiveButton('intramural-team-nav', teamId);
     const container = document.getElementById('intramural-ranking-container');
     const contentDiv = document.getElementById('intramural-ranking-content');
     const statusEl = document.getElementById('intramural-ranking-status');
@@ -2468,6 +2508,13 @@ async function showPlayerProfileModal(rawRunnerName) {
 
         const createSectionTitle = (title) => `<h4 style="border-bottom-color: ${teamColor}; color: ${teamColor};">${title}</h4>`;
 
+        // コメントが存在する場合のみ blockquote を生成
+        const commentHtml = profile.comment
+            ? `<blockquote class="profile-comment" style="border-left-color: ${teamColor}; margin-top: 0.5rem; padding: 0.5rem 0.8rem;">
+                   "${profile.comment}"
+               </blockquote>`
+            : '';
+
         // --- 各セクションのHTMLを生成 ---
         let currentPerformanceHtml = createSectionTitle('今大会の成績');
         if (currentPerformanceData && currentPerformanceData.records && currentPerformanceData.records.length > 0) {
@@ -2543,9 +2590,7 @@ async function showPlayerProfileModal(rawRunnerName) {
                     <p><b>出身:</b> ${profile.prefecture || '未設定'}</p>
                     <p><b>地点:</b> ${profile.address} (標高: ${profile.elevation}m)</p>
                     <p><b>開始:</b> ${profile.start_date}</p>
-                    <blockquote class="profile-comment" style="border-left-color: ${teamColor}; margin-top: 0.5rem; padding: 0.5rem 0.8rem;">
-                        "${profile.comment || 'コメントはありません。'}"
-                    </blockquote>
+                    ${commentHtml}
                 </div>
             </div>
             ${currentPerformanceHtml}
@@ -2569,86 +2614,35 @@ async function showPlayerProfileModal(rawRunnerName) {
  * 出場校一覧セクションを初期化する
  */
 async function initializeTeamDirectory() {
-    const navContainer = document.getElementById('team-directory-nav');
-    const statusEl = document.getElementById('team-directory-status');
-
-    if (!navContainer || !statusEl) return;
-
-    statusEl.textContent = '出場校データを読み込み中...';
-    statusEl.style.display = 'block';
-
-    try {
-        // データがキャッシュされていなければ待つ
-        if (!ekidenDataCache) {
-            await fetchEkidenData();
-        }
-        if (!ekidenDataCache) {
-            throw new Error('駅伝データの読み込みに失敗しました。');
-        }
-
-        navContainer.innerHTML = ''; // クリア
-
-        // チームIDでソートしてボタンを生成
-        const sortedTeams = [...ekidenDataCache.teams].sort((a, b) => a.id - b.id);
-
-        sortedTeams.forEach(team => {
-            // 区間記録連合は除外
-            if (team.is_shadow_confederation) return;
-
-            const button = document.createElement('button');
-            const teamColor = team.color || '#6c757d';
-
-            button.className = 'team-logo-btn';
-            button.textContent = team.short_name || team.name;
-            button.dataset.teamId = team.id;
-            
-            // ボタンにチームカラーを適用
-            button.style.borderColor = teamColor;
-            button.style.color = teamColor;
-
-            button.addEventListener('click', () => {
-                displayTeamDetails(team.id);
-                // アクティブなボタンのスタイルを更新
-                updateActiveButton(team.id);
-            });
-            navContainer.appendChild(button);
-        });
-
-        statusEl.style.display = 'none';
-
-        // デフォルトで最初のチームを表示
-        if (sortedTeams.length > 0) {
-            const firstTeamId = sortedTeams[0].id;
-            displayTeamDetails(firstTeamId); // チーム詳細を表示
-            updateActiveButton(firstTeamId); // アクティブなボタンのスタイルを更新
-        }
-
-    } catch (error) {
-        console.error('出場校一覧の初期化エラー:', error);
-        statusEl.textContent = `エラー: ${error.message}`;
-        statusEl.className = 'result error';
-    }
+    // この関数は setupResponsiveSelectors に統合されたため、内容は不要になります。
+    // 呼び出し元で setupResponsiveSelectors が呼ばれることを確認してください。
 }
 
 /**
  * 大学選択ボタンのアクティブ状態のスタイルを更新する
  * @param {number} activeTeamId - アクティブにするチームのID
  */
-function updateActiveButton(activeTeamId) {
-    const buttons = document.querySelectorAll('.team-directory-nav .team-logo-btn');
+function updateActiveButton(containerId, activeTeamId) {
+    const buttons = document.querySelectorAll(`#${containerId} .team-logo-btn`);
+    
+    const dataSource = containerId === 'intramural-team-nav' ? intramuralDataCache?.teams : ekidenDataCache?.teams;
+    if (!dataSource) return;
+
     buttons.forEach(btn => {
         const buttonTeamId = parseInt(btn.dataset.teamId, 10);
-        const team = ekidenDataCache.teams.find(t => t.id === buttonTeamId);
+        const team = dataSource.find(t => t.id === buttonTeamId);
         if (!team) return;
+
+        const teamColor = team.color || '#6c757d';
 
         if (buttonTeamId === activeTeamId) {
             btn.classList.add('active');
-            btn.style.backgroundColor = team.color;
-            btn.style.color = getContrastingTextColor(team.color);
+            btn.style.backgroundColor = teamColor;
+            btn.style.color = getContrastingTextColor(teamColor);
         } else {
             btn.classList.remove('active');
             btn.style.backgroundColor = 'transparent';
-            btn.style.color = team.color;
+            btn.style.color = teamColor;
         }
     });
 }
@@ -2678,6 +2672,7 @@ function hexToRgba(hex, alpha = 0.1) {
  * @param {number} teamId - 表示するチームのID
  */
 function displayTeamDetails(teamId) {
+    updateActiveButton('team-directory-nav', teamId);
     const contentContainer = document.getElementById('team-directory-content');
     if (!contentContainer) return;
 
@@ -2699,7 +2694,11 @@ function displayTeamDetails(teamId) {
         const profile = playerProfiles[runnerName] || {};
         const formattedRunnerName = formatRunnerName(runnerName);
         const runnerImage = profile.image_url || 'https://via.placeholder.com/60';
-        const runnerComment = profile.comment || 'コメントはありません。';
+        // コメントが存在する場合のみpタグを生成
+        const runnerCommentHtml = profile.comment
+            ? `<p class="runner-comment">"${profile.comment}"</p>`
+            : '';
+
         const runnerMeta = `${profile.grade || ''} / ${profile.prefecture || ''} / ${profile.address || ''}`;
 
         // --- ステータスと今大会成績の計算 ---
@@ -2747,7 +2746,7 @@ function displayTeamDetails(teamId) {
                                 <a href="#" class="runner-name player-profile-trigger" data-runner-name="${runnerName}" onclick="event.preventDefault()" style="color: #007bff;">${formattedRunnerName}</a>${substitutionLabelHtml}${currentPerformanceHtml}
                                 <div class="runner-meta">${runnerMeta}</div>
                             </div>
-                            <p class="runner-comment">"${runnerComment}"</p>
+                            ${runnerCommentHtml}
                         </div>
                     </div>
                 </td>
@@ -2817,36 +2816,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     createEkidenHeader();
     createLegRankingHeader();
 
-    // --- 学内ランキング機能の初期化 ---
-    populateIntramuralSelect(); // プルダウンメニューを生成
-    const intramuralSelect = document.getElementById('intramural-team-select');
-    if (intramuralSelect) {
-        intramuralSelect.addEventListener('change', (event) => {
-            const teamId = parseInt(event.target.value, 10);
-            if (teamId) {
-                displayIntramuralRanking(teamId);
-            } else {
-                // 「大学を選択してください」が選ばれた時の処理
-                document.getElementById('intramural-ranking-content').style.display = 'none';
-                const statusEl = document.getElementById('intramural-ranking-status');
-                statusEl.textContent = '大学を選択すると、学内ランキングが表示されます。';
-                statusEl.className = 'result loading';
-                statusEl.style.display = 'block';
-            }
-        });
-    }
-
     // --- ページの主要コンテンツを非同期で読み込み ---
     // 1. 最初にマップを初期化
     await initializeMap();
     // 2. 最も重要な速報データを取得して表示
     await fetchEkidenData();
-    // 3. デフォルトの学内ランキングを表示
+    // 3. レスポンシブセレクターをセットアップ
+    await setupResponsiveSelectors();
     const defaultIntramuralTeamId = 1;
     await displayIntramuralRanking(defaultIntramuralTeamId);
     // 4. その他のコンテンツを読み込む
-    displayDailySummary();
-    initializeTeamDirectory(); // ★ 新しい関数呼び出しを追加
+    displayDailySummary(); // 記事
     displayManagerComments(); // 監督談話室
     displayLegRankHistoryTable(); // 順位推移テーブル
     displayOutline(); // 大会概要

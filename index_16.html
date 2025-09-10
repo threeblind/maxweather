@@ -1068,17 +1068,15 @@
 
         }
 
-        /* --- Team Directory --- */
-        .team-directory-nav {
+        /* --- PC用チーム選択ボタンの共通スタイル --- */
+        .team-nav-pc {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
             justify-content: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid var(--border-color);
         }
-        .team-directory-nav .team-logo-btn {
+
+        .team-nav-pc .team-logo-btn {
             padding: 0.6rem 1.2rem;
             border: 2px solid; /* JSで色を設定 */
             border-radius: 8px;
@@ -1090,17 +1088,33 @@
             background-color: transparent;
             color: inherit;
         }
-        .team-directory-nav .team-logo-btn:hover {
+        .team-nav-pc .team-logo-btn:hover, .team-nav-pc .team-logo-btn.active-hover {
             background-color: #f8f9fa;
             box-shadow: 0 6px 12px rgba(0,0,0,0.08);
             transform: translateY(-2px);
         }
-        .team-directory-nav .team-logo-btn.active {
-            background-color: var(--primary-color);
-            color: #fff;
-            border-color: var(--primary-color);
+        .team-nav-pc .team-logo-btn.active, .team-nav-pc .team-logo-btn.active:hover {
+            /* 背景色と文字色はJSで設定 */
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0, 123, 255, 0.3);
+        }
+        /* --- レスポンシブなチーム選択UI --- */
+        .team-nav-container {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .team-nav-sp {
+            display: none; /* PCでは非表示 */
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+        }
+        @media (max-width: 768px) {
+            .team-nav-pc { display: none; }
+            .team-nav-sp { display: block; }
         }
 
         .team-details-container {
@@ -1342,9 +1356,12 @@
         <!-- ========== 学内ランキング ========== -->
         <section id="section-intramural-ranking" class="content-section ekiden-section-wrapper">
             <h2><i class="fas fa-university"></i> 🏫 学内ランキング</h2>
-            <div class="header-controls">
-                <select id="intramural-team-select">
-                    <option value="">大学を選択してください</option>
+            <div class="team-nav-container">
+                <div id="intramural-team-nav" class="team-nav-pc team-logo-btn">
+                    <!-- PC用ボタンがここに挿入される -->
+                </div>
+                <select id="intramural-team-select" class="team-nav-sp">
+                    <!-- SP用セレクトがここに挿入される -->
                 </select>
             </div>
             <div id="intramural-ranking-container">
@@ -1388,8 +1405,13 @@
         <!-- ========== 出場校＆選手一覧 ========== -->
         <section id="section-team-directory" class="ekiden-section-wrapper">
             <h2>📝 エントリーリスト</h2>
-            <div id="team-directory-nav" class="team-directory-nav">
-                <!-- 大学選択UIがここに挿入される -->
+            <div class="team-nav-container">
+                <div id="team-directory-nav" class="team-nav-pc team-logo-btn">
+                    <!-- PC用ボタンがここに挿入される -->
+                </div>
+                <select id="team-directory-select" class="team-nav-sp">
+                    <!-- SP用セレクトがここに挿入される -->
+                </select>
             </div>
             <div id="team-directory-content">
                 <!-- 選択されたチームの詳細がここに挿入される -->
