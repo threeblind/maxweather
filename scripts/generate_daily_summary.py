@@ -21,6 +21,7 @@ EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
 RANK_HISTORY_FILE = DATA_DIR / 'rank_history.json'
 ARTICLE_HISTORY_FILE = DATA_DIR / 'article_history.json'
 SUMMARY_PROMPT_TEMPLATE_FILE = CONFIG_DIR / 'summary_prompt_template.txt'
+OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 OUTPUT_FILE = DATA_DIR / 'daily_summary.json'
 
 class DailySummaryGenerator:
@@ -106,6 +107,41 @@ class DailySummaryGenerator:
         padding_size = length - DailySummaryGenerator.get_east_asian_width_count(text_str)
         if padding_size < 0: return text_str
         return (char * padding_size) + text_str if align == 'right' else text_str + (char * padding_size)
+
+    def _load_outline_data(self):
+        """outline.jsonから大会情報を読み込む"""
+        outline_file = CONFIG_DIR / 'outline.json'
+        try:
+            with open(outline_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            print(f"警告: {outline_file} が見つかりません。デフォルト値を使用します。")
+            return {}
+        except json.JSONDecodeError as e:
+            print(f"警告: {outline_file} の形式が正しくありません: {e}。デフォルト値を使用します。")
+            return {}
+
+    def _format_leg_configuration(self, legs):
+        """区間構成を整形する"""
+        if not legs:
+            # デフォルトの区間構成
+            return """- 第１区: 100km / 100km
+- 第２区: 110km / 210km
+- 第３区: 100km / 310km
+- 第４区:  89km / 399km
+- 第５区: 123km / 522km
+- 第６区: 117km / 639km
+- 第７区:  96km / 735km
+- 第８区: 106km / 841km
+- 第９区: 101km / 942km
+- 第10区: 113km / 1055km"""
+        
+        formatted_legs = []
+        for i, leg_info in enumerate(legs, 1):
+            # leg_infoは "第１区（100km) 100km" のような形式
+            formatted_legs.append(f"- 第{i}区: {leg_info}")
+        
+        return '\n'.join(formatted_legs)
 
     def load_all_data(self):
         data = {}
@@ -243,6 +279,12 @@ class DailySummaryGenerator:
         
         team_prefecture_text = "\n".join(team_prefecture_list)
 
+        # outline.jsonから大会情報を取得
+        outline_data = self._load_outline_data()
+        
+        # 区間構成を整形
+        leg_configuration = self._format_leg_configuration(outline_data.get('legs', []))
+
         # プロンプトテンプレートを読み込む
         try:
             with open(SUMMARY_PROMPT_TEMPLATE_FILE, 'r', encoding='utf-8') as f:
@@ -252,7 +294,13 @@ class DailySummaryGenerator:
             return ""
 
         # テンプレートに動的データを埋め込む
-        base_prompt = prompt_template.format(team_prefecture_list=team_prefecture_text)
+        base_prompt = prompt_template.format(
+            team_prefecture_list=team_prefecture_text,
+            tournament_title=outline_data.get('title', '第16回 全国大学対抗高温駅伝大会'),
+            start_date=outline_data.get('details', {}).get('startDate', '2025年9月1日（月）'),
+            course_description=outline_data.get('details', {}).get('course', '(旧)気象庁庁舎前(東京) ～ 下関駅前(山口) 全10区間 1055km'),
+            leg_configuration=leg_configuration
+        )
         
         prompt_parts = [base_prompt]
 
