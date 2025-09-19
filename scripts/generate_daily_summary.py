@@ -304,20 +304,6 @@ class DailySummaryGenerator:
         
         prompt_parts = [base_prompt]
 
-        # 過去のプロンプトと記事を文脈に追加
-        history_items = self._get_article_history(num_articles=2)
-        if history_items:
-            history_section = ["\n## 【これまでのレース展開（過去のあなたの解説）】", "過去のプロンプトとそれに対するあなたの解説を踏まえて、今日のレース展開の連続性や特筆すべき変化を解説に含めてください。"]
-            for item in history_items:
-                try:
-                    date_obj = datetime.strptime(item['date'], '%Y/%m/%d')
-                    day_str = date_obj.strftime('%-m月%-d日').replace(' 0', ' ') # for Windows compatibility
-                except (ValueError, KeyError):
-                    day_str = item.get('date', '過去')
-                history_section.append(f"\n### 【{day_str}のプロンプト】\n---\n{item.get('prompt', '（プロンプト記録なし）')}\n---")
-                history_section.append(f"\n### 【{day_str}のあなたの解説】\n---\n{item.get('article', '（記事記録なし）')}\n---")
-            prompt_parts.extend(history_section)
-
         prompt_parts.append("\n## 【本日のレース状況】")
         prompt_parts.append(f"- 大会日: {race_day}日目")
         prompt_parts.append(f"- 現在のレース状況: {race_status_summary}")
