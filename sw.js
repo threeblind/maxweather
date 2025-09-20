@@ -1,8 +1,8 @@
- const CACHE_NAME = 'ekiden-sokuhou-cache-v1';
+ const CACHE_NAME = 'ekiden-sokuhou-cache-v2';
  // オフライン時に利用できるようにキャッシュするファイルのリスト
  const urlsToCache = [
    '/maxweather/', // ルートURL
-   '/maxweather/app_16.html',
+   '/maxweather/index_16.html',
    '/maxweather/app_16.js',
    // 'style.css' のようなCSSファイルがあればここに追加します
    '/maxweather/images/icon-192x192.png',

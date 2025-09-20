@@ -3110,7 +3110,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // --- PWA Service Worker Registration ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/maxweather/sw.js').then(registration => {
+            navigator.serviceWorker.register('/maxweather/sw.js', { scope: '/maxweather/' }).then(registration => {
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
             }).catch(err => {
                 console.log('ServiceWorker registration failed: ', err);
