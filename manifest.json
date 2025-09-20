@@ -2,8 +2,9 @@
    "name": "全国大学対抗高温駅伝大会 速報サイト",
    "short_name": "高温大学駅伝",
    "description": "高温大学駅伝のリアルタイム速報と選手情報を提供します。",
-   "start_url": "./app_16.html",
+   "start_url": "/maxweather/app_16.html",
    "display": "standalone",
+   "scope": "/maxweather/",
    "background_color": "#ffffff",
    "theme_color": "#007bff",
    "icons": [
