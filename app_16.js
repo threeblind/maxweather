@@ -348,6 +348,7 @@ let map = null;
 let runnerMarkersLayer = null;
 let teamColorMap = new Map();
 let trackedTeamName = "lead_group"; // デフォルトは先頭集団を追跡
+let oms = null; // OverlappingMarkerSpiderfierのインスタンス
 let coursePolyline = null; // コースのポリラインをグローバルに保持
 
 /**
@@ -380,6 +381,16 @@ async function initializeMap() {
 
     // 3. Create a layer group for runner markers that can be easily cleared and updated
     runnerMarkersLayer = L.layerGroup().addTo(map);
+
+    // 4. Initialize OverlappingMarkerSpiderfier
+    oms = new OverlappingMarkerSpiderfier(map, {
+        markersWontMove: true, // マーカーが動かない設定でパフォーマンス向上
+        markersWontHide: true,
+        basicFormatEvents: true // これでoms.addListener('click', ...)が使える
+    });
+
+    // ポップアップ表示用の共通リスナー
+    oms.addListener('click', (marker) => map.openPopup(marker.getPopup()));
 
     try {
         // 4. Fetch course path, relay points, and leg best records data in parallel
@@ -515,8 +526,11 @@ function setupTeamTracker(teams) {
  * @param {object} ekidenData - ekiden_data.json のデータ。ゴール距離の判定に使用。
  */
 function updateRunnerMarkers(runnerLocations, ekidenData) {
-    if (!map || !runnerMarkersLayer) return;
-    runnerMarkersLayer.clearLayers(); // Remove old markers
+    if (!map || !runnerMarkersLayer || !oms) return;
+
+    // Spiderfierが管理しているマーカーをクリア
+    oms.clearMarkers();
+    runnerMarkersLayer.clearLayers(); // Remove old markers (念のため残す)
 
     if (!runnerLocations || runnerLocations.length === 0) {
         return; // 表示するランナーがいない場合は何もしない
@@ -558,7 +572,7 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
                 総距離: ${runner.total_distance_km.toFixed(1)} km
             `;
         }
-        marker.bindPopup(popupContent);
+        marker.bindPopup(popupContent, { closeButton: false });
 
         // Add click event to scroll to the ranking table and highlight the row
         marker.on('click', () => {
@@ -569,7 +583,8 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
             }
         });
 
-        runnerMarkersLayer.addLayer(marker);
+        // Spiderfierにマーカーを追加
+        oms.addMarker(marker);
     });
 
     // --- Map View Update Logic ---
@@ -2830,8 +2845,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     displayManagerComments(); // 監督談話室
     displayLegRankHistoryTable(); // 順位推移テーブル
     displayOutline(); // 大会概要
-    // 90秒ごとにマップと総合順位を自動更新
-    setInterval(refreshRealtimeData, 90000);
+    // 90秒ごとにマップと総合順位を自動更新 -> ユーザーの地図操作を妨げるため停止
+    // setInterval(refreshRealtimeData, 90000);
 
     // スマホ表示でのPC/SP版表示切り替えボタンのイベントリスナー
     const toggleBtn = document.getElementById('toggle-ranking-view-btn');
