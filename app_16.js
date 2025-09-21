@@ -3107,6 +3107,37 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     });
 
+    // --- PWA Install Button Logic ---
+    let deferredPrompt;
+    const installButton = document.getElementById('install-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // デフォルトのミニ情報バーの表示をキャンセル
+        e.preventDefault();
+        // イベントを後で使うために保存
+        deferredPrompt = e;
+        // インストールボタンを表示
+        if (installButton) {
+            installButton.style.display = 'inline-block';
+        }
+    });
+
+    if (installButton) {
+        installButton.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                // インストールプロンプトを表示
+                deferredPrompt.prompt();
+                // ユーザーの選択結果を待つ
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                // 一度使うと再利用できないので、変数をクリア
+                deferredPrompt = null;
+                // ボタンを非表示にする
+                installButton.style.display = 'none';
+            }
+        });
+    }
+
     // --- PWA Service Worker Registration ---
     if ('serviceWorker' in navigator) {
         // sw.jsのパスを決定します。
