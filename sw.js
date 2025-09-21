@@ -67,3 +67,21 @@ self.addEventListener('fetch', (event) => {
         })
     );
 });
+
+// 3. プッシュ通知を受け取った時の処理
+self.addEventListener('push', (event) => {
+    // プッシュ通知で送られてきたデータを取得
+    const data = event.data.json();
+    const title = data.title || '高温大学駅伝速報';
+    const options = {
+        body: data.body,
+        icon: 'images/icon-192x192.png', // 通知に表示されるアイコン
+        badge: 'images/icon-192x192.png', // Androidでステータスバーに表示されるアイコン
+        // 他にも様々なオプションがあります (vibrate, actionsなど)
+    };
+
+    // 通知を表示する
+    event.waitUntil(
+        self.registration.showNotification(title, options)
+    );
+});

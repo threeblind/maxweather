@@ -3174,6 +3174,28 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
+    // --- Push Notification Permission Logic ---
+    const notificationButton = document.getElementById('notification-btn');
+    if ('Notification' in window && 'serviceWorker' in navigator) {
+        // 通知がまだ許可されていない場合のみボタンを表示
+        if (Notification.permission === 'default') {
+            notificationButton.style.display = 'inline-block';
+        }
+
+        notificationButton.addEventListener('click', async () => {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                console.log('通知が許可されました！');
+                notificationButton.style.display = 'none'; // 許可されたらボタンを隠す
+            } else {
+                console.log('通知が拒否されました。');
+            }
+        });
+    } else {
+        // ブラウザが通知に対応していない場合はボタンを非表示
+        notificationButton.style.display = 'none';
+    }
+
     // --- PWA Service Worker Registration ---
     if ('serviceWorker' in navigator) {
         // sw.jsのパスを決定します。
