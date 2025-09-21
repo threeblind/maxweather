@@ -283,9 +283,16 @@
             z-index: 2001; /* Above the nav overlay */
             cursor: pointer;
             background: none;
+            background-color: transparent; /* buttonのデフォルトスタイルを上書き */
             border: none;
             padding: 10px;
         }
+        /* ボタン押下時やホバー時の青いハイライトを無効化 */
+        .hamburger-menu:hover,
+        .hamburger-menu:active {
+            background-color: transparent;
+        }
+
         .hamburger-menu span {
             display: block;
             width: 25px;
@@ -302,6 +309,9 @@
         }
         .hamburger-menu.active span:nth-child(3) {
             transform: translateY(-8px) rotate(-45deg);
+        }
+        .hamburger-menu.active span {
+            background-color: #333; /* アクティブ時も色を維持 */
         }
         @media (max-width: 768px) {
             h1 {

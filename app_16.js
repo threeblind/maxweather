@@ -261,7 +261,7 @@ async function fetchRankingData() {
         const locationLink = cells[1]?.querySelector('a');
         const rank = cells[0]?.textContent.trim();
         const location = locationLink?.textContent.trim().replace(/\s+/g, ' ');
-        const locationUrl = locationLink?.href;X
+        const locationUrl = locationLink?.href;
         const temperature = cells[2]?.textContent.trim();
         const time = cells[3]?.textContent.trim();
 
@@ -348,14 +348,21 @@ let map = null;
 let runnerMarkersLayer = null;
 let teamColorMap = new Map();
 let trackedTeamName = "lead_group"; // デフォルトは先頭集団を追跡
-let oms = null; // OverlappingMarkerSpiderfierのインスタンス
 let coursePolyline = null; // コースのポリラインをグローバルに保持
 
 /**
  * Initializes the interactive map, draws the course, and places relay point markers.
  */
 async function initializeMap() {
-    // Leafletのアイコンパスが自動検出できない問題への対処
+    // 1. Initialize the map if it hasn't been already
+    if (map) return;
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+        console.error("Map container #map not found. Aborting map initialization.");
+        return;
+    }
+    map = L.map(mapContainer);
+    // Leafletのアイコンパスが自動検出できない問題への対処 (マップ初期化後に実行)
     try {
         delete L.Icon.Default.prototype._getIconUrl;
         L.Icon.Default.mergeOptions({
@@ -365,15 +372,6 @@ async function initializeMap() {
         });
     } catch (e) { console.error("Leaflet icon path fix failed:", e); }
 
-    // 1. Initialize the map if it hasn't been already
-    if (map) return;
-    const mapContainer = document.getElementById('map');
-    if (!mapContainer) {
-        console.error("Map container #map not found. Aborting map initialization.");
-        return;
-    }
-    map = L.map(mapContainer);
-
     // 2. Add the base map layer (OpenStreetMap)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -381,16 +379,6 @@ async function initializeMap() {
 
     // 3. Create a layer group for runner markers that can be easily cleared and updated
     runnerMarkersLayer = L.layerGroup().addTo(map);
-
-    // 4. Initialize OverlappingMarkerSpiderfier
-    oms = new OverlappingMarkerSpiderfier(map, {
-        markersWontMove: true, // マーカーが動かない設定でパフォーマンス向上
-        markersWontHide: true,
-        basicFormatEvents: true // これでoms.addListener('click', ...)が使える
-    });
-
-    // ポップアップ表示用の共通リスナー
-    oms.addListener('click', (marker) => map.openPopup(marker.getPopup()));
 
     try {
         // 4. Fetch course path, relay points, and leg best records data in parallel
@@ -526,11 +514,10 @@ function setupTeamTracker(teams) {
  * @param {object} ekidenData - ekiden_data.json のデータ。ゴール距離の判定に使用。
  */
 function updateRunnerMarkers(runnerLocations, ekidenData) {
-    if (!map || !runnerMarkersLayer || !oms) return;
+    if (!map || !runnerMarkersLayer) return;
 
-    // Spiderfierが管理しているマーカーをクリア
-    oms.clearMarkers();
-    runnerMarkersLayer.clearLayers(); // Remove old markers (念のため残す)
+    // 古いマーカーをクリア
+    runnerMarkersLayer.clearLayers();
 
     if (!runnerLocations || runnerLocations.length === 0) {
         return; // 表示するランナーがいない場合は何もしない
@@ -583,8 +570,8 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
             }
         });
 
-        // Spiderfierにマーカーを追加
-        oms.addMarker(marker);
+        // マーカーをレイヤーに追加
+        runnerMarkersLayer.addLayer(marker);
     });
 
     // --- Map View Update Logic ---
