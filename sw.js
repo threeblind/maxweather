@@ -30,16 +30,40 @@
  });
  
  // 2. リクエストがあった場合に、キャッシュから返す処理 (Cache First戦略)
- self.addEventListener('fetch', (event) => {
-   event.respondWith(
-     caches.match(event.request)
-       .then((response) => {
-         // キャッシュ内にリクエストされたリソースがあれば、それを返す
-         if (response) {
-           return response;
-         }
-         // なければ、通常通りネットワークから取得しにいく
-         return fetch(event.request);
-       })
-   );
- });
+self.addEventListener('fetch', (event) => {
+    const { request } = event;
+    // 動的なデータ(json)と主要なページ(html)はStale-While-Revalidate戦略
+    if (request.url.includes('.json') || request.destination === 'document') {
+        event.respondWith(
+            caches.open(CACHE_NAME).then((cache) => {
+                return cache.match(request).then((cachedResponse) => {
+                    const fetchedResponsePromise = fetch(request).then((networkResponse) => {
+                        // ネットワークから取得した新しいレスポンスをキャッシュに保存
+                        cache.put(request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                    // キャッシュがあればそれを返し、裏でネットワークリクエストを実行。
+                    // キャッシュがなければネットワークリクエストの結果を待つ。
+                    return cachedResponse || fetchedResponsePromise;
+                });
+            })
+        );
+        return;
+    }
+
+    // その他の静的リソース（CSS, JS, 画像など）はCache First戦略
+    event.respondWith(
+        caches.match(request).then((response) => {
+            if (response) {
+                return response;
+            }
+            return fetch(request).then((networkResponse) => {
+                // ネットワークから取得したリソースをキャッシュに追加
+                return caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(request, networkResponse.clone());
+                    return networkResponse;
+                });
+            });
+        })
+    );
+});
