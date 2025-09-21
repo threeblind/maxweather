@@ -131,7 +131,7 @@
     ]
   },
   "名古屋": {
-    "totalDistance": 56.6,
+    "totalDistance": 78.8,
     "teamId": 1,
     "records": [
       {
@@ -143,6 +143,11 @@
         "day": 21,
         "leg": 7,
         "distance": 31.6
+      },
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 22.2
       }
     ]
   },
@@ -318,9 +323,15 @@
     ]
   },
   "小山": {
-    "totalDistance": 0,
+    "totalDistance": 20.3,
     "teamId": 2,
-    "records": []
+    "records": [
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 20.3
+      }
+    ]
   },
   "前橋": {
     "totalDistance": 0,
@@ -489,13 +500,18 @@
     ]
   },
   "八尾（大阪）": {
-    "totalDistance": 30.8,
+    "totalDistance": 52.8,
     "teamId": 3,
     "records": [
       {
         "day": 21,
         "leg": 7,
         "distance": 30.8
+      },
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 22.0
       }
     ]
   },
@@ -661,13 +677,18 @@
     ]
   },
   "三島": {
-    "totalDistance": 32.6,
+    "totalDistance": 56.8,
     "teamId": 4,
     "records": [
       {
         "day": 21,
         "leg": 7,
         "distance": 32.6
+      },
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 24.2
       }
     ]
   },
@@ -828,13 +849,18 @@
     ]
   },
   "長浜（滋賀）": {
-    "totalDistance": 27.9,
+    "totalDistance": 46.6,
     "teamId": 5,
     "records": [
       {
         "day": 21,
         "leg": 7,
         "distance": 27.9
+      },
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 18.7
       }
     ]
   },
@@ -1000,13 +1026,18 @@
     ]
   },
   "福山": {
-    "totalDistance": 30.5,
+    "totalDistance": 52.3,
     "teamId": 6,
     "records": [
       {
         "day": 21,
         "leg": 7,
         "distance": 30.5
+      },
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 21.8
       }
     ]
   },
@@ -1172,13 +1203,18 @@
     ]
   },
   "口之津": {
-    "totalDistance": 31.3,
+    "totalDistance": 53.5,
     "teamId": 7,
     "records": [
       {
         "day": 21,
         "leg": 7,
         "distance": 31.3
+      },
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 22.2
       }
     ]
   },
@@ -1323,7 +1359,7 @@
     ]
   },
   "多度津": {
-    "totalDistance": 90.4,
+    "totalDistance": 114.0,
     "teamId": 8,
     "records": [
       {
@@ -1340,6 +1376,11 @@
         "day": 21,
         "leg": 6,
         "distance": 29.8
+      },
+      {
+        "day": 22,
+        "leg": 6,
+        "distance": 23.6
       }
     ]
   },
@@ -1510,9 +1551,15 @@
     ]
   },
   "米子": {
-    "totalDistance": 0,
+    "totalDistance": 20.9,
     "teamId": 9,
-    "records": []
+    "records": [
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 20.9
+      }
+    ]
   },
   "玖珂": {
     "totalDistance": 0,
@@ -1681,13 +1728,18 @@
     ]
   },
   "津": {
-    "totalDistance": 30.1,
+    "totalDistance": 52.9,
     "teamId": 10,
     "records": [
       {
         "day": 21,
         "leg": 7,
         "distance": 30.1
+      },
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 22.8
       }
     ]
   },
@@ -2839,7 +2891,7 @@
     ]
   },
   "丸森": {
-    "totalDistance": 50.5,
+    "totalDistance": 65.2,
     "teamId": 14,
     "records": [
       {
@@ -2851,61 +2903,113 @@
         "day": 21,
         "leg": 6,
         "distance": 26.4
+      },
+      {
+        "day": 22,
+        "leg": 6,
+        "distance": 14.7
       }
     ]
   },
   "那覇": {
-    "totalDistance": 32.6,
+    "totalDistance": 62.0,
     "teamId": 18,
     "records": [
       {
         "day": 21,
         "leg": 7,
         "distance": 32.6
+      },
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 29.4
       }
     ]
   },
   "新居浜": {
-    "totalDistance": 29.1,
+    "totalDistance": 50.3,
     "teamId": 15,
     "records": [
       {
         "day": 21,
         "leg": 7,
         "distance": 29.1
+      },
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 21.2
       }
     ]
   },
   "犬飼": {
-    "totalDistance": 30.1,
+    "totalDistance": 50.6,
     "teamId": 12,
     "records": [
       {
         "day": 21,
         "leg": 7,
         "distance": 30.1
+      },
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 20.5
       }
     ]
   },
   "鹿児島": {
-    "totalDistance": 33.0,
+    "totalDistance": 60.9,
     "teamId": 17,
     "records": [
       {
         "day": 21,
         "leg": 7,
         "distance": 33.0
+      },
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 27.9
       }
     ]
   },
   "練馬": {
-    "totalDistance": 30.4,
+    "totalDistance": 49.5,
     "teamId": 11,
     "records": [
       {
         "day": 21,
         "leg": 7,
         "distance": 30.4
+      },
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 19.1
+      }
+    ]
+  },
+  "敦賀": {
+    "totalDistance": 19.8,
+    "teamId": 13,
+    "records": [
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 19.8
+      }
+    ]
+  },
+  "寺泊": {
+    "totalDistance": 18.3,
+    "teamId": 16,
+    "records": [
+      {
+        "day": 22,
+        "leg": 7,
+        "distance": 18.3
       }
     ]
   }
