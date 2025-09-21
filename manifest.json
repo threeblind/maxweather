@@ -2,19 +2,19 @@
    "name": "全国大学対抗高温駅伝大会 速報サイト",
    "short_name": "高温大学駅伝",
    "description": "高温大学駅伝のリアルタイム速報と選手情報を提供します。",
-   "start_url": "/maxweather/index_16.html",
+   "start_url": "index_16.html",
    "display": "standalone",
-   "scope": "/maxweather/",
+   "scope": ".",
    "background_color": "#ffffff",
    "theme_color": "#007bff",
    "icons": [
      {
-       "src": "/maxweather/images/icon-192x192.png",
+       "src": "images/icon-192x192.png",
        "sizes": "192x192",
        "type": "image/png"
      },
      {
-       "src": "/maxweather/images/icon-512x512.png",
+       "src": "images/icon-512x512.png",
        "sizes": "512x512",
        "type": "image/png"
      }

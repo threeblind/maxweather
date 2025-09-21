@@ -3109,8 +3109,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // --- PWA Service Worker Registration ---
     if ('serviceWorker' in navigator) {
+        // sw.jsのパスを決定します。
+        // GitHub Pages (https://username.github.io/repo/) を考慮し、
+        // location.pathname が '/maxweather/' で始まるかチェックします。
+        const swPath = location.pathname.startsWith('/maxweather/') ? '/maxweather/sw.js' : 'sw.js';
+
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/maxweather/sw.js', { scope: '/maxweather/' }).then(registration => {
+            navigator.serviceWorker.register(swPath).then(registration => {
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
             }).catch(err => {
                 console.log('ServiceWorker registration failed: ', err);

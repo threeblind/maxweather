@@ -1,17 +1,17 @@
  const CACHE_NAME = 'ekiden-sokuhou-cache-v2';
  // オフライン時に利用できるようにキャッシュするファイルのリスト
  const urlsToCache = [
-   '/maxweather/', // ルートURL
-   '/maxweather/index_16.html',
-   '/maxweather/app_16.js',
+   './', // ルートURL
+   'index_16.html',
+   'app_16.js',
    // 'style.css' のようなCSSファイルがあればここに追加します
-   '/maxweather/images/icon-192x192.png',
-   '/maxweather/images/icon-512x512.png',
-   '/maxweather/config/ekiden_data.json',
-   '/maxweather/config/amedas_stations.json',
-   '/maxweather/config/player_profiles.json',
-   '/maxweather/config/course_path.json',
-   '/maxweather/config/relay_points.json',
+   'images/icon-192x192.png',
+   'images/icon-512x512.png',
+   'config/ekiden_data.json',
+   'config/amedas_stations.json',
+   'config/player_profiles.json',
+   'config/course_path.json',
+   'config/relay_points.json',
    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
