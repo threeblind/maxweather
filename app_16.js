@@ -3126,6 +3126,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
+    // フッターのリンクからiOSインストール案内を再表示するロジック
+    const showIosGuideLink = document.getElementById('show-ios-install-guide');
+    if (showIosGuideLink) {
+        // iOS以外ではこのリンクを非表示にする
+        if (!isIOS || isStandalone) {
+            showIosGuideLink.style.display = 'none';
+        }
+
+        showIosGuideLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (isIOS && !isStandalone) {
+                localStorage.removeItem('iosPwaBannerClosed'); // 閉じた記録を削除
+                location.reload(); // ページをリロードしてバナーを再表示させる
+            }
+        });
+    }
+
     // --- PWA Install Button Logic ---
     let deferredPrompt;
     const installButton = document.getElementById('install-btn');
