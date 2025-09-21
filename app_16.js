@@ -3107,6 +3107,35 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     });
 
+    // --- iOS Safari PWAインストールバナーのロジック ---
+    const iosInstallBanner = document.getElementById('ios-install-banner');
+    const closeIosBannerBtn = document.getElementById('close-ios-banner');
+
+    if (iosInstallBanner && closeIosBannerBtn) {
+        // ユーザーエージェントでiOSを判定
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        // スタンドアロンモード（ホーム画面から起動）でないか判定
+        const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+        // バナーを閉じたことがあるかlocalStorageで確認
+        const isBannerClosed = localStorage.getItem('iosPwaBannerClosed') === 'true';
+
+        // iOSで、スタンドアロンでなく、まだバナーを閉じていない場合に表示
+        if (isIOS && !isStandalone && !isBannerClosed) {
+            iosInstallBanner.style.display = 'block';
+            // 本文のコンテンツがバナーに隠れないようにpadding-topを追加
+            document.body.style.paddingTop = `${iosInstallBanner.offsetHeight}px`;
+        }
+
+        // 閉じるボタンのイベントリスナー
+        closeIosBannerBtn.addEventListener('click', () => {
+            iosInstallBanner.style.display = 'none';
+            // 本文のpaddingを元に戻す
+            document.body.style.paddingTop = '0';
+            // 閉じた状態をlocalStorageに保存
+            localStorage.setItem('iosPwaBannerClosed', 'true');
+        });
+    }
+
     // --- PWA Install Button Logic ---
     let deferredPrompt;
     const installButton = document.getElementById('install-btn');
