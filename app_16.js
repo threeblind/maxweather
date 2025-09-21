@@ -3122,8 +3122,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         // iOSで、スタンドアロンでなく、まだバナーを閉じていない場合に表示
         if (isIOS && !isStandalone && !isBannerClosed) {
             iosInstallBanner.style.display = 'block';
-            // 本文のコンテンツがバナーに隠れないようにpadding-topを追加
-            document.body.style.paddingTop = `${iosInstallBanner.offsetHeight}px`;
+            // ブラウザの次の描画フレームで高さを取得してpaddingを設定
+            requestAnimationFrame(() => {
+                // 本文のコンテンツがバナーに隠れないようにpadding-topを追加
+                document.body.style.paddingTop = `${iosInstallBanner.offsetHeight}px`;
+            });
         }
 
         // 閉じるボタンのイベントリスナー
