@@ -872,9 +872,13 @@ def main():
                 timestamp_to_save = datetime.now().isoformat()
                 # --- プッシュ通知を送信 ---
                 if comment_to_save:
-                    notification_title = comment_to_save.split('】')[0] + '】' if '】' in comment_to_save else '高温大学駅伝 速報'
-                    notification_body = comment_to_save.replace(notification_title, '').strip()
-                    send_push_notification(notification_title, notification_body)
+                    notification_title = comment_to_save.split('】')[0] + '】' if '】' in comment_to_save else ''
+                    
+                    # 通知を送信する速報の種類を限定
+                    allowed_notifications = ["【首位交代】", "【首位争い】", "【酷暑】"]
+                    if notification_title in allowed_notifications:
+                        notification_body = comment_to_save.replace(notification_title, '').strip()
+                        send_push_notification(notification_title, notification_body)
                 print(f"Generated breaking news: '{comment_to_save}'")
 
         # 3. 新しい速報がない場合、古いコメントを1時間維持するか検討
