@@ -3221,6 +3221,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             });
     }
+
+    // --- アプリ起動時にバッジをリセット ---
+    clearBadge();
 }   
 });
 
@@ -3332,6 +3335,20 @@ async function sendSubscriptionToServer(subscription) {
         console.error('Error sending subscription to server:', error);
     }
 }
+
+/**
+ * バッジをリセットする（0にする）
+ */
+function clearBadge() {
+    if ('clearAppBadge' in navigator) {
+        navigator.clearAppBadge()
+            .then(() => console.log("Badge cleared on startup"))
+            .catch(err => console.error("Failed to clear badge", err));
+    } else {
+        console.log("clearAppBadge not supported");
+    }
+}
+
 
 
 // HTML側に<base>タグを追加する必要があります。
