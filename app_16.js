@@ -3235,6 +3235,7 @@ async function fetchConfig() {
  * ユーザーをプッシュ通知に購読させ、サーバーに情報を送信します。
  */
 async function subscribeUserToPush() {
+    console.log("Fetched config:", config);
     // Service WorkerとPushManagerのサポートを確認
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         console.warn('Push messaging is not supported');
