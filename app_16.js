@@ -3274,22 +3274,23 @@ async function sendSubscriptionToServer(subscription) {
     const apiUrl = `${apiBaseUrl}/api/save-subscription`;
 
     try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(subscription),
-        });
+    const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subscription),
+    });
 
-        if (!response.ok) {
-            throw new Error('Failed to send subscription to server.');
-        }
+    console.log("サーバー応答ステータス:", response.status);
+    const text = await response.text();
+    console.log("サーバー応答ボディ:", text);
 
-        console.log('Successfully sent subscription to server.');
-    } catch (error) {
-        console.error('Error sending subscription to server:', error);
+    if (!response.ok) {
+        throw new Error('Failed to send subscription to server.');
     }
+    } catch (error) {
+    console.error('Error sending subscription to server:', error);
+    }
+
 }
 
 // HTML側に<base>タグを追加する必要があります。
