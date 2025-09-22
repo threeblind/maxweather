@@ -37,7 +37,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 動的なデータ(json)と主要なページ(html)はStale-While-Revalidate戦略
+  // 🚨 追加: GET 以外はキャッシュ処理しない（POST でエラーが出ていた原因）
+  if (request.method !== 'GET') {
+    return;
+  }
+
+  // 動的なデータ(json)と主要なページ(html)は Stale-While-Revalidate 戦略
   if (request.url.includes('.json') || request.destination === 'document') {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {
@@ -54,7 +59,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // その他の静的リソース（CSS, JS, 画像など）はCache First戦略
+  // その他の静的リソース（CSS, JS, 画像など）は Cache First 戦略
   event.respondWith(
     caches.match(request).then((response) => {
       if (response) {
@@ -69,6 +74,7 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
 
 // 3. プッシュ通知を受け取った時の処理
 self.addEventListener('push', (event) => {
