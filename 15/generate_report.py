@@ -9,7 +9,9 @@ import re
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 import unicodedata
+from pywebpush import webpush, WebPushException
 from geopy.distance import geodesic
+from dotenv import load_dotenv
 
 # --- 定数 ---
 AMEDAS_STATIONS_FILE = 'amedas_stations.json'
@@ -18,6 +20,7 @@ OUTLINE_FILE = 'outline.json'
 STATE_FILE = 'ekiden_state.json'
 INDIVIDUAL_STATE_FILE = 'individual_results.json'
 RANK_HISTORY_FILE = 'rank_history.json'
+SUBSCRIPTIONS_FILE = 'subscriptions.json' # プッシュ通知の宛先リスト
 LEG_RANK_HISTORY_FILE = 'leg_rank_history.json'
 EKIDEN_START_DATE = '2025-07-23'
 KML_FILE = 'ekiden_map.kml'
@@ -28,6 +31,22 @@ COURSE_PATH_FILE = 'course_path.json'
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 }
+
+# --- VAPIDキーの設定 ---
+# .envファイルから環境変数を読み込む
+load_dotenv()
+
+VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY")
+VAPID_CLAIMS = {
+    "sub": "mailto:your-email@example.com" # 連絡先メールアドレス
+}
+
+# VAPID_PRIVATE_KEYが設定されていない場合のエラーハンドリング
+if not VAPID_PRIVATE_KEY:
+    print("エラー: 環境変数 VAPID_PRIVATE_KEY が設定されていません。", file=sys.stderr)
+    print("ヒント: プロジェクトルートに .env ファイルを作成し、VAPID_PRIVATE_KEY='YourPrivateKey' のように設定してください。", file=sys.stderr)
+    # sys.exit(1) # CI/CD環境などを考慮し、ここでは終了させずに警告に留めることも可能
+
 # --- グローバル変数 ---
 stations_data = []
 ekiden_data = {}
@@ -663,6 +682,44 @@ def calculate_and_save_runner_locations(teams_data):
     print(f"\n計算完了: {len(runner_locations)}チームの位置を特定しました。")
     print(f"結果を {RUNNER_LOCATIONS_OUTPUT_FILE} に保存しました。")
 
+def send_push_notification(title, body):
+    """保存されているすべての購読情報にプッシュ通知を送信する"""
+    if not VAPID_PRIVATE_KEY:
+        print("警告: VAPID秘密鍵が設定されていないため、プッシュ通知は送信されません。")
+        return
+
+    try:
+        with open(SUBSCRIPTIONS_FILE, 'r', encoding='utf-8') as f:
+            subscriptions = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("プッシュ通知の宛先ファイルが見つからないか、不正です。")
+        return
+
+    if not subscriptions:
+        print("プッシュ通知の宛先がありません。")
+        return
+
+    print(f"{len(subscriptions)}件の宛先にプッシュ通知を送信します...")
+    
+    notification_payload = json.dumps({
+        "title": title,
+        "body": body
+    })
+
+    for sub in subscriptions:
+        try:
+            webpush(
+                subscription_info=sub,
+                data=notification_payload,
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims=VAPID_CLAIMS.copy()
+            )
+        except WebPushException as ex:
+            print(f"通知送信エラー: {ex}")
+            # 410 Gone は購読が無効になったことを示すので、リストから削除するなどの対応が考えられる
+            if ex.response and ex.response.status_code == 410:
+                print(f"無効な購読情報を検出: {sub['endpoint']}")
+
 def main():
     """メイン処理"""
     parser = argparse.ArgumentParser(description='高温大学駅伝のレポートを生成します。')
@@ -842,6 +899,11 @@ def main():
                 comment_to_save = new_comment_text
                 full_text_to_save = "" # 通常の速報には全文はない
                 timestamp_to_save = datetime.now().isoformat()
+                # --- プッシュ通知を送信 ---
+                if comment_to_save:
+                    notification_title = comment_to_save.split('】')[0] + '】' if '】' in comment_to_save else '高温大学駅伝 速報'
+                    notification_body = comment_to_save.replace(notification_title, '').strip()
+                    send_push_notification(notification_title, notification_body)
                 print(f"Generated breaking news: '{comment_to_save}'")
 
         # 3. 新しい速報がない場合、古いコメントを1時間維持するか検討

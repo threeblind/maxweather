@@ -3170,21 +3170,102 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // --- PWA Service Worker Registration ---
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            // どの環境でも動作するように、HTMLの<base>タグを基準とした相対パスで登録します。
-            // これにより、GitHub Pagesのサブディレクトリ問題を解決します。
-            navigator.serviceWorker.register('./sw.js').then(registration => {
-                console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                // Service Workerの登録が成功した後に通知機能を初期化
-                initializePushNotifications();
-            }).catch(err => {
-                console.log('ServiceWorker registration failed: ', err);
-            });
+        // DOMContentLoaded内で実行されているため、window.loadを待つ必要はありません。
+        navigator.serviceWorker.register('./sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            // Service Workerの登録が成功した後に通知機能を初期化
+            initializePushNotifications();
+        }).catch(err => {
+            console.log('ServiceWorker registration failed: ', err);
         });
     }
 });
 
+/**
+ * VAPIDキー（公開鍵）
+ * TODO: サーバーサイドで生成したご自身の公開鍵に置き換えてください。
+ */
+const VAPID_PUBLIC_KEY = 'BHQiUQ5EcUnzX9Jyffn_ItKqHsf1EzF84WkRnGDFRdfIy_9rfFu2pLoE9AoVOUe2IAUFLtEoErpb8H2S1OjYkaE';
 
+/**
+ * URL-safeなBase64文字列をUint8Arrayに変換します。
+ * @param {string} base64String
+ * @returns {Uint8Array}
+ */
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+/**
+ * プッシュ通知の初期化と購読処理を行います。
+ */
+async function initializePushNotifications() {
+    // Service WorkerとPushManagerのサポートを確認
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.warn('Push messaging is not supported');
+        return;
+    }
+
+    try {
+        // Service Workerがアクティブになるのを待つ
+        const registration = await navigator.serviceWorker.ready;
+
+        // 購読情報を取得
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true, // ユーザーに見える通知を送るという約束
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+
+        console.log('Push Subscription:', JSON.stringify(subscription));
+        // 取得した 'subscription' オブジェクトをサーバーに送信して保VAPID_PUBLIC_KEY存します。
+        await sendSubscriptionToServer(subscription);
+
+    } catch (error) {
+        console.error('Failed to subscribe to push notifications:', error);
+    }
+}
+
+
+/**
+ * 購読情報をサーバーに送信します。
+ * @param {PushSubscription} subscription
+ */
+async function sendSubscriptionToServer(subscription) {
+    // --- 環境に応じてAPIサーバーのURLを決定 ---
+    const isDevelopment = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+    
+    // 開発環境と本番環境のAPIベースURLを定義
+    const DEV_API_URL = 'http://localhost:5000';
+    const PROD_API_URL = 'https://granulocytic-kara-spongily.ngrok-free.app';
+
+    const apiBaseUrl = isDevelopment ? DEV_API_URL : PROD_API_URL;
+    const apiUrl = `${apiBaseUrl}/api/save-subscription`;
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(subscription),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to send subscription to server.');
+        }
+
+        console.log('Successfully sent subscription to server.');
+    } catch (error) {
+        console.error('Error sending subscription to server:', error);
+    }
+}
 
 // HTML側に<base>タグを追加する必要があります。
 // index_16.html の <head> 内に以下を追加してください：
