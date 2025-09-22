@@ -3149,18 +3149,29 @@ document.addEventListener('DOMContentLoaded', async function() {
     // --- Push Notification Permission Logic ---
     const notificationButton = document.getElementById('notification-btn');
     if ('Notification' in window && 'serviceWorker' in navigator) {
-        // 通知がまだ許可されていない場合のみボタンを表示
-        if (Notification.permission === 'default') {
+        // 既に許可されている場合は、すぐに購読処理を試みる
+        if (Notification.permission === 'granted') {
+            console.log('Notification permission is already granted.');
+            // ページロード時に自動で購読処理を走らせることも可能ですが、
+            // ユーザーが明示的にアクションした時に実行する方が安全なため、一旦コメントアウトします。
+            // subscribeUserToPush();
+        } else {
+            // それ以外の場合は、許可を求めるボタンを表示
             notificationButton.style.display = 'inline-block';
         }
 
         notificationButton.addEventListener('click', async () => {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                console.log('通知が許可されました！');
-                notificationButton.style.display = 'none'; // 許可されたらボタンを隠す
-            } else {
-                console.log('通知が拒否されました。');
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    console.log('通知が許可されました！');
+                    notificationButton.style.display = 'none'; // ボタンを隠す
+                    await subscribeUserToPush(); // 購読処理を実行
+                } else {
+                    console.log('通知が拒否されました。');
+                }
+            } catch (error) {
+                console.error('Error requesting notification permission:', error);
             }
         });
     } else {
@@ -3173,8 +3184,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         // DOMContentLoaded内で実行されているため、window.loadを待つ必要はありません。
         navigator.serviceWorker.register('./sw.js').then(registration => {
             console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            // Service Workerの登録が成功した後に通知機能を初期化
-            initializePushNotifications();
+            // 購読処理は、ユーザーが通知を許可したタイミングで呼び出されるため、
+            // ここで何かを呼び出す必要はありません。
         }).catch(err => {
             console.log('ServiceWorker registration failed: ', err);
         });
@@ -3183,9 +3194,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 /**
  * VAPIDキー（公開鍵）
- * TODO: サーバーサイドで生成したご自身の公開鍵に置き換えてください。
  */
-const VAPID_PUBLIC_KEY = 'BHQiUQ5EcUnzX9Jyffn_ItKqHsf1EzF84WkRnGDFRdfIy_9rfFu2pLoE9AoVOUe2IAUFLtEoErpb8H2S1OjYkaE';
+const VAPID_PUBLIC_KEY = 'BC9n6jsfKOJn5eqExYX8zqD9DbUExC-Hc7AHTgjl3VJNPi9yMt9jmHUrIrYaRz91LZLYD7pbzFnrVN34AinM7Qg';
 
 /**
  * URL-safeなBase64文字列をUint8Arrayに変換します。
@@ -3204,9 +3214,9 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 /**
- * プッシュ通知の初期化と購読処理を行います。
+ * ユーザーをプッシュ通知に購読させ、サーバーに情報を送信します。
  */
-async function initializePushNotifications() {
+async function subscribeUserToPush() {
     // Service WorkerとPushManagerのサポートを確認
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         console.warn('Push messaging is not supported');
@@ -3224,7 +3234,7 @@ async function initializePushNotifications() {
         });
 
         console.log('Push Subscription:', JSON.stringify(subscription));
-        // 取得した 'subscription' オブジェクトをサーバーに送信して保VAPID_PUBLIC_KEY存します。
+        // 取得した 'subscription' オブジェクトをサーバーに送信して保存します。
         await sendSubscriptionToServer(subscription);
 
     } catch (error) {
