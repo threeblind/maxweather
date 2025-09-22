@@ -7,9 +7,6 @@ import sys
 import argparse
 import re
 import xml.etree.ElementTree as ET
-from bs4 import BeautifulSoup
-import unicodedata
-from pywebpush import webpush, WebPushException
 from geopy.distance import geodesic
 from dotenv import load_dotenv
 
@@ -20,7 +17,6 @@ OUTLINE_FILE = 'outline.json'
 STATE_FILE = 'ekiden_state.json'
 INDIVIDUAL_STATE_FILE = 'individual_results.json'
 RANK_HISTORY_FILE = 'rank_history.json'
-SUBSCRIPTIONS_FILE = 'subscriptions.json' # プッシュ通知の宛先リスト
 LEG_RANK_HISTORY_FILE = 'leg_rank_history.json'
 EKIDEN_START_DATE = '2025-07-23'
 KML_FILE = 'ekiden_map.kml'
@@ -36,16 +32,9 @@ HEADERS = {
 # .envファイルから環境変数を読み込む
 load_dotenv()
 
-VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY")
-VAPID_CLAIMS = {
-    "sub": "mailto:your-email@example.com" # 連絡先メールアドレス
-}
-
-# VAPID_PRIVATE_KEYが設定されていない場合のエラーハンドリング
-if not VAPID_PRIVATE_KEY:
-    print("エラー: 環境変数 VAPID_PRIVATE_KEY が設定されていません。", file=sys.stderr)
-    print("ヒント: プロジェクトルートに .env ファイルを作成し、VAPID_PRIVATE_KEY='YourPrivateKey' のように設定してください。", file=sys.stderr)
-    # sys.exit(1) # CI/CD環境などを考慮し、ここでは終了させずに警告に留めることも可能
+# Render上のAPIサーバーのURLとシークレットキーを.envから読み込む
+PUSH_API_URL = os.getenv("PROD_PUSH_API_URL")
+API_SECRET_KEY = os.getenv("API_SECRET_KEY")
 
 # --- グローバル変数 ---
 stations_data = []
@@ -683,42 +672,24 @@ def calculate_and_save_runner_locations(teams_data):
     print(f"結果を {RUNNER_LOCATIONS_OUTPUT_FILE} に保存しました。")
 
 def send_push_notification(title, body):
-    """保存されているすべての購読情報にプッシュ通知を送信する"""
-    if not VAPID_PRIVATE_KEY:
-        print("警告: VAPID秘密鍵が設定されていないため、プッシュ通知は送信されません。")
+    """Render上のAPIサーバーに通知送信を依頼する"""
+    if not PUSH_API_URL or not API_SECRET_KEY:
+        print("警告: .envにPROD_PUSH_API_URLまたはAPI_SECRET_KEYが設定されていません。")
         return
+
+    api_endpoint = f"{PUSH_API_URL}/api/send-notification"
+    headers = {
+        'Content-Type': 'application/json',
+        'X-API-Secret': API_SECRET_KEY
+    }
+    payload = {"title": title, "body": body}
 
     try:
-        with open(SUBSCRIPTIONS_FILE, 'r', encoding='utf-8') as f:
-            subscriptions = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        print("プッシュ通知の宛先ファイルが見つからないか、不正です。")
-        return
-
-    if not subscriptions:
-        print("プッシュ通知の宛先がありません。")
-        return
-
-    print(f"{len(subscriptions)}件の宛先にプッシュ通知を送信します...")
-    
-    notification_payload = json.dumps({
-        "title": title,
-        "body": body
-    })
-
-    for sub in subscriptions:
-        try:
-            webpush(
-                subscription_info=sub,
-                data=notification_payload,
-                vapid_private_key=VAPID_PRIVATE_KEY,
-                vapid_claims=VAPID_CLAIMS.copy()
-            )
-        except WebPushException as ex:
-            print(f"通知送信エラー: {ex}")
-            # 410 Gone は購読が無効になったことを示すので、リストから削除するなどの対応が考えられる
-            if ex.response and ex.response.status_code == 410:
-                print(f"無効な購読情報を検出: {sub['endpoint']}")
+        response = requests.post(api_endpoint, headers=headers, json=payload, timeout=15)
+        response.raise_for_status()
+        print(f"APIサーバーへの通知リクエスト成功: {response.json().get('message')}")
+    except requests.RequestException as e:
+        print(f"APIサーバーへの通知リクエスト失敗: {e}")
 
 def main():
     """メイン処理"""
