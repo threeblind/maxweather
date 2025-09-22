@@ -3075,6 +3075,30 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     });
 
+    // --- Hamburger Menu & Mobile Dropdown ---
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const navList = document.getElementById('main-nav-list');
+
+    if (hamburgerBtn && navList) {
+        hamburgerBtn.addEventListener('click', () => {
+            hamburgerBtn.classList.toggle('active');
+            navList.classList.toggle('active');
+        });
+    }
+
+    // SP版のドロップダウンメニューをタップで開閉
+    document.querySelectorAll('.page-nav .dropbtn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            // PC版ではホバーで開くので、SP版でのみ動作させる
+            if (window.innerWidth <= 768) {
+                // aタグのデフォルトのページ遷移をキャンセル
+                e.preventDefault();
+                const dropdown = this.parentElement; // li.dropdown
+                dropdown.classList.toggle('open');
+            }
+        });
+    });
+
     // --- Back to Top Button ---
     const backToTopButton = document.getElementById('back-to-top');
     let hideButtonTimer;
