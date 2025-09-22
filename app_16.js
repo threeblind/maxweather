@@ -2797,6 +2797,50 @@ function displayTeamDetails(teamId) {
 // --- 初期化処理 ---
 
 document.addEventListener('DOMContentLoaded', async function() {
+    // --- iOS PWA Install Banner Logic ---
+    // isIOS と isStandalone を早期に定義して ReferenceError を解決
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+    function setupIosBanner() {
+        const iosInstallBanner = document.getElementById('ios-install-banner');
+        const closeIosBannerBtn = document.getElementById('close-ios-banner');
+        const showIosGuideLink = document.getElementById('show-ios-install-guide');
+
+        if (!iosInstallBanner || !closeIosBannerBtn || !showIosGuideLink) return;
+
+        const isBannerClosed = localStorage.getItem('iosPwaBannerClosed') === 'true';
+
+        // iOSで、スタンドアロンでなく、まだバナーを閉じていない場合に表示
+        if (isIOS && !isStandalone && !isBannerClosed) {
+            iosInstallBanner.style.display = 'block';
+            requestAnimationFrame(() => {
+                document.body.style.paddingTop = `${iosInstallBanner.offsetHeight}px`;
+            });
+        }
+
+        // iOS以外ではフッターのリンクを非表示にする
+        if (!isIOS || isStandalone) {
+            showIosGuideLink.style.display = 'none';
+        }
+
+        // 閉じるボタンのイベントリスナー
+        closeIosBannerBtn.addEventListener('click', () => {
+            iosInstallBanner.style.display = 'none';
+            document.body.style.paddingTop = '0';
+            localStorage.setItem('iosPwaBannerClosed', 'true');
+        });
+
+        // フッターのリンクから案内を再表示するイベントリスナー
+        showIosGuideLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (isIOS && !isStandalone) {
+                localStorage.removeItem('iosPwaBannerClosed'); // 閉じた記録を削除
+                location.reload(); // ページをリロードしてバナーを再表示させる
+            }
+        });
+    }
+
     // chartjs-plugin-datalabels が読み込まれていれば、グローバルに登録
     if (window.ChartDataLabels) {
         Chart.register(window.ChartDataLabels);
@@ -3069,79 +3113,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // --- Hamburger Menu for Mobile ---
-    const hamburgerBtn = document.getElementById('hamburger-btn');
-    const navList = document.getElementById('main-nav-list');
-
-    if (hamburgerBtn && navList) {
-        hamburgerBtn.addEventListener('click', () => {
-            hamburgerBtn.classList.toggle('active');
-            navList.classList.toggle('active');
-        });
-    }
-
-    // --- Mobile Dropdown Menu in Navigation ---
-    document.querySelectorAll('.page-nav .dropbtn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            // <a>タグのデフォルト動作をキャンセル
-            e.preventDefault();
-
-            // ホバーが効かないモバイル表示の時だけ、クリックで開閉を制御
-            if (window.innerWidth <= 768) {
-                const dropdown = this.parentElement; // 親要素である li.dropdown を取得
-                dropdown.classList.toggle('open'); // openクラスを付け外しする
-            }
-        });
-    });
-
-    // --- iOS Safari PWAインストールバナーのロジック ---
-    const iosInstallBanner = document.getElementById('ios-install-banner');
-    const closeIosBannerBtn = document.getElementById('close-ios-banner');
-
-    if (iosInstallBanner && closeIosBannerBtn) {
-        // ユーザーエージェントでiOSを判定
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        // スタンドアロンモード（ホーム画面から起動）でないか判定
-        const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-        // バナーを閉じたことがあるかlocalStorageで確認
-        const isBannerClosed = localStorage.getItem('iosPwaBannerClosed') === 'true';
-
-        // iOSで、スタンドアロンでなく、まだバナーを閉じていない場合に表示
-        if (isIOS && !isStandalone && !isBannerClosed) {
-            iosInstallBanner.style.display = 'block';
-            // ブラウザの次の描画フレームで高さを取得してpaddingを設定
-            requestAnimationFrame(() => {
-                // 本文のコンテンツがバナーに隠れないようにpadding-topを追加
-                document.body.style.paddingTop = `${iosInstallBanner.offsetHeight}px`;
-            });
-        }
-
-        // 閉じるボタンのイベントリスナー
-        closeIosBannerBtn.addEventListener('click', () => {
-            iosInstallBanner.style.display = 'none';
-            // 本文のpaddingを元に戻す
-            document.body.style.paddingTop = '0';
-            // 閉じた状態をlocalStorageに保存
-            localStorage.setItem('iosPwaBannerClosed', 'true');
-        });
-    }
-
-    // フッターのリンクからiOSインストール案内を再表示するロジック
-    const showIosGuideLink = document.getElementById('show-ios-install-guide');
-    if (showIosGuideLink) {
-        // iOS以外ではこのリンクを非表示にする
-        if (!isIOS || isStandalone) {
-            showIosGuideLink.style.display = 'none';
-        }
-
-        showIosGuideLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (isIOS && !isStandalone) {
-                localStorage.removeItem('iosPwaBannerClosed'); // 閉じた記録を削除
-                location.reload(); // ページをリロードしてバナーを再表示させる
-            }
-        });
-    }
+    setupIosBanner();
 
     // --- PWA Install Button Logic ---
     let deferredPrompt;
@@ -3198,17 +3170,26 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // --- PWA Service Worker Registration ---
     if ('serviceWorker' in navigator) {
-        // sw.jsのパスを決定します。
-        // GitHub Pages (https://username.github.io/repo/) を考慮し、
-        // location.pathname が '/maxweather/' で始まるかチェックします。
-        const swPath = location.pathname.startsWith('/maxweather/') ? '/maxweather/sw.js' : 'sw.js';
-
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register(swPath).then(registration => {
+            // どの環境でも動作するように、HTMLの<base>タグを基準とした相対パスで登録します。
+            // これにより、GitHub Pagesのサブディレクトリ問題を解決します。
+            navigator.serviceWorker.register('./sw.js').then(registration => {
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                // Service Workerの登録が成功した後に通知機能を初期化
+                initializePushNotifications();
             }).catch(err => {
                 console.log('ServiceWorker registration failed: ', err);
             });
         });
     }
 });
+
+
+
+// HTML側に<base>タグを追加する必要があります。
+// index_16.html の <head> 内に以下を追加してください：
+/*
+<script>
+    document.write(`<base href="${location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1)}" />`);
+</script>
+*/
