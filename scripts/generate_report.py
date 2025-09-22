@@ -660,15 +660,85 @@ def update_leg_rank_history(results, previous_data, leg_rank_history_file_path, 
     with open(leg_rank_history_file_path, 'w', encoding='utf-8') as f:
         json.dump(history, f, indent=2, ensure_ascii=False)
 
+# .envファイルから環境変数を読み込む
+from dotenv import load_dotenv
+# スクリプトの場所を基準に .env ファイルのパスを解決
+dotenv_path = Path(__file__).resolve().parent.parent / '.env'
+load_dotenv(dotenv_path=dotenv_path)
+
+# Render上のAPIサーバーのURLとシークレットキーを.envから読み込む
+PUSH_API_URL = os.getenv("PROD_PUSH_API_URL")
+API_SECRET_KEY = os.getenv("API_SECRET_KEY")
+
+def send_push_notification(title, body):
+    """Render上のAPIサーバーに通知送信を依頼する"""
+    if not PUSH_API_URL or not API_SECRET_KEY:
+        print("警告: .envにPROD_PUSH_API_URLまたはAPI_SECRET_KEYが設定されていません。")
+        return
+
+    api_endpoint = f"{PUSH_API_URL}/api/send-notification"
+    headers = {
+        'Content-Type': 'application/json',
+        'X-API-Secret': API_SECRET_KEY
+    }
+    payload = {"title": title, "body": body}
+
+    try:
+        response = requests.post(api_endpoint, headers=headers, json=payload, timeout=15)
+        response.raise_for_status()
+        print(f"APIサーバーへの通知リクエスト成功: {response.json().get('message')}")
+    except requests.RequestException as e:
+        print(f"APIサーバーへの通知リクエスト失敗: {e}")
+
+def send_hourly_ranking_notification(results):
+    """9時〜18時の毎時5分に総合順位を通知する"""
+    now = datetime.now()
+    
+    # テスト通知オプションが指定されているか確認
+    is_test_mode = '--test-notification' in sys.argv
+
+    # 9時から18時、かつ毎時5分から9分の間、またはテストモードの場合のみ通知
+    if not (is_test_mode or (9 <= now.hour <= 18 and 5 <= now.minute < 10)):
+        return
+
+    notification_title = f"【総合順位速報】({now.strftime('%H:%M')}現在)"
+    body_lines = []
+    # 上位10チームに絞り、区間記録連合を除外
+    ranked_teams = [t for t in results if not t.get('is_shadow_confederation')]
+    for team in ranked_teams[:5]:
+        rank = team.get('overallRank', '-')
+        name = team.get('name', 'N/A')
+        runner = team.get('runner', '-')
+        today_dist = team.get('todayDistance', 0.0)
+        total_dist = team.get('totalDistance', 0.0)
+        
+        # 選手名に区間番号を付与
+        if runner != 'ゴール' and not team.get('is_shadow_confederation'):
+             runner_display = f"{team.get('currentLegNumber', '')}{runner}"
+        else:
+             runner_display = runner
+
+        line = f"{rank}位 {name} ({runner_display}) 本日:{today_dist:.1f}km / 総合:{total_dist:.1f}km"
+        body_lines.append(line)
+    
+    # チームが5チーム以上存在する場合のみ追記
+    if len(ranked_teams) > 5:
+        body_lines.append("\n以降は速報サイトでご確認ください。")
+
+    notification_body = "\n".join(body_lines)
+    print(f"定時順位通知を送信します:\nTitle: {notification_title}\nBody:\n{notification_body}")
+    send_push_notification(notification_title, notification_body)
+
 def main():
     """メイン処理"""
     parser = argparse.ArgumentParser(description='高温大学駅伝のレポートを生成します。')
     parser.add_argument('--realtime', action='store_true', help='リアルタイム速報用のJSONを生成します。')
     parser.add_argument('--commit', action='store_true', help='本日の結果を状態ファイルに保存します。')
+    parser.add_argument('--test-notification', action='store_true', help='定時順位通知を強制的に送信してテストします。')
     parser.add_argument('--state-file', default=STATE_FILE, help=f'チームの状態ファイルパス (デフォルト: {STATE_FILE})')
     parser.add_argument('--individual-state-file', default=INDIVIDUAL_STATE_FILE, help=f'個人の状態ファイルパス (デフォルト: {INDIVIDUAL_STATE_FILE})')
     parser.add_argument('--history-file', default=RANK_HISTORY_FILE, help=f'日次順位履歴ファイルパス (デフォルト: {RANK_HISTORY_FILE})')
-    args = parser.parse_args()
+    args = parser.parse_args()  
 
     # --- 前回レポートの読み込み ---
     previous_report_file = DATA_DIR / 'realtime_report_previous.json'
@@ -906,8 +976,21 @@ def main():
             new_comment_text = generate_breaking_news_comment(all_results, previous_report_data)
             if new_comment_text:
                 comment_to_save = new_comment_text
+                full_text_to_save = "" # 通常の速報には全文はない
                 timestamp_to_save = datetime.now().isoformat()
+                # --- プッシュ通知を送信 ---
+                if comment_to_save:
+                    notification_title = comment_to_save.split('】')[0] + '】' if '】' in comment_to_save else ''
+                    
+                    # 通知を送信する速報の種類を限定
+                    allowed_notifications = ["【首位交代】", "【首位争い】", "【酷暑】"]
+                    if notification_title in allowed_notifications:
+                        notification_body = comment_to_save.replace(notification_title, '').strip()
+                        send_push_notification(notification_title, notification_body)
+                print(f"Generated breaking news: '{comment_to_save}'")
 
+        send_hourly_ranking_notification(all_results)
+        
         # 3. 古いコメントの維持
         if not comment_to_save and previous_report_data:
             old_comment, old_timestamp, old_full_text = previous_report_data.get('breakingNewsComment', ""), previous_report_data.get('breakingNewsTimestamp', ""), previous_report_data.get('breakingNewsFullText', "")
