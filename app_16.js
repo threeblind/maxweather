@@ -3268,7 +3268,7 @@ async function sendSubscriptionToServer(subscription) {
     
     // 開発環境と本番環境のAPIベースURLを定義
     const DEV_API_URL = 'http://localhost:5000';
-    const PROD_API_URL = 'https://granulocytic-kara-spongily.ngrok-free.app';
+    const PROD_API_URL = 'https://ekiden-push-server.onrender.com';
 
     const apiBaseUrl = isDevelopment ? DEV_API_URL : PROD_API_URL;
     const apiUrl = `${apiBaseUrl}/api/save-subscription`;
