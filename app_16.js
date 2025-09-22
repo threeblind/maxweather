@@ -3235,7 +3235,7 @@ async function fetchConfig() {
  * ユーザーをプッシュ通知に購読させ、サーバーに情報を送信します。
  */
 async function subscribeUserToPush() {
-    console.log("Fetched config:", config);
+
     // Service WorkerとPushManagerのサポートを確認
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         console.warn('Push messaging is not supported');
@@ -3248,6 +3248,7 @@ async function subscribeUserToPush() {
 
         // サーバーから設定情報を取得
         const config = await fetchConfig();
+        console.log("Fetched config:", config);
         const applicationServerKey = urlBase64ToUint8Array(config.vapidPublicKey);
 
         // 購読情報を取得
