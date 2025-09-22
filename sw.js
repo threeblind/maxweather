@@ -99,7 +99,20 @@ self.addEventListener('push', (event) => {
     badge: 'images/icon-192x192.png',
   };
 
+  // 通知を表示
   event.waitUntil(
     self.registration.showNotification(title, options)
   );
+
+  // --- バッジ数をクライアントへ送信 ---
+  if (data.badge_count !== undefined) {
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clients) => {
+          clients.forEach((client) => {
+            client.postMessage({ badge_count: data.badge_count });
+          });
+        })
+    );
+  }
 });

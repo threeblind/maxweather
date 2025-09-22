@@ -3205,15 +3205,23 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // --- PWA Service Worker Registration ---
     if ('serviceWorker' in navigator) {
-        // DOMContentLoaded内で実行されているため、window.loadを待つ必要はありません。
         navigator.serviceWorker.register('./sw.js').then(registration => {
             console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            // 購読処理は、ユーザーが通知を許可したタイミングで呼び出されるため、
-            // ここで何かを呼び出す必要はありません。
         }).catch(err => {
             console.log('ServiceWorker registration failed: ', err);
         });
+
+        // --- バッジ更新のリスナーを追加 ---
+        if ('setAppBadge' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                console.log('Message from SW:', event.data);
+                if (event.data && 'badge_count' in event.data) {
+                    navigator.setAppBadge(event.data.badge_count)
+                        .catch(err => console.error('Failed to set badge', err));
+                }
+            });
     }
+}   
 });
 
 /**

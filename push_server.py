@@ -114,7 +114,20 @@ def send_notification():
         return jsonify({'message': 'No subscribers to notify.'}), 200
 
     print(f"Sending notification to {len(subscriptions)} subscribers...")
-    notification_payload = json.dumps({"title": title, "body": body})
+
+    # 通知データに badge_count も含める
+    payload_data = {
+        "notification": {
+            "title": title,
+            "body": body
+        }
+    }
+
+    # クライアントから送られてきた場合だけ追加
+    if "badge_count" in data:
+        payload_data["badge_count"] = data["badge_count"]
+
+    notification_payload = json.dumps(payload_data)
 
     # TODO: 410 Gone の場合は購読情報を削除するロジックを実装する
     # この部分は少し複雑になるため、後で実装するのがおすすめです。
