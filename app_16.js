@@ -3275,25 +3275,32 @@ async function sendSubscriptionToServer(subscription) {
     const apiBaseUrl = getApiBaseUrl();
     const apiUrl = `${apiBaseUrl}/api/save-subscription`;
 
+    console.log("送信先URL:", apiUrl);
+    console.log("送信データ:", JSON.stringify(subscription));
+
     try {
-    const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription),
-    });
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(subscription),
+        });
 
-    console.log("サーバー応答ステータス:", response.status);
-    const text = await response.text();
-    console.log("サーバー応答ボディ:", text);
+        console.log("サーバーのレスポンス:", response.status, response.statusText);
+        const text = await response.text();
+        console.log("レスポンス本文:", text);
 
-    if (!response.ok) {
-        throw new Error('Failed to send subscription to server.');
-    }
+        if (!response.ok) {
+            throw new Error('Failed to send subscription to server.');
+        }
+
+        console.log('Successfully sent subscription to server.');
     } catch (error) {
-    console.error('Error sending subscription to server:', error);
+        console.error('Error sending subscription to server:', error);
     }
-
 }
+
 
 // HTML側に<base>タグを追加する必要があります。
 // index_16.html の <head> 内に以下を追加してください：
