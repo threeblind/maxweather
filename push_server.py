@@ -115,12 +115,9 @@ def send_notification():
 
     print(f"Sending notification to {len(subscriptions)} subscribers...")
 
-    # 通知データに badge_count も含める
     payload_data = {
-        "notification": {
-            "title": title,
-            "body": body
-        }
+        "title": title,
+        "body": body
     }
 
     # クライアントから送られてきた場合だけ追加
