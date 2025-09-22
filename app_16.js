@@ -3209,21 +3209,28 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 /**
- * APIサーバーからVAPID公開鍵を取得します。
- * @returns {Promise<string>} VAPID公開鍵
+ * APIサーバーのベースURLを環境に応じて返します。
+ * @returns {string} APIのベースURL
  */
-async function getVapidPublicKey() {
+function getApiBaseUrl() {
     const isDevelopment = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
     const DEV_API_URL = 'http://localhost:5000';
-    const PROD_API_URL = 'https://granulocytic-kara-spongily.ngrok-free.app';
-    const apiBaseUrl = isDevelopment ? DEV_API_URL : PROD_API_URL;
-    const response = await fetch(`${apiBaseUrl}/api/vapid-public-key`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch VAPID public key from server.');
-    }
-    const data = await response.json();
-    return data.publicKey;
+    const PROD_API_URL = 'https://ekiden-push-server.onrender.com';
+    return isDevelopment ? DEV_API_URL : PROD_API_URL;
 }
+
+/**
+ * APIサーバーから設定情報（VAPID公開鍵など）を取得します。
+ * @returns {Promise<object>} 設定情報オブジェクト
+ */
+async function fetchConfig() {
+    const response = await fetch(`${getApiBaseUrl()}/api/config`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch configuration from server.');
+    }
+    return response.json();
+}
+
 /**
  * ユーザーをプッシュ通知に購読させ、サーバーに情報を送信します。
  */
@@ -3238,9 +3245,9 @@ async function subscribeUserToPush() {
         // Service Workerがアクティブになるのを待つ
         const registration = await navigator.serviceWorker.ready;
 
-        // サーバーからVAPID公開鍵を取得
-        const vapidPublicKey = await getVapidPublicKey();
-        const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+        // サーバーから設定情報を取得
+        const config = await fetchConfig();
+        const applicationServerKey = urlBase64ToUint8Array(config.vapidPublicKey);
 
         // 購読情報を取得
         const subscription = await registration.pushManager.subscribe({
@@ -3263,14 +3270,7 @@ async function subscribeUserToPush() {
  * @param {PushSubscription} subscription
  */
 async function sendSubscriptionToServer(subscription) {
-    // --- 環境に応じてAPIサーバーのURLを決定 ---
-    const isDevelopment = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
-    
-    // 開発環境と本番環境のAPIベースURLを定義
-    const DEV_API_URL = 'http://localhost:5000';
-    const PROD_API_URL = 'https://ekiden-push-server.onrender.com';
-
-    const apiBaseUrl = isDevelopment ? DEV_API_URL : PROD_API_URL;
+    const apiBaseUrl = getApiBaseUrl();
     const apiUrl = `${apiBaseUrl}/api/save-subscription`;
 
     try {
