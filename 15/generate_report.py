@@ -671,6 +671,33 @@ def calculate_and_save_runner_locations(teams_data):
     print(f"\n計算完了: {len(runner_locations)}チームの位置を特定しました。")
     print(f"結果を {RUNNER_LOCATIONS_OUTPUT_FILE} に保存しました。")
 
+def send_hourly_ranking_notification(results):
+    """10時〜18時の毎時5分に総合順位を通知する"""
+    now = datetime.now()
+    # 10時から18時、かつ毎時5分から9分の間に実行された場合のみ通知
+    if not (10 <= now.hour <= 18 and 5 <= now.minute < 10):
+        return
+
+    notification_title = f"【総合順位速報】({now.strftime('%H:%M')}現在)"
+    body_lines = []
+    # 上位10チームに絞る
+    for team in results[:10]:
+        rank = team.get('overallRank', '-')
+        name = team.get('name', 'N/A')
+        runner = team.get('runner', '-')
+        today_dist = team.get('todayDistance', 0.0)
+        total_dist = team.get('totalDistance', 0.0)
+        
+        # 選手名に区間番号を付与
+        runner_display = f"{team.get('currentLegNumber', '')}{runner}" if runner != 'ゴール' else 'ゴール'
+
+        line = f"{rank}位 {name} ({runner_display}) 本日:{today_dist:.1f}km / 総合:{total_dist:.1f}km"
+        body_lines.append(line)
+    
+    notification_body = "\n".join(body_lines)
+    print(f"定時順位通知を送信します:\nTitle: {notification_title}\nBody:\n{notification_body}")
+    send_push_notification(notification_title, notification_body)
+
 def send_push_notification(title, body):
     """Render上のAPIサーバーに通知送信を依頼する"""
     if not PUSH_API_URL or not API_SECRET_KEY:
@@ -880,6 +907,9 @@ def main():
                         notification_body = comment_to_save.replace(notification_title, '').strip()
                         send_push_notification(notification_title, notification_body)
                 print(f"Generated breaking news: '{comment_to_save}'")
+        
+        # 定時の順位通知
+        send_hourly_ranking_notification(results)
 
         # 3. 新しい速報がない場合、古いコメントを1時間維持するか検討
         if not comment_to_save and previous_report_data:
