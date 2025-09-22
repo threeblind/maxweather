@@ -3193,11 +3193,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 /**
- * VAPIDキー（公開鍵）
- */
-const VAPID_PUBLIC_KEY = 'BC9n6jsfKOJn5eqExYX8zqD9DbUExC-Hc7AHTgjl3VJNPi9yMt9jmHUrIrYaRz91LZLYD7pbzFnrVN34AinM7Qg';
-
-/**
  * URL-safeなBase64文字列をUint8Arrayに変換します。
  * @param {string} base64String
  * @returns {Uint8Array}
@@ -3214,6 +3209,22 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 /**
+ * APIサーバーからVAPID公開鍵を取得します。
+ * @returns {Promise<string>} VAPID公開鍵
+ */
+async function getVapidPublicKey() {
+    const isDevelopment = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+    const DEV_API_URL = 'http://localhost:5000';
+    const PROD_API_URL = 'https://granulocytic-kara-spongily.ngrok-free.app';
+    const apiBaseUrl = isDevelopment ? DEV_API_URL : PROD_API_URL;
+    const response = await fetch(`${apiBaseUrl}/api/vapid-public-key`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch VAPID public key from server.');
+    }
+    const data = await response.json();
+    return data.publicKey;
+}
+/**
  * ユーザーをプッシュ通知に購読させ、サーバーに情報を送信します。
  */
 async function subscribeUserToPush() {
@@ -3227,10 +3238,14 @@ async function subscribeUserToPush() {
         // Service Workerがアクティブになるのを待つ
         const registration = await navigator.serviceWorker.ready;
 
+        // サーバーからVAPID公開鍵を取得
+        const vapidPublicKey = await getVapidPublicKey();
+        const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+
         // 購読情報を取得
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true, // ユーザーに見える通知を送るという約束
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            applicationServerKey: applicationServerKey
         });
 
         console.log('Push Subscription:', JSON.stringify(subscription));

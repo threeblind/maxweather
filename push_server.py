@@ -42,6 +42,15 @@ if allowed_origin:
 else:
     print(f"警告: CORSオリジンが設定されていません (mode: {FLASK_ENV})。APIへのアクセスがブロックされる可能性があります。")
 
+@app.route('/api/vapid-public-key', methods=['GET'])
+def get_vapid_public_key():
+    """VAPID公開鍵を返します。"""
+    public_key = os.getenv('VAPID_PUBLIC_KEY')
+    if not public_key:
+        return jsonify({'error': 'VAPID public key not configured on server'}), 500
+    return jsonify({'publicKey': public_key})
+
+
 @app.route('/api/save-subscription', methods=['POST'])
 def save_subscription():
     """フロントエンドからPOSTされた購読情報を受け取り、保存します。"""
