@@ -76,7 +76,6 @@ self.addEventListener('fetch', (event) => {
 });
 
 
-// 3. プッシュ通知を受け取った時の処理
 self.addEventListener('push', (event) => {
   console.log('[Service Worker] Push event received:', event);
 
@@ -86,15 +85,16 @@ self.addEventListener('push', (event) => {
       data = event.data.json();
     } catch (e) {
       console.warn('[Service Worker] Failed to parse push data as JSON, using text');
-      data = { title: '通知', body: event.data.text() };
+      data = { notification: { title: '通知', body: event.data.text() } };
     }
   }
 
   console.log('[Service Worker] Push data parsed:', data);
 
-  const title = data.title || '高温大学駅伝速報';
+  // payload の notification オブジェクトを参照
+  const title = (data.notification && data.notification.title) || '高温大学駅伝速報';
   const options = {
-    body: data.body,
+    body: data.notification ? data.notification.body : '',
     icon: 'images/icon-192x192.png',
     badge: 'images/icon-192x192.png',
   };
@@ -106,6 +106,7 @@ self.addEventListener('push', (event) => {
 
   // --- バッジ数をクライアントへ送信 ---
   if (data.badge_count !== undefined) {
+    console.log('[Service Worker] Sending badge_count to clients:', data.badge_count);
     event.waitUntil(
       self.clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then((clients) => {
