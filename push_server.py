@@ -105,11 +105,14 @@ def send_notification():
 
     # バッジカウントを常に含める
     payload_data = {
-        "title": title,
-        "body": body,
-        "badge_count": get_and_increment_badge_count()  # ← ここでサーバー側のカウンタを更新
+        "notification": {
+            "title": title,
+            "body": body,
+            "icon": "images/icon-192x192.png",
+            "badge": "images/icon-192x192.png"
+        },
+        "badge_count": badge_counter  # ←サーバーのグローバルカウンタ
     }
-
     notification_payload = json.dumps(payload_data)
 
     try:

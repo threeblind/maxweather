@@ -85,18 +85,24 @@ self.addEventListener('push', (event) => {
       data = event.data.json();
     } catch (e) {
       console.warn('[Service Worker] Failed to parse push data as JSON, using text');
-      data = { notification: { title: '通知', body: event.data.text() } };
+      data = {
+        notification: {
+          title: '通知',
+          body: event.data.text()
+        }
+      };
     }
   }
 
   console.log('[Service Worker] Push data parsed:', data);
 
-  // payload の notification オブジェクトを参照
-  const title = (data.notification && data.notification.title) || '高温大学駅伝速報';
+  // --- 通知オブジェクトを展開 ---
+  const notification = data.notification || {};
+  const title = notification.title || '高温大学駅伝速報';
   const options = {
-    body: data.notification ? data.notification.body : '',
-    icon: 'images/icon-192x192.png',
-    badge: 'images/icon-192x192.png',
+    body: notification.body,
+    icon: notification.icon || 'images/icon-192x192.png',
+    badge: notification.badge || 'images/icon-192x192.png',
   };
 
   // 通知を表示
