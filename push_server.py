@@ -42,6 +42,16 @@ if allowed_origin:
 else:
     print(f"警告: CORSオリジンが設定されていません (mode: {FLASK_ENV})。APIへのアクセスがブロックされる可能性があります。")
 
+badge_counter = 0  # グローバル変数で管理
+def get_and_increment_badge_count():
+    global badge_counter
+    badge_counter += 1
+    return badge_counter
+
+def reset_badge_count():
+    global badge_counter
+    badge_counter = 0
+
 @app.route('/api/config', methods=['GET'])
 def get_config():
     """フロントエンドが必要とする設定情報を返します。"""
@@ -83,9 +93,6 @@ def save_subscription():
 
 @app.route('/api/send-notification', methods=['POST'])
 def send_notification():
-    """外部から通知送信をトリガーするためのAPI"""
-    # セキュリティのため、簡単なシークレットキーを検証する（推奨）
-    # このキーは generate_report.py と Render の環境変数で一致させる
     if request.headers.get('X-API-Secret') != os.getenv('API_SECRET_KEY'):
         return jsonify({'error': 'Unauthorized'}), 401
 
@@ -96,7 +103,15 @@ def send_notification():
     title = data.get('title', '通知')
     body = data.get('body', '')
 
-    # Supabaseから全ての購読情報を取得
+    # バッジカウントを常に含める
+    payload_data = {
+        "title": title,
+        "body": body,
+        "badge_count": get_and_increment_badge_count()  # ← ここでサーバー側のカウンタを更新
+    }
+
+    notification_payload = json.dumps(payload_data)
+
     try:
         response = supabase.table('subscriptions').select("endpoint, p256dh, auth").execute()
         db_subscriptions = response.data
@@ -104,7 +119,6 @@ def send_notification():
         print(f"Error loading subscriptions: {e}")
         return jsonify({'error': 'Failed to load subscriptions'}), 500
 
-    # web-pushライブラリが要求する形式に変換
     subscriptions = [
         {"endpoint": s["endpoint"], "keys": {"p256dh": s["p256dh"], "auth": s["auth"]}}
         for s in db_subscriptions
@@ -115,26 +129,13 @@ def send_notification():
 
     print(f"Sending notification to {len(subscriptions)} subscribers...")
 
-    payload_data = {
-        "title": title,
-        "body": body
-    }
-
-    # クライアントから送られてきた場合だけ追加
-    if "badge_count" in data:
-        payload_data["badge_count"] = data["badge_count"]
-
-    notification_payload = json.dumps(payload_data)
-
-    # TODO: 410 Gone の場合は購読情報を削除するロジックを実装する
-    # この部分は少し複雑になるため、後で実装するのがおすすめです。
     for sub in subscriptions:
         try:
             webpush(
                 subscription_info=sub,
                 data=notification_payload,
                 vapid_private_key=VAPID_PRIVATE_KEY,
-                vapid_claims=VAPID_CLAIMS.copy()
+                vapid_claims=VAPID_CLAIMS.copy(),
             )
         except WebPushException as ex:
             print(f"Notification failed for {sub.get('endpoint', 'N/A')}: {ex}")

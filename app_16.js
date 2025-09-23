@@ -3222,6 +3222,30 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
     }
 
+    // === 起動時にバッジをリセット ===
+    if ('serviceWorker' in navigator) {
+        try {
+            const apiBaseUrl = getApiBaseUrl();
+            const response = await fetch(`${apiBaseUrl}/api/reset-badge`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                console.log("Badge reset request sent to server.");
+                if ('clearAppBadge' in navigator) {
+                    await navigator.clearAppBadge();
+                    console.log("Local badge cleared on startup.");
+                }
+            } else {
+                console.error("Failed to reset badge on server:", await response.text());
+            }
+        } catch (err) {
+            console.error("Error resetting badge:", err);
+        }
+    }
     // --- アプリ起動時にバッジをリセット ---
     clearBadge();
 }   

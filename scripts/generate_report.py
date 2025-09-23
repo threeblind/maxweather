@@ -681,7 +681,11 @@ def send_push_notification(title, body):
         'Content-Type': 'application/json',
         'X-API-Secret': API_SECRET_KEY
     }
-    payload = {"title": title, "body": body}
+    # サーバー側で badge_count を付与するため、ここでは title/body のみ送る
+    payload = {
+        "title": title,
+        "body": body
+    }
 
     try:
         response = requests.post(api_endpoint, headers=headers, json=payload, timeout=15)
