@@ -1204,7 +1204,8 @@ async function displayLegRankHistoryTable() {
         // 現在の総合順位でチームをソートするためのMapを作成
         const rankMap = new Map(realtimeData.teams.map(t => [t.id, t.overallRank]));
         const teamInfoMap = new Map(realtimeData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name }]));
-        const sortedTeams = [...historyData.teams].sort((a, b) => (rankMap.get(a.id) || 999) - (rankMap.get(b.id) || 999));
+        const sortedTeams = [...historyData.teams].filter(team => team.name !== '区間記録連合') // チーム名で「区間記録連合」を直接除外
+                                                  .sort((a, b) => (rankMap.get(a.id) || 999) - (rankMap.get(b.id) || 999));
 
         // 学内ランキングデータが存在するチームIDのセットを作成
         const intramuralTeamIds = new Set(intramuralData?.teams?.map(t => t.id) || []);
