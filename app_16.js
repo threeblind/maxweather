@@ -1105,6 +1105,10 @@ async function displayRankHistoryChart() {
                                 return label;
                             }
                         }
+                    },
+                    datalabels: {
+                        // ポイントに順位の数字が表示されないように無効化
+                        display: false
                     }
                 },
                 interaction: {
