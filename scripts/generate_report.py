@@ -975,6 +975,15 @@ def main():
                 full_text_to_save = full_text
                 timestamp_to_save = datetime.now().isoformat()
 
+                # --- 監督コメントのプッシュ通知を送信 ---
+                notification_title = f"【{daytime_comment['name']}監督コメント】"
+                notification_body = daytime_comment['content']
+                # 本文が長すぎる場合は省略
+                if len(notification_body) > 100:
+                    notification_body = notification_body[:100] + '…'
+                send_push_notification(notification_title, notification_body)
+                print(f"Generated manager comment breaking news: '{comment_to_save}'")
+
         # 2. 通常の速報生成ロジック
         if not comment_to_save and previous_report_data:
             new_comment_text = generate_breaking_news_comment(all_results, previous_report_data)
