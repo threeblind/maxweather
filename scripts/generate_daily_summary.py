@@ -47,7 +47,7 @@ class DailySummaryGenerator:
                 print("エラー: 環境変数 'GEMINI_API_KEY' が設定されていません。")
                 exit(1)
             genai.configure(api_key=gemini_api_key)
-            self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+            self.gemini_model = genai.GenerativeModel('gemini-2.5-flash')
             print("✅ Geminiクライアントを初期化しました。")
 
     def _get_article_history(self, num_articles=2):
