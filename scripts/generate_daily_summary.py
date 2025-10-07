@@ -236,8 +236,14 @@ class DailySummaryGenerator:
             for i, boundary in enumerate(leg_boundaries):
                 if yesterday_dist < boundary <= today_dist:
                     from_leg, to_leg = i + 1, i + 2
-                    next_runner = team_state.get('nextRunner', '次の走者').replace(str(to_leg), '')
-                    relay_infos.append(f"- {team_state['name']}が{from_leg}区を走りきり、{to_leg}区・{next_runner}選手へタスキを繋ぎました！")
+                    next_runner_raw = team_state.get('nextRunner', '次の走者')
+                    if to_leg > len(leg_boundaries):
+                        relay_infos.append(f"- {team_state['name']}が{from_leg}区を走りきり、フィニッシュテープを切りました！")
+                    else:
+                        next_runner = next_runner_raw.lstrip(str(to_leg)).replace('ゴール', '').strip()
+                        if not next_runner:
+                            next_runner = "次の走者"
+                        relay_infos.append(f"- {team_state['name']}が{from_leg}区を走りきり、{to_leg}区の{next_runner}選手へタスキを繋ぎました！")
         return relay_infos
 
     def format_article_with_markdown(self, article_text):
@@ -258,6 +264,137 @@ class DailySummaryGenerator:
             if not name: continue
             article_text = re.sub(f'(?<!\\*\\*)\\d*({re.escape(name)}選手)(?!\\*\\*)', r'**\1**', article_text)
         return article_text
+
+    def _get_regular_teams(self):
+        realtime_data = self.all_data.get('realtime_report', {})
+        return [team for team in realtime_data.get('teams', []) if not team.get('is_shadow_confederation')]
+
+    @staticmethod
+    def _format_team_snapshot(team):
+        rank = team.get('overallRank')
+        total = team.get('totalDistance', 0.0)
+        today = team.get('todayDistance', 0.0)
+        runner = team.get('runner') or ''
+        rank_str = f"{rank}位" if rank else "順位不明"
+        return f"{team.get('name')}（{rank_str} / 累計{total:.1f}km / 本日{today:.1f}km / 走者:{runner}）"
+
+    def build_coverage_checklist(self):
+        teams = sorted(self._get_regular_teams(), key=lambda t: t.get('overallRank') or 999)
+        if not teams:
+            return []
+
+        lines = []
+
+        top_cluster = teams[:3]
+        if top_cluster:
+            lines.append("- トップ集団: " + "、".join(self._format_team_snapshot(t) for t in top_cluster))
+
+        mid_pack = [t for t in teams if t.get('overallRank') and 4 <= t['overallRank'] <= 8]
+        if mid_pack:
+            lines.append("- 中位混戦ゾーン(4〜8位): " + "、".join(self._format_team_snapshot(t) for t in mid_pack))
+
+        seed_window = [t for t in teams if t.get('overallRank') and 8 <= t['overallRank'] <= 11]
+        if seed_window:
+            lines.append("- シードライン前後: " + "、".join(self._format_team_snapshot(t) for t in seed_window))
+
+        movers_up, movers_down = [], []
+        for team in teams:
+            prev_rank = team.get('previousRank')
+            curr_rank = team.get('overallRank')
+            if prev_rank and curr_rank:
+                delta = prev_rank - curr_rank
+                if delta >= 2:
+                    movers_up.append(f"{team.get('name')}（{prev_rank}位→{curr_rank}位）")
+                elif delta <= -2:
+                    movers_down.append(f"{team.get('name')}（{prev_rank}位→{curr_rank}位）")
+        if movers_up:
+            lines.append("- 大ジャンプアップ: " + "、".join(movers_up))
+        if movers_down:
+            lines.append("- 大きく後退: " + "、".join(movers_down))
+
+        finishers = [t for t in teams if (t.get('runner') == 'ゴール')]
+        if finishers:
+            lines.append("- 本日までにゴール: " + "、".join(self._format_team_snapshot(t) for t in finishers))
+
+        tail_fighters = [t for t in sorted(teams, key=lambda te: te.get('overallRank') or 999, reverse=True)[:3] if t.get('todayDistance', 0.0) >= 25.0]
+        if tail_fighters:
+            lines.append("- 下位でも粘るチーム: " + "、".join(self._format_team_snapshot(t) for t in tail_fighters))
+
+        return lines
+
+    def _load_recent_substitution_logs(self):
+        log_file = LOGS_DIR / 'substitution_log.txt'
+        if not log_file.exists():
+            return []
+
+        recent_entries = []
+        now = datetime.now()
+        with open(log_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                match = re.match(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}): チームID (\d+) \((.+?)\) - (.+?) → (.+)$', line)
+                if not match:
+                    continue
+                timestamp_str, team_id, team_name, runner_out, runner_in = match.groups()
+                try:
+                    timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    continue
+                if now - timestamp <= timedelta(hours=36):
+                    recent_entries.append({
+                        "timestamp": timestamp_str,
+                        "team_name": team_name,
+                        "runner_out": runner_out,
+                        "runner_in": runner_in
+                    })
+        return recent_entries
+
+    def build_daily_notes(self, race_day):
+        teams = sorted(self._get_regular_teams(), key=lambda t: t.get('overallRank') or 999)
+        if not teams:
+            return []
+
+        notes = []
+        top_team = teams[0]
+        if len(teams) > 1:
+            runner_up = teams[1]
+            gap = top_team.get('totalDistance', 0.0) - runner_up.get('totalDistance', 0.0)
+            notes.append(f"- 首位攻防: 1位 {top_team.get('name')} と2位 {runner_up.get('name')} の差は {gap:.1f}km。")
+        else:
+            notes.append(f"- 首位状況: {top_team.get('name')} が単独首位を維持。")
+
+        today_stars = [t for t in sorted(teams, key=lambda tm: tm.get('todayDistance', 0.0), reverse=True) if t.get('todayDistance', 0.0) > 0][:3]
+        if today_stars:
+            notes.append("- 本日の距離トップ: " + "、".join(f"{t.get('name')} {t.get('todayDistance', 0.0):.1f}km（{t.get('runner')}）" for t in today_stars))
+
+        seed_ten = next((t for t in teams if t.get('overallRank') == 10), None)
+        seed_eleven = next((t for t in teams if t.get('overallRank') == 11), None)
+        if seed_ten and seed_eleven:
+            diff = seed_ten.get('totalDistance', 0.0) - seed_eleven.get('totalDistance', 0.0)
+            notes.append(f"- シードライン差: 10位 {seed_ten.get('name')} と11位 {seed_eleven.get('name')} の距離差は {diff:.1f}km。")
+
+        new_finishers = []
+        try:
+            race_day_int = int(race_day)
+        except (TypeError, ValueError):
+            race_day_int = None
+        if race_day_int:
+            new_finishers = [t for t in teams if t.get('finishDay') == race_day_int]
+        if new_finishers:
+            notes.append("- 本日ゴール: " + "、".join(f"{t.get('name')}（{t.get('totalDistance', 0.0):.1f}km）" for t in new_finishers))
+
+        substitutions = self._load_recent_substitution_logs()
+        if substitutions:
+            for entry in substitutions:
+                notes.append(f"- 選手交代: {entry['timestamp']} {entry['team_name']}が {entry['runner_out']} → {entry['runner_in']} に交代。")
+
+        leg_top_candidates = [t for t in teams if t.get('todayRank') == 1 and t.get('todayDistance', 0.0) > 0]
+        if leg_top_candidates:
+            notes.append("- 区間賞候補: " + "、".join(f"{t.get('name')} {t.get('runner')}（{t.get('todayDistance', 0.0):.1f}km）" for t in leg_top_candidates))
+
+        return notes
 
     def _build_prompt(self):
         """Builds the complete prompt for the Gemini API call."""
@@ -309,6 +446,16 @@ class DailySummaryGenerator:
         prompt_parts.append(f"- 現在のレース状況: {race_status_summary}")
         prompt_parts.append("- 本日の総合順位:")
         prompt_parts.append(self.format_ranking_table())
+
+        coverage_checklist = self.build_coverage_checklist()
+        if coverage_checklist:
+            prompt_parts.append("\n## 【カバレッジチェック】")
+            prompt_parts.extend(coverage_checklist)
+
+        daily_notes = self.build_daily_notes(race_day)
+        if daily_notes:
+            prompt_parts.append("\n## 【取材メモ】")
+            prompt_parts.extend(daily_notes)
 
         relay_infos = self.format_relay_info()
         if relay_infos:
