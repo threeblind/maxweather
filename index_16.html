@@ -1323,9 +1323,9 @@
                 <li><a href="#section-overall-ranking">総合順位</a></li>
                 <li><a href="#section-leg-rank-history">推移</a></li>
                 <li><a href="#section-leg-ranking">個人記録</a></li>
-                <li><a href="#section-leg-prize">区間記録</a></li>
-                <li><a href="#section-intramural-ranking">学ラン</a></li>
                 <li><a href="#section-digest">ダイジェスト</a></li>
+                <li><a href="#section-intramural-ranking">学ラン</a></li>
+                <li><a href="#section-leg-prize">区間記録</a></li>
                 <li class="dropdown">
                     <a class="dropbtn">その他 ▼</a>
                     <div class="dropdown-content">
@@ -1421,12 +1421,21 @@
             <div id="legRankingStatus" class="result loading" style="display: none;"></div>
         </div>
 
-        <div id="section-leg-prize" style="margin-top: 40px;">
-            <h2>🚩 区間記録</h2>
-            <div id="legPrizeWinner">
-            <!-- 区間賞は app.js によって動的に生成されます -->
+        <section id="section-digest" class="ekiden-section-wrapper">
+            <h2>🎬 レースダイジェスト</h2>
+            
+            <!-- AIによる総括記事がここに挿入される -->
+            <div id="daily-summary-container"></div>
+
+            <!-- 監督コメントは記事の下に表示 -->
+            <div id="manager-lounge-container">
+                <h3>監督たちの声</h3>
+                <p id="manager-lounge-status" class="result loading" style="display: none;"></p>
+                <div id="manager-lounge-content" class="lounge-container" style="display: flex;">
+                    <!-- 監督コメントがここに挿入される -->
+                </div>
             </div>
-        </div>
+        </section>
 
         <!-- ========== 学内ランキング ========== -->
         <section id="section-intramural-ranking" class="content-section ekiden-section-wrapper">
@@ -1461,21 +1470,12 @@
             </div>
         </section>
 
-        <section id="section-digest" class="ekiden-section-wrapper">
-            <h2>🎬 レースダイジェスト</h2>
-            
-            <!-- AIによる総括記事がここに挿入される -->
-            <div id="daily-summary-container"></div>
-
-            <!-- 監督コメントは記事の下に表示 -->
-            <div id="manager-lounge-container">
-                <h3>監督たちの声</h3>
-                <p id="manager-lounge-status" class="result loading" style="display: none;"></p>
-                <div id="manager-lounge-content" class="lounge-container" style="display: flex;">
-                    <!-- 監督コメントがここに挿入される -->
-                </div>
+        <div id="section-leg-prize" style="margin-top: 40px;">
+            <h2>🚩 区間記録</h2>
+            <div id="legPrizeWinner">
+            <!-- 区間賞は app.js によって動的に生成されます -->
             </div>
-        </section>
+        </div>
 
         <!-- ========== 出場校＆選手一覧 ========== -->
         <section id="section-team-directory" class="ekiden-section-wrapper">
