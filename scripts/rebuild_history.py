@@ -23,11 +23,28 @@ LEG_RANK_HISTORY_FILE = DATA_DIR / 'leg_rank_history.json'
 RUNNER_LOCATIONS_OUTPUT_FILE = DATA_DIR / 'runner_locations.json'
 
 # 設定
+OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 EKIDEN_START_DATE = '2025-09-01'
 
 # --- グローバル変数 ---
 ekiden_data = {}
 daily_temperatures = {}
+
+def load_start_date_from_outline():
+    global EKIDEN_START_DATE
+    try:
+        with open(OUTLINE_FILE, 'r', encoding='utf-8') as f:
+            outline = json.load(f)
+        metadata = outline.get('metadata', {})
+        start_date = metadata.get('startDate')
+        if start_date:
+            EKIDEN_START_DATE = start_date
+    except FileNotFoundError:
+        print(f"情報: {OUTLINE_FILE} が見つからないため、開始日は既定値 {EKIDEN_START_DATE} を使用します。")
+    except json.JSONDecodeError:
+        print(f"情報: {OUTLINE_FILE} の解析に失敗したため、開始日は既定値 {EKIDEN_START_DATE} を使用します。")
+
+load_start_date_from_outline()
 
 def load_source_data():
     """再計算の元となるデータを読み込む"""

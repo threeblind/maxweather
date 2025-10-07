@@ -12,8 +12,8 @@ let logFileExists = false; // ログファイルの存在を管理するフラ�
 
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
-const EKIDEN_START_DATE = '2025-09-01'; // Python側と合わせる
-const CURRENT_EDITION = 16; // 今大会の大会番号
+let EKIDEN_START_DATE = '2025-09-01'; // outline.json で上書き
+let CURRENT_EDITION = 16; // outline.json で上書き
 
 /**
  * 選手名から括弧で囲まれた都道府県名を取り除く
@@ -1386,14 +1386,17 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         row.appendChild(teamNameCell);
 
         // ログファイルの存在に応じて、クリック可能にするかを決定
-        const runnerCellClass = 'runner runner-name player-profile-trigger';
-        const runnerCell = createCell(formatRunnerName(team.runner), runnerCellClass); // 常にクリック可能に
-        // ログファイルがある場合のみ、グラフ表示用のdata属性を設定
-        // 選手名鑑と統合したので、常に選手名(キー)を渡す
-        const runnerKey = team.runner.replace(/^\d+/, '');
-        runnerCell.dataset.runnerName = runnerKey;
-
-        row.appendChild(runnerCell);
+        const runnerText = formatRunnerName(team.runner);
+        if (team.runner === 'ゴール') {
+            const runnerCell = createCell(runnerText, 'runner');
+            row.appendChild(runnerCell);
+        } else {
+            const runnerCellClass = 'runner runner-name player-profile-trigger';
+            const runnerCell = createCell(runnerText, runnerCellClass);
+            const runnerKey = team.runner.replace(/^\d+/, '');
+            runnerCell.dataset.runnerName = runnerKey;
+            row.appendChild(runnerCell);
+        }
 
         // 本日距離セル。スマホでは単位(km)を非表示
         const todayCell = document.createElement('td');
@@ -1421,13 +1424,17 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
 
         // 次走者セル。選手名鑑を呼び出せるようにする
         const nextRunnerName = team.nextRunner;
-        // "3山形（山形）" のような名前から先頭の数字を取り除き、"山形（山形）" のように整形
-        const nextRunnerKey = nextRunnerName ? nextRunnerName.replace(/^\d+/, '') : '';
-        const nextRunnerCell = createCell(formatRunnerName(nextRunnerName), 'next-runner hide-on-mobile');
-        if (nextRunnerKey && playerProfiles[nextRunnerKey]) {
-            nextRunnerCell.classList.add('player-profile-trigger');
-            nextRunnerCell.classList.add('runner-name'); // クリック可能なスタイルを適用するためのクラスを追加
-            nextRunnerCell.dataset.runnerName = nextRunnerKey;
+        const nextRunnerCell = createCell('', 'next-runner hide-on-mobile');
+        if (team.runner === 'ゴール') {
+            nextRunnerCell.textContent = 'ー';
+        } else {
+            const nextRunnerKey = nextRunnerName ? nextRunnerName.replace(/^\d+/, '') : '';
+            nextRunnerCell.textContent = formatRunnerName(nextRunnerName);
+            if (nextRunnerKey && playerProfiles[nextRunnerKey]) {
+                nextRunnerCell.classList.add('player-profile-trigger');
+                nextRunnerCell.classList.add('runner-name');
+                nextRunnerCell.dataset.runnerName = nextRunnerKey;
+            }
         }
         row.appendChild(nextRunnerCell);
 
@@ -1700,6 +1707,16 @@ async function displayOutline() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+
+        if (data.metadata) {
+            const editionValue = parseInt(data.metadata.edition, 10);
+            if (!Number.isNaN(editionValue)) {
+                CURRENT_EDITION = editionValue;
+            }
+            if (data.metadata.startDate) {
+                EKIDEN_START_DATE = data.metadata.startDate;
+            }
+        }
 
         // 本スレリンクを設定
         if (linkContainer && data.mainThreadUrl) {

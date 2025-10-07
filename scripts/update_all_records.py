@@ -18,11 +18,28 @@ EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
 DAILY_TEMP_FILE = DATA_DIR / 'daily_temperatures.json'
 EKIDEN_STATE_FILE = DATA_DIR / 'ekiden_state.json'
 INTRAMURAL_RANKINGS_FILE = DATA_DIR / 'intramural_rankings.json'
-EKIDEN_START_DATE = '2025-09-01' # generate_report.pyと共通
+OUTLINE_FILE = CONFIG_DIR / 'outline.json'
+EKIDEN_START_DATE = '2025-09-01' # outline.json で上書き
 
 # --- グローバル変数 ---
 stations_data = []
 ekiden_data = {}
+
+def load_start_date_from_outline():
+    global EKIDEN_START_DATE
+    try:
+        with open(OUTLINE_FILE, 'r', encoding='utf-8') as f:
+            outline = json.load(f)
+        metadata = outline.get('metadata', {})
+        start_date = metadata.get('startDate')
+        if start_date:
+            EKIDEN_START_DATE = start_date
+    except FileNotFoundError:
+        print(f"情報: {OUTLINE_FILE} が見つからないため、開始日は既定値 {EKIDEN_START_DATE} を使用します。")
+    except json.JSONDecodeError:
+        print(f"情報: {OUTLINE_FILE} の解析に失敗したため、開始日は既定値 {EKIDEN_START_DATE} を使用します。")
+
+load_start_date_from_outline()
 
 def load_base_data():
     """

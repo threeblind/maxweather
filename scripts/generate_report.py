@@ -52,6 +52,23 @@ tournament_records = []
 leg_best_records = {}
 intramural_rankings = {}
 
+def load_start_date_from_outline():
+    """outline.json から大会開始日を取得してグローバル定数を更新する"""
+    global EKIDEN_START_DATE
+    try:
+        with open(OUTLINE_FILE, 'r', encoding='utf-8') as f:
+            outline = json.load(f)
+        metadata = outline.get('metadata', {})
+        start_date = metadata.get('startDate')
+        if start_date:
+            EKIDEN_START_DATE = start_date
+    except FileNotFoundError:
+        print(f"情報: {OUTLINE_FILE} が見つからないため、開始日は既定値 {EKIDEN_START_DATE} を使用します。")
+    except json.JSONDecodeError:
+        print(f"情報: {OUTLINE_FILE} の解析に失敗したため、開始日は既定値 {EKIDEN_START_DATE} を使用します。")
+
+load_start_date_from_outline()
+
 def load_all_data():
     """必要なJSONファイルをすべて読み込む"""
     global stations_data, all_teams_data, ekiden_data, story_settings, past_results, leg_award_history, tournament_records, leg_best_records, intramural_rankings
