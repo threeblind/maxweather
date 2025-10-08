@@ -27,6 +27,25 @@ const formatRunnerName = (name) => {
 };
 
 /**
+ * 次走者の表示用テキストを整形する
+ * @param {string} currentRunner - 現在走者の名前
+ * @param {string} nextRunner - 次走者の名前
+ * @returns {string} 表示用の次走者テキスト
+ */
+const formatNextRunnerDisplay = (currentRunner, nextRunner) => {
+    const normalizedCurrent = formatRunnerName(currentRunner || '').trim();
+    const normalizedNext = formatRunnerName(nextRunner || '').trim();
+    const rawNext = (nextRunner || '').trim();
+
+    if (!rawNext) return 'ー';
+    if (normalizedCurrent === 'ゴール') return 'ー';
+    if (rawNext === '----') return 'ー';
+    if (normalizedNext === 'ゴール') return 'ー';
+
+    return formatRunnerName(nextRunner);
+};
+
+/**
  * ランクに応じてメダル絵文字を返します。
  * @param {number} rank - 順位
  * @returns {string} - メダル絵文字または空文字列
@@ -1269,7 +1288,7 @@ function showTeamDetailsModal(team, topDistance) {
 
     // 走者名を整形
     const currentRunnerDisplay = formatRunnerName(team.runner);
-    const nextRunnerDisplay = formatRunnerName(team.nextRunner);
+    const nextRunnerDisplay = formatNextRunnerDisplay(team.runner, team.nextRunner);
 
     // 距離表示に "km" を追加
     const todayDistanceDisplay = `${team.todayDistance.toFixed(1)}km (${team.todayRank}位)`;
@@ -1425,11 +1444,12 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         // 次走者セル。選手名鑑を呼び出せるようにする
         const nextRunnerName = team.nextRunner;
         const nextRunnerCell = createCell('', 'next-runner hide-on-mobile');
-        if (team.runner === 'ゴール') {
+        const nextRunnerDisplay = formatNextRunnerDisplay(team.runner, nextRunnerName);
+        if (nextRunnerDisplay === 'ー') {
             nextRunnerCell.textContent = 'ー';
         } else {
             const nextRunnerKey = nextRunnerName ? nextRunnerName.replace(/^\d+/, '') : '';
-            nextRunnerCell.textContent = formatRunnerName(nextRunnerName);
+            nextRunnerCell.textContent = nextRunnerDisplay;
             if (nextRunnerKey && playerProfiles[nextRunnerKey]) {
                 nextRunnerCell.classList.add('player-profile-trigger');
                 nextRunnerCell.classList.add('runner-name');
