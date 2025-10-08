@@ -9,6 +9,7 @@ let dailyRunnerChartInstance = null; // 選手の日次推移グラフのイン�
 let summaryChartInstance = null; // 選手の大会サマリーグラフのインスタンス
 let playerTotalChartInstance = null; // 選手の大会全記録グラフのインスタンス (これは別機能なのでそのまま)
 let logFileExists = false; // ログファイルの存在を管理するフラグ
+let legAverageRankingsCache = new Map(); // 区間別平均距離ランキングのキャッシュ
 
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
@@ -712,19 +713,26 @@ const createPrizeTable = (records) => {
     `;
 
     const tbody = document.createElement('tbody');
-    let lastDistance = -1;
+    let lastDistance = null;
     let lastRank = 0;
+    const useProvidedRank = records.some(record => record.rank != null);
     records.forEach((record, index) => {
-        // 同順位処理
-        if (record.averageDistance !== lastDistance) {
-            lastRank = index + 1;
-            lastDistance = record.averageDistance;
+        let rankToDisplay;
+        if (useProvidedRank && record.rank != null) {
+            rankToDisplay = record.rank;
+        } else {
+            const roundedDistance = record.averageDistance.toFixed(3);
+            if (roundedDistance !== lastDistance) {
+                lastRank = index + 1;
+                lastDistance = roundedDistance;
+            }
+            rankToDisplay = lastRank;
         }
-        const medal = getMedalEmoji(lastRank);
+        const medal = getMedalEmoji(rankToDisplay);
         const formattedRunnerName = formatRunnerName(record.runnerName);
         const teamNameHtml = `<span class="full-name">${record.teamDetails.name}</span><span class="short-name">${record.teamDetails.short_name}</span>`;
         const row = document.createElement('tr');
-        row.innerHTML = `<td>${lastRank}</td>
+        row.innerHTML = `<td>${rankToDisplay}</td>
             <td class="runner-name player-profile-trigger" data-runner-name="${record.runnerName}">${medal} ${formattedRunnerName}</td>
             <td class="team-name">${teamNameHtml}</td>
             <td>${record.averageDistance.toFixed(3)} km</td>`;
@@ -861,6 +869,8 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
 
     if (!legPrizeWinnerDiv || !tabsContainer) return;
 
+    legAverageRankingsCache = new Map(); // 区間ランキングを最新情報で再計算するためリセット
+
     // ekiden_data.json から最大区間数を取得
     const maxLegs = ekidenData.leg_boundaries.length;
 
@@ -926,6 +936,7 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
 
                 legPerformances.push({
                     runnerName,
+                    teamId: runnerData.teamId,
                     teamDetails: teamsInfoMap.get(runnerData.teamId) || { name: 'N/A', short_name: 'N/A' },
                     averageDistance: averageDistance
                 });
@@ -936,6 +947,28 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
             // Sort by average distance
             legPerformances.sort((a, b) => b.averageDistance - a.averageDistance);
 
+            const rankingsForLeg = [];
+            const legRankingMap = new Map();
+            let lastAvgDistance = null;
+            let lastRank = 0;
+            legPerformances.forEach((record, index) => {
+                const roundedDistance = record.averageDistance.toFixed(3);
+                if (roundedDistance !== lastAvgDistance) {
+                    lastRank = index + 1;
+                    lastAvgDistance = roundedDistance;
+                }
+                const rankingEntry = {
+                    runnerName: record.runnerName,
+                    teamId: record.teamId,
+                    teamDetails: record.teamDetails,
+                    averageDistance: record.averageDistance,
+                    rank: lastRank
+                };
+                rankingsForLeg.push(rankingEntry);
+                legRankingMap.set(record.runnerName, rankingEntry);
+            });
+            legAverageRankingsCache.set(finishedLeg, legRankingMap);
+
             const legContainer = document.createElement('div');
             legContainer.className = 'leg-prize-item';
 
@@ -943,7 +976,7 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
             title.textContent = `${finishedLeg}区`;
             legContainer.appendChild(title);
 
-            const prizeTable = createPrizeTable(legPerformances);
+            const prizeTable = createPrizeTable(rankingsForLeg);
             prizeTable.classList.add('leg-prize-table'); // Use a class for common styling
             prizeTable.id = `legPrizeTable-${finishedLeg}`; // Unique ID for each table
             legContainer.appendChild(prizeTable);
@@ -2758,15 +2791,21 @@ function displayTeamDetails(teamId) {
                 statusText = '走行済';
                 statusClass = 'status-finished';
 
-                // 走行済の場合、今大会の成績を表示
-                const performance = allIndividualData[runnerName];
-                if (performance && performance.records) {
-                    const legRecords = performance.records.filter(r => r.leg === runnerLeg);
-                    if (legRecords.length > 0) {
-                        const latestRecord = legRecords.sort((a, b) => b.day - a.day)[0];
-                        const totalDistance = legRecords.reduce((sum, r) => sum + r.distance, 0);
-                        const avgDistance = totalDistance / legRecords.length;
-                        currentPerformanceHtml = `<span class="runner-current-perf">（${latestRecord.legRank}位 / 平均 ${avgDistance.toFixed(3)}km）</span>`;
+                // 走行済の場合、区間順位と平均距離を表示
+                const legRankingMap = legAverageRankingsCache.get(runnerLeg);
+                const rankingEntry = legRankingMap ? legRankingMap.get(runnerName) : null;
+
+                if (rankingEntry) {
+                    currentPerformanceHtml = `<span class="runner-current-perf">区間順位 ${rankingEntry.rank}位｜平均 ${rankingEntry.averageDistance.toFixed(3)}km</span>`;
+                } else {
+                    const performance = allIndividualData[runnerName];
+                    if (performance && performance.records) {
+                        const legRecords = performance.records.filter(r => r.leg === runnerLeg);
+                        if (legRecords.length > 0) {
+                            const totalDistance = legRecords.reduce((sum, r) => sum + r.distance, 0);
+                            const avgDistance = totalDistance / legRecords.length;
+                            currentPerformanceHtml = `<span class="runner-current-perf">平均 ${avgDistance.toFixed(3)}km</span>`;
+                        }
                     }
                 }
             } else if (runnerLeg === currentLeg) {
