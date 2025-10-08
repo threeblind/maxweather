@@ -86,9 +86,8 @@ class DailySummaryGenerator:
             "article": article_text
         }
 
-        # Add new entry to the front and keep the last 10
+        # Add new entry to the front
         updated_history = [new_entry] + history
-        updated_history = updated_history[:10]
 
         try:
             with open(ARTICLE_HISTORY_FILE, 'w', encoding='utf-8') as f:
