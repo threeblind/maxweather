@@ -166,40 +166,35 @@ class DailySummaryGenerator:
         self.all_data = data
 
     def format_ranking_table(self):
+        """総合順位をMarkdownテーブル形式で整形する。"""
         report_data = self.all_data.get('realtime_report', {})
-        table_lines = []
-        # is_shadow_confederationがtrueのチーム（区間記録連合）を除外する
         teams = [t for t in report_data.get('teams', []) if not t.get('is_shadow_confederation')]
-        if not teams: return "表示するチームデータがありません。"
-        top_distance = teams[0]['totalDistance'] if teams else 0
-        header = (
-            f"{self.pad_str('順位', 4)} {self.pad_str('大学名', 12)} {self.pad_str('現在走者', 10)} "
-            f"{self.pad_str('本日距離(順位)', 16)} {self.pad_str('総合距離', 10)} {self.pad_str('トップ差', 10)} "
-            f"{self.pad_str('順位変動(前日)', 16)} "
-        )
-        table_lines.append(header)
+        if not teams:
+            return "表示するチームデータがありません。"
+
+        header = "| 順位 | 大学名 | 現在走者 | 本日距離(順位) | 総合距離 | トップ差 | 順位変動(前日) |"
+        divider = "|:---|:---|:---|:---|:---|:---|:---|"
+        rows = [header, divider]
+
+        top_distance = teams[0].get('totalDistance', 0.0)
         for team in teams:
-            gap = top_distance - team.get('totalDistance', 0.0)
+            total_distance = team.get('totalDistance', 0.0)
+            gap = "----" if team.get('overallRank') == 1 else f"-{top_distance - total_distance:.1f}km"
+            previous_rank = team.get("previousRank", 0)
+            rank_change = "ー (－)" if not previous_rank else f"ー ({previous_rank})"
 
-            rank_str = self.pad_str(str(team.get('overallRank', '')), 4)
-            name_str = self.pad_str(team.get('name', ''), 12)
-            runner_str = self.pad_str(team.get('runner', ''), 10)
+            row = [
+                team.get('overallRank', ''),
+                team.get('name', ''),
+                team.get('runner', ''),
+                f"{team.get('todayDistance', 0.0):.1f}km ({team.get('todayRank', '')})",
+                f"{total_distance:.1f}km",
+                gap,
+                rank_change,
+            ]
+            rows.append("| " + " | ".join(str(cell) if cell != "" else "-" for cell in row) + " |")
 
-            today_dist_inner_str = f"{team.get('todayDistance', 0.0):.1f}km ({team.get('todayRank', '')})"
-            today_dist_str = self.pad_str(today_dist_inner_str, 16)
-
-            total_dist_str = self.pad_str(f"{team.get('totalDistance', 0.0):.1f}km", 10, align='right')
-
-            gap_inner_str = '----' if team.get('overallRank') == 1 else f'-{gap:.1f}km'
-            gap_str = self.pad_str(gap_inner_str, 10, align='right')
-
-            prev_rank = team.get("previousRank", 0)
-            rank_change_inner_str = f"ー (－)" if prev_rank == 0 else f"ー ({prev_rank})"
-            rank_change_str = self.pad_str(rank_change_inner_str, 16)
-
-            line = f"{rank_str} {name_str} {runner_str} {today_dist_str} {total_dist_str} {gap_str} {rank_change_str}"
-            table_lines.append(line)
-        return "\n".join(table_lines)
+        return "\n".join(rows)
 
     def prepare_manager_comments(self, num_comments=3):
         manager_comments_data = self.all_data.get('manager_comments', [])
@@ -467,7 +462,14 @@ class DailySummaryGenerator:
             prompt_parts.append("\n## 【昨晩の監督コメント】")
             prompt_parts.extend(manager_comments)
 
-        prompt_parts.append("\n---\n解説記事:")
+        prompt_parts.append(
+            "\n---\n"
+            "上記の情報を踏まえて、熱量のあるスポーツ記事の文体で300〜400字程度のMarkdown記事を作成してください。\n"
+            "- 必ず首位争い、シード権争い、注目選手の奮闘を盛り込み、主要データとの整合性を保つこと。\n"
+            "- 読者は大会を継続的にフォローしているファンを想定し、情景描写と分析をバランス良く織り交ぜること。\n"
+            "- 見出しや強調が必要な場合はMarkdownの書式を用いてください。\n"
+            "解説記事:"
+        )
         return "\n".join(prompt_parts)
 
     def run(self):
