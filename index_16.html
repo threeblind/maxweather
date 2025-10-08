@@ -844,6 +844,17 @@
         .runner-icon .rank-number {
             line-height: 1; /* Vertically center the number */
         }
+        .runner-icon .goal-marker {
+            background-color: #ffffff;
+            border-width: 2px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.45);
+        }
+        .runner-icon .goal-marker::after {
+            border-top-color: inherit;
+        }
+        .runner-icon .goal-marker .rank-number {
+            font-size: 16px;
+        }
         /* Leaflet popup customization */
         .leaflet-popup-content-wrapper {
             border-radius: 5px;

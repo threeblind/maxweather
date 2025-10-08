@@ -10,6 +10,7 @@ let summaryChartInstance = null; // 選手の大会サマリーグラフのイ�
 let playerTotalChartInstance = null; // 選手の大会全記録グラフのインスタンス (これは別機能なのでそのまま)
 let logFileExists = false; // ログファイルの存在を管理するフラグ
 let legAverageRankingsCache = new Map(); // 区間別平均距離ランキングのキャッシュ
+let goalLatLng = null; // ゴール地点の座標を保持
 
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
@@ -422,6 +423,7 @@ async function initializeMap() {
             const latlngs = coursePath.map(p => [p.lat, p.lon]);
             coursePolyline = L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
             map.fitBounds(coursePolyline.getBounds().pad(0.1));
+            goalLatLng = latlngs[latlngs.length - 1] || null;
         }
 
         // 6. Draw relay point markers with leg record info
@@ -480,6 +482,26 @@ function createRunnerIcon(teamInitial, color) {
         iconSize: [32, 44], // アイコン全体のサイズ (幅, 高さ)
         iconAnchor: [16, 44], // アイコンの先端の位置 (X, Y)
         popupAnchor: [0, -46] // ポップアップの表示位置
+    });
+}
+
+/**
+ * ゴールチーム用マーカーを生成する。
+ * @param {string} color - チームカラー
+ * @returns {L.DivIcon}
+ */
+function createGoalIcon(color) {
+    const iconHtml = `
+        <div class="runner-marker goal-marker" style="border-color: ${color}; color: ${color};">
+            <span class="rank-number">🏁</span>
+        </div>
+    `;
+    return L.divIcon({
+        html: iconHtml,
+        className: 'runner-icon',
+        iconSize: [32, 44],
+        iconAnchor: [16, 44],
+        popupAnchor: [0, -46]
     });
 }
 
@@ -545,6 +567,10 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
 
     // ゴール距離を特定
     const finalGoalDistance = ekidenData.leg_boundaries[ekidenData.leg_boundaries.length - 1];
+    const goalTolerance = 0.01; // 浮動小数点誤差を吸収する許容値
+
+    const displayedLatLngs = [];
+    const teamDisplayLatLngMap = new Map();
 
     runnerLocations.forEach(runner => {
         const color = teamColorMap.get(runner.team_name) || '#808080'; // Default to grey
@@ -558,9 +584,18 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
             teamInitial = runner.team_short_name || '??';
         }
 
-        const icon = createRunnerIcon(teamInitial, color);
-        const latLng = [runner.latitude, runner.longitude];
-        const marker = L.marker(latLng, { icon: icon });
+        const isGoalReached = !runner.is_shadow_confederation && runner.total_distance_km >= (finalGoalDistance - goalTolerance);
+        const markerLatLng = (isGoalReached && goalLatLng)
+            ? goalLatLng
+            : [runner.latitude, runner.longitude];
+
+        displayedLatLngs.push(markerLatLng);
+        if (!runner.is_shadow_confederation) {
+            teamDisplayLatLngMap.set(runner.team_name, markerLatLng);
+        }
+
+        const icon = isGoalReached ? createGoalIcon(color) : createRunnerIcon(teamInitial, color);
+        const marker = L.marker(markerLatLng, { icon: icon });
         
         let popupContent;
         if (runner.is_shadow_confederation) {
@@ -578,6 +613,9 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
                 走者: ${formatRunnerName(runner.runner_name)}<br>
                 総距離: ${runner.total_distance_km.toFixed(1)} km
             `;
+            if (isGoalReached) {
+                popupContent += `<br><strong>ゴール済</strong>`;
+            }
         }
         marker.bindPopup(popupContent, { closeButton: false });
 
@@ -592,6 +630,8 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
 
         // マーカーをレイヤーに追加
         runnerMarkersLayer.addLayer(marker);
+
+        runner.display_lat_lng = markerLatLng;
     });
 
     // --- Map View Update Logic ---
@@ -602,7 +642,7 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         }
     } else if (trackedTeamName === "all_teams") {
         // --- Show all teams ---
-        const allRunnerLatLngs = runnerLocations.map(r => [r.latitude, r.longitude]);
+        const allRunnerLatLngs = displayedLatLngs;
         const bounds = L.latLngBounds(allRunnerLatLngs);
         map.fitBounds(bounds.pad(0.1)); // .pad(0.1) for some margin
     } else if (trackedTeamName === "shadow_confederation") {
@@ -625,9 +665,9 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         }
     } else if (trackedTeamName && trackedTeamName !== "lead_group") {
         // --- Track a specific team ---
-        const trackedRunner = runnerLocations.find(r => r.team_name === trackedTeamName);
-        if (trackedRunner) {
-            map.setView([trackedRunner.latitude, trackedRunner.longitude], 14);
+        const trackedLatLng = teamDisplayLatLngMap.get(trackedTeamName);
+        if (trackedLatLng) {
+            map.setView(trackedLatLng, 14);
         }
     } else { // Default is "lead_group"
         // --- 先頭集団を追跡（動的ロジック） ---
