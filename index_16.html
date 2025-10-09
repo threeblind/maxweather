@@ -1251,17 +1251,35 @@
         .ios-banner-description { font-size: 0.85rem; color: var(--text-muted-color); }
         #close-ios-banner {
             position: absolute;
-            top: 5px;
-            right: 5px;
-            background: none;
+            top: 8px;
+            right: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background-color: rgba(33, 37, 41, 0.9);
+            color: #fff;
             border: none;
-            font-size: 24px;
-            color: #aaa;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
             cursor: pointer;
-            padding: 5px;
+            padding: 6px 12px;
+            line-height: 1;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        #close-ios-banner:hover,
+        #close-ios-banner:focus-visible {
+            background-color: rgba(52, 58, 64, 0.95);
+            outline: 2px solid rgba(73, 80, 87, 0.4);
+            outline-offset: 2px;
+        }
+        #close-ios-banner .close-icon {
+            font-size: 1rem;
             line-height: 1;
         }
-        #close-ios-banner:hover { color: #333; }
+        #close-ios-banner .close-text {
+            font-size: 0.85rem;
+        }
     </style>
     <style>
         /* 学内ランキングの行のスタイル */
@@ -1313,7 +1331,10 @@
                 </p>
             </div>
         </div>
-        <button id="close-ios-banner" title="閉じる">&times;</button>
+        <button id="close-ios-banner" title="この案内を閉じる" aria-label="この案内を閉じる">
+            <span class="close-icon" aria-hidden="true">×</span>
+            <span class="close-text">閉じる</span>
+        </button>
     </div>
 
     <div class="container">
