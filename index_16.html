@@ -1244,11 +1244,20 @@
             from { transform: translateY(-100%); }
             to { transform: translateY(0); }
         }
-        .ios-banner-content { display: flex; align-items: center; gap: 15px; }
+        .ios-banner-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding-right: 72px;
+        }
         .ios-banner-icon { width: 50px; height: 50px; border-radius: 10px; }
         .ios-banner-text p { margin: 0; line-height: 1.4; text-align: left; }
         .ios-banner-title { font-weight: bold; font-size: 1rem; color: var(--text-color); }
-        .ios-banner-description { font-size: 0.85rem; color: var(--text-muted-color); }
+        .ios-banner-description {
+            font-size: 0.85rem;
+            color: var(--text-muted-color);
+            margin-top: 6px;
+        }
         #close-ios-banner {
             position: absolute;
             top: 8px;
