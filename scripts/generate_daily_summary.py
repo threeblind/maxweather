@@ -166,10 +166,9 @@ class DailySummaryGenerator:
 
     def format_ranking_table(self):
         """総合順位をMarkdownテーブル形式で整形する。"""
-        report_data = self.all_data.get('realtime_report', {})
-        teams = [t for t in report_data.get('teams', []) if not t.get('is_shadow_confederation')]
+        teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
         if not teams:
-            return "表示するチームデータがありません。"
+            return "現在走行中の公式チームはありません。"
 
         header = "| 順位 | 大学名 | 現在走者 | 本日距離(順位) | 総合距離 | トップ差 | 順位変動(前日) |"
         divider = "|:---|:---|:---|:---|:---|:---|:---|"
@@ -222,8 +221,8 @@ class DailySummaryGenerator:
         for team_history in rank_history.get('teams', []):
             if len(team_history.get('distances', [])) > last_day_index:
                 yesterday_distances[team_history['id']] = team_history['distances'][last_day_index]
-        # is_shadow_confederationがtrueのチーム（区間記録連合）を除外する
-        teams_to_check = [t for t in realtime_data.get('teams', []) if not t.get('is_shadow_confederation')]
+        # 走行中チームのみを対象にする（区間記録連合は除外済み）
+        teams_to_check = self._get_active_teams()
         for team_state in teams_to_check:
             yesterday_dist = yesterday_distances.get(team_state.get('id'), 0.0)
             today_dist = team_state.get('totalDistance', 0.0)
@@ -263,6 +262,13 @@ class DailySummaryGenerator:
         realtime_data = self.all_data.get('realtime_report', {})
         return [team for team in realtime_data.get('teams', []) if not team.get('is_shadow_confederation')]
 
+    def _get_active_teams(self):
+        """現在も走行中の公式チームのみを抽出。"""
+        return [
+            team for team in self._get_regular_teams()
+            if (team.get('runner') or '').strip() != 'ゴール'
+        ]
+
     @staticmethod
     def _format_team_snapshot(team):
         rank = team.get('overallRank')
@@ -273,46 +279,31 @@ class DailySummaryGenerator:
         return f"{team.get('name')}（{rank_str} / 累計{total:.1f}km / 本日{today:.1f}km / 走者:{runner}）"
 
     def build_coverage_checklist(self):
-        teams = sorted(self._get_regular_teams(), key=lambda t: t.get('overallRank') or 999)
+        teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
         if not teams:
-            return []
+            return ["- 現在走行中の公式チームはありません。"]
 
         lines = []
 
         top_cluster = teams[:3]
         if top_cluster:
-            lines.append("- トップ集団: " + "、".join(self._format_team_snapshot(t) for t in top_cluster))
+            lines.append("- トップ集団(上位): " + "、".join(self._format_team_snapshot(t) for t in top_cluster))
 
         mid_pack = [t for t in teams if t.get('overallRank') and 4 <= t['overallRank'] <= 8]
         if mid_pack:
             lines.append("- 中位混戦ゾーン(4〜8位): " + "、".join(self._format_team_snapshot(t) for t in mid_pack))
 
-        seed_window = [t for t in teams if t.get('overallRank') and 8 <= t['overallRank'] <= 11]
+        seed_window = [t for t in teams if t.get('overallRank') and 9 <= t['overallRank'] <= 12]
         if seed_window:
-            lines.append("- シードライン前後: " + "、".join(self._format_team_snapshot(t) for t in seed_window))
+            lines.append("- シード権前後: " + "、".join(self._format_team_snapshot(t) for t in seed_window))
 
-        movers_up, movers_down = [], []
-        for team in teams:
-            prev_rank = team.get('previousRank')
-            curr_rank = team.get('overallRank')
-            if prev_rank and curr_rank:
-                delta = prev_rank - curr_rank
-                if delta >= 2:
-                    movers_up.append(f"{team.get('name')}（{prev_rank}位→{curr_rank}位）")
-                elif delta <= -2:
-                    movers_down.append(f"{team.get('name')}（{prev_rank}位→{curr_rank}位）")
-        if movers_up:
-            lines.append("- 大ジャンプアップ: " + "、".join(movers_up))
-        if movers_down:
-            lines.append("- 大きく後退: " + "、".join(movers_down))
-
-        finishers = [t for t in teams if (t.get('runner') == 'ゴール')]
-        if finishers:
-            lines.append("- 本日までにゴール: " + "、".join(self._format_team_snapshot(t) for t in finishers))
-
-        tail_fighters = [t for t in sorted(teams, key=lambda te: te.get('overallRank') or 999, reverse=True)[:3] if t.get('todayDistance', 0.0) >= 25.0]
+        lower_surge_candidates = sorted(teams, key=lambda te: te.get('overallRank') or 999, reverse=True)
+        tail_fighters = [
+            t for t in lower_surge_candidates[:4]
+            if t.get('todayDistance', 0.0) >= 20.0 or (t.get('overallRank') or 0) >= 13
+        ]
         if tail_fighters:
-            lines.append("- 下位でも粘るチーム: " + "、".join(self._format_team_snapshot(t) for t in tail_fighters))
+            lines.append("- 下位でも目立ったチーム: " + "、".join(self._format_team_snapshot(t) for t in tail_fighters))
 
         return lines
 
@@ -346,18 +337,24 @@ class DailySummaryGenerator:
         return recent_entries
 
     def build_daily_notes(self, race_day):
-        teams = sorted(self._get_regular_teams(), key=lambda t: t.get('overallRank') or 999)
+        teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
         if not teams:
-            return []
+            return ["- 現在走行中のチーム情報は取得できません。"]
 
         notes = []
+        try:
+            race_day_int = int(race_day)
+            notes.append(f"- 第{race_day_int}日目の継続走行校は{len(teams)}校。")
+        except (TypeError, ValueError):
+            pass
+
         top_team = teams[0]
         if len(teams) > 1:
             runner_up = teams[1]
             gap = top_team.get('totalDistance', 0.0) - runner_up.get('totalDistance', 0.0)
             notes.append(f"- 首位攻防: 1位 {top_team.get('name')} と2位 {runner_up.get('name')} の差は {gap:.1f}km。")
         else:
-            notes.append(f"- 首位状況: {top_team.get('name')} が単独首位を維持。")
+            notes.append(f"- 首位状況: {top_team.get('name')} が走行中チームの先頭を独走。")
 
         today_stars = [t for t in sorted(teams, key=lambda tm: tm.get('todayDistance', 0.0), reverse=True) if t.get('todayDistance', 0.0) > 0][:3]
         if today_stars:
@@ -368,16 +365,6 @@ class DailySummaryGenerator:
         if seed_ten and seed_eleven:
             diff = seed_ten.get('totalDistance', 0.0) - seed_eleven.get('totalDistance', 0.0)
             notes.append(f"- シードライン差: 10位 {seed_ten.get('name')} と11位 {seed_eleven.get('name')} の距離差は {diff:.1f}km。")
-
-        new_finishers = []
-        try:
-            race_day_int = int(race_day)
-        except (TypeError, ValueError):
-            race_day_int = None
-        if race_day_int:
-            new_finishers = [t for t in teams if t.get('finishDay') == race_day_int]
-        if new_finishers:
-            notes.append("- 本日ゴール: " + "、".join(f"{t.get('name')}（{t.get('totalDistance', 0.0):.1f}km）" for t in new_finishers))
 
         substitutions = self._load_recent_substitution_logs()
         if substitutions:
@@ -396,7 +383,11 @@ class DailySummaryGenerator:
         ekiden_data = self.all_data.get('ekiden_data', {})
         race_day = realtime_data.get('raceDay', 'N/A')
         race_status_summary = "レース集計中"
-        if realtime_data.get('teams'):
+        active_sorted = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
+        if active_sorted:
+            top_active = active_sorted[0]
+            race_status_summary = f"走行中トップは第{top_active.get('currentLeg', 'N/A')}区、{top_active.get('runner', '走者不明')}がリード中"
+        elif realtime_data.get('teams'):
             top_team = realtime_data['teams'][0]
             race_status_summary = "トップチームはゴールしました" if top_team.get('runner') == 'ゴール' else f"トップは第{top_team.get('currentLeg', 'N/A')}区を走行中"
 
@@ -464,9 +455,9 @@ class DailySummaryGenerator:
         prompt_parts.append(
             "\n---\n"
             "上記の情報を踏まえて、熱量のあるスポーツ記事の文体で300〜400字程度のMarkdown記事を作成してください。\n"
-            "- 必ず首位争い、シード権争い、注目選手の奮闘を盛り込み、主要データとの整合性を保つこと。\n"
-            "- 読者は大会を継続的にフォローしているファンを想定し、情景描写と分析をバランス良く織り交ぜること。\n"
-            "- 見出しや強調が必要な場合はMarkdownの書式を用いてください。\n"
+            "- 記事全体を現在走行中のチーム・走者の動きに集中させ、既にゴールしたチームや確定順位の回顧は避けること。\n"
+            "- 走行中チーム同士の首位・シードライン・追い上げの構図を具体的な距離差や区間情報とともに描写すること。\n"
+            "- 本日の距離が際立った走者・区間での躍動を必ず紹介し、Markdownの見出しや強調を適宜用いること。\n"
             "解説記事:"
         )
         return "\n".join(prompt_parts)
