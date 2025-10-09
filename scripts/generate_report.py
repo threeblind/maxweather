@@ -724,8 +724,14 @@ def send_hourly_ranking_notification(results):
 
     notification_title = f"【総合順位速報】({now.strftime('%H:%M')}現在)"
     body_lines = []
-    # 上位10チームに絞り、区間記録連合を除外
-    ranked_teams = [t for t in results if not t.get('is_shadow_confederation')]
+    # 上位10チームに絞り、区間記録連合と完走済みチームを除外
+    ranked_teams = [
+        t for t in results
+        if not t.get('is_shadow_confederation') and t.get('finishDay') is None
+    ]
+
+    if not ranked_teams:
+        return
     for team in ranked_teams[:5]:
         rank = team.get('overallRank', '-')
         name = team.get('name', 'N/A')
