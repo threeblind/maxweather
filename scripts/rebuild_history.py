@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timedelta
 import shutil
 from pathlib import Path
+from collections import defaultdict
 
 # --- 定数 ---
 # --- ディレクトリ定義 ---
@@ -87,7 +88,8 @@ def initialize_result_files():
                 initial_individual_results[runner_name] = {
                     "totalDistance": 0,
                     "teamId": team['id'],
-                    "records": []
+                    "records": [],
+                    "legSummaries": {}
                 }
 
     # 履歴の初期状態
@@ -163,6 +165,8 @@ def rebuild_history():
         
         # この日の計算結果を格納するリスト
         results_for_today = []
+        today_leg_records = defaultdict(list)
+        legs_completed_today = []
         
         # 前日の状態を保持
         previous_day_state = json.loads(json.dumps(current_state))
@@ -195,14 +199,52 @@ def rebuild_history():
                 today_distance = temps_for_today.get(runner_name, 0.0)
 
                 if today_distance > 0:
-                    runner_info = individual_results.setdefault(runner_name, {"totalDistance": 0, "teamId": team_data['id'], "records": []})
-                    # 既に同じ日の記録があれば更新、なければ追加
+                    runner_info = individual_results.setdefault(
+                        runner_name,
+                        {"totalDistance": 0, "teamId": team_data['id'], "records": [], "legSummaries": {}}
+                    )
+                    runner_info.setdefault("teamId", team_data['id'])
+                    runner_info.setdefault("records", [])
+                    runner_info.setdefault("legSummaries", {})
+
+                    leg_to_record = team_state["currentLeg"]
                     record_for_today = next((r for r in runner_info['records'] if r.get('day') == race_day), None)
+                    previous_distance = record_for_today.get('distance', 0.0) if record_for_today else 0.0
+                    is_new_record = record_for_today is None
+
                     if record_for_today:
                         record_for_today['distance'] = today_distance
                     else:
-                        runner_info['records'].append({"day": race_day, "leg": team_state["currentLeg"], "distance": today_distance})
-                    # 合計距離を再計算
+                        record_for_today = {"day": race_day, "leg": leg_to_record, "distance": today_distance}
+                        runner_info['records'].append(record_for_today)
+
+                    leg_summaries = runner_info.setdefault("legSummaries", {})
+                    summary = leg_summaries.setdefault(str(leg_to_record), {
+                        "totalDistance": 0.0,
+                        "days": 0,
+                        "averageDistance": 0.0,
+                        "rank": None,
+                        "status": "provisional",
+                        "finalRank": None,
+                        "finalDay": None,
+                        "lastUpdatedDay": None
+                    })
+
+                    summary_total = (summary.get("totalDistance", 0.0) or 0.0) - previous_distance + today_distance
+                    summary['totalDistance'] = round(summary_total, 1)
+                    current_days = summary.get('days', 0)
+                    if is_new_record:
+                        current_days += 1
+                    summary['days'] = current_days
+                    summary['averageDistance'] = round(summary['totalDistance'] / current_days, 3) if current_days else 0.0
+                    summary['lastUpdatedDay'] = race_day
+
+                    today_leg_records[leg_to_record].append({
+                        "runner_name": runner_name,
+                        "record": record_for_today,
+                        "summary": summary
+                    })
+
                     runner_info['totalDistance'] = round(sum(r['distance'] for r in runner_info['records']), 1)
 
             new_total_distance = round(team_state['totalDistance'] + today_distance, 1)
@@ -214,6 +256,8 @@ def rebuild_history():
                 boundary = ekiden_data['leg_boundaries'][new_current_leg - 1]
                 if new_total_distance >= boundary:
                     new_current_leg += 1
+                    if runner_name != "ゴール":
+                        legs_completed_today.append((runner_name, team_state["currentLeg"]))
                     # ゴールした瞬間を記録
                     if new_current_leg > len(ekiden_data['leg_boundaries']) and finish_day_today is None:
                         finish_day_today = race_day
@@ -225,6 +269,57 @@ def rebuild_history():
                 "finishDay": finish_day_today,
                 "group_id": 0 # 順位変動グループ
             })
+
+        # 区間ごとの平均距離・順位を更新
+        if individual_results:
+            leg_performance_map = defaultdict(list)
+            for runner_name, runner_data in individual_results.items():
+                leg_summaries = runner_data.get('legSummaries', {})
+                for leg_key, summary in leg_summaries.items():
+                    try:
+                        leg_number = int(leg_key)
+                    except (TypeError, ValueError):
+                        continue
+                    if summary.get('days', 0) == 0:
+                        continue
+                    leg_performance_map[leg_number].append((runner_name, summary))
+
+            for leg_number, performances in leg_performance_map.items():
+                if not performances:
+                    continue
+                performances.sort(key=lambda item: item[1].get('averageDistance', 0.0), reverse=True)
+                last_avg = None
+                current_rank = 0
+                for index, (_, summary) in enumerate(performances):
+                    avg = summary.get('averageDistance', 0.0)
+                    rounded_avg = round(avg, 3)
+                    if last_avg is None or rounded_avg != last_avg:
+                        current_rank = index + 1
+                        last_avg = rounded_avg
+                    summary['rank'] = current_rank
+
+        for runner_name, leg_number in legs_completed_today:
+            runner_data = individual_results.get(runner_name)
+            if not runner_data:
+                continue
+            leg_summary = runner_data.get('legSummaries', {}).get(str(leg_number))
+            if not leg_summary:
+                continue
+            leg_summary['status'] = 'final'
+            leg_summary['finalRank'] = leg_summary.get('rank')
+            leg_summary['finalDay'] = race_day
+
+        for leg_number, entries in today_leg_records.items():
+            for entry in entries:
+                summary = entry.get('summary') or {}
+                record = entry.get('record') or {}
+                average_distance = summary.get('averageDistance')
+                record['legAverageDistance'] = round(average_distance, 3) if average_distance is not None else None
+                record['legRank'] = summary.get('rank')
+                final_day = summary.get('finalDay')
+                is_final_today = summary.get('status') == 'final' and final_day == race_day
+                record['legAverageStatus'] = 'final' if is_final_today else 'provisional'
+                record['legRankStatus'] = 'final' if is_final_today else 'provisional'
 
         # --- 順位計算 (generate_report.pyからロジックを拝借) ---
         finished_teams = [r for r in results_for_today if r.get('group_id') == 1]

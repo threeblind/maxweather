@@ -82,7 +82,7 @@ def substitute_runner(team_id, old_runner, new_runner):
             if old_runner in individual_results:
                 del individual_results[old_runner]
 
-            individual_results[new_runner] = { "totalDistance": 0, "teamId": team_id, "records": [] }
+            individual_results[new_runner] = { "totalDistance": 0, "teamId": team_id, "records": [], "legSummaries": {} }
 
             f.seek(0)
             json.dump(individual_results, f, indent=2, ensure_ascii=False)
@@ -91,7 +91,7 @@ def substitute_runner(team_id, old_runner, new_runner):
 
     except FileNotFoundError:
         print(f"情報: '{INDIVIDUAL_RESULTS_FILE}' が見つかりませんでした。新規に作成します。")
-        individual_results = { new_runner: { "totalDistance": 0, "teamId": team_id, "records": [] } }
+        individual_results = { new_runner: { "totalDistance": 0, "teamId": team_id, "records": [], "legSummaries": {} } }
         with open(INDIVIDUAL_RESULTS_FILE, 'w', encoding='utf-8') as f:
             json.dump(individual_results, f, indent=2, ensure_ascii=False)
         print(f"✅ '{INDIVIDUAL_RESULTS_FILE}' を新規作成し、{new_runner} のエントリを追加しました。")

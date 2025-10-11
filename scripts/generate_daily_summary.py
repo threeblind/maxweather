@@ -23,6 +23,7 @@ ARTICLE_HISTORY_FILE = DATA_DIR / 'article_history.json'
 SUMMARY_PROMPT_TEMPLATE_FILE = CONFIG_DIR / 'summary_prompt_template.txt'
 OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 OUTPUT_FILE = DATA_DIR / 'daily_summary.json'
+INDIVIDUAL_RESULTS_FILE = DATA_DIR / 'individual_results.json'
 
 class DailySummaryGenerator:
     """
@@ -147,6 +148,7 @@ class DailySummaryGenerator:
         files_to_load = {
             'realtime_report': REALTIME_REPORT_FILE, 'manager_comments': MANAGER_COMMENTS_FILE,
             'ekiden_data': EKIDEN_DATA_FILE, 'rank_history': RANK_HISTORY_FILE,
+            'individual_results': INDIVIDUAL_RESULTS_FILE,
         }
         for key, file_path in files_to_load.items():
             try:
@@ -156,6 +158,9 @@ class DailySummaryGenerator:
                 if key == 'manager_comments':
                     print(f"情報: {file_path} が見つからないため、監督コメントはスキップされます。")
                     data[key] = []
+                elif key == 'individual_results':
+                    print(f"情報: {file_path} が見つからないため、区間賞集計はスキップされます。")
+                    data[key] = {}
                 else:
                     print(f"エラー: 必須データファイル '{file_path}' が見つかりません。")
                     exit(1)
@@ -336,6 +341,101 @@ class DailySummaryGenerator:
                     })
         return recent_entries
 
+    def _get_leg_awards_for_day(self, race_day):
+        try:
+            race_day_int = int(race_day)
+        except (TypeError, ValueError):
+            return []
+
+        individual_results = self.all_data.get('individual_results') or {}
+        if not individual_results:
+            return []
+
+        team_lookup = {}
+        for team in self.all_data.get('ekiden_data', {}).get('teams', []):
+            team_lookup[team.get('id')] = team.get('name')
+
+        leg_best_map = {}
+        for runner_name, runner_data in individual_results.items():
+            if not isinstance(runner_data, dict):
+                continue
+            team_id = runner_data.get('teamId')
+            leg_summaries = runner_data.get('legSummaries', {})
+            if not isinstance(leg_summaries, dict):
+                continue
+            for leg_key, summary in leg_summaries.items():
+                if not isinstance(summary, dict):
+                    continue
+                try:
+                    leg_number = int(leg_key)
+                except (TypeError, ValueError):
+                    continue
+                if summary.get('rank') != 1:
+                    continue
+                last_day = summary.get('lastUpdatedDay')
+                if last_day and last_day > race_day_int:
+                    continue
+                status = summary.get('status', 'provisional')
+                final_day = summary.get('finalDay')
+                if status == 'final' and final_day and final_day > race_day_int:
+                    status = 'provisional'
+                average = summary.get('averageDistance')
+                try:
+                    average_val = float(average)
+                except (TypeError, ValueError):
+                    continue
+
+                entry = leg_best_map.setdefault(leg_number, {
+                    "leg": leg_number,
+                    "status": 'final',
+                    "average": average_val,
+                    "performers": []
+                })
+                if status != 'final':
+                    entry['status'] = 'provisional'
+                entry['average'] = average_val
+                entry['performers'].append({
+                    "runner_name": runner_name,
+                    "team_name": team_lookup.get(team_id, '所属不明'),
+                    "status": status,
+                    "average": average_val,
+                    "finalDay": final_day,
+                    "lastUpdatedDay": last_day
+                })
+
+        awards = sorted(leg_best_map.values(), key=lambda item: item['leg'])
+        for award in awards:
+            if any(p.get('status') != 'final' for p in award.get('performers', [])):
+                award['status'] = 'provisional'
+        return awards
+
+    def _build_leg_award_notes(self, race_day):
+        leg_awards = self._get_leg_awards_for_day(race_day)
+        if not leg_awards:
+            return []
+
+        leg_awards.sort(key=lambda award: (0 if award.get('status') != 'final' else 1, award.get('leg')))
+        max_display = 3
+        segments = []
+        for award in leg_awards[:max_display]:
+            status_label = "確定" if award.get('status') == 'final' else "暫定"
+            average = award.get('average')
+            average_text = f"{average:.1f}km/日" if isinstance(average, (int, float)) else "-"
+            performer_text = "、".join(
+                f"{p['runner_name']}（{p['team_name']}）" for p in award.get('performers', [])
+            )
+            if performer_text:
+                segments.append(f"第{award.get('leg')}区（{status_label}）{performer_text} {average_text}")
+
+        if not segments:
+            return []
+
+        remaining = len(leg_awards) - len(segments)
+        note_text = "- 区間賞情報: " + " / ".join(segments)
+        if remaining > 0:
+            note_text += f" / ほか{remaining}区"
+        return [note_text]
+
     def build_daily_notes(self, race_day):
         teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
         if not teams:
@@ -371,9 +471,8 @@ class DailySummaryGenerator:
             for entry in substitutions:
                 notes.append(f"- 選手交代: {entry['timestamp']} {entry['team_name']}が {entry['runner_out']} → {entry['runner_in']} に交代。")
 
-        leg_top_candidates = [t for t in teams if t.get('todayRank') == 1 and t.get('todayDistance', 0.0) > 0]
-        if leg_top_candidates:
-            notes.append("- 区間賞候補: " + "、".join(f"{t.get('name')} {t.get('runner')}（{t.get('todayDistance', 0.0):.1f}km）" for t in leg_top_candidates))
+        leg_award_notes = self._build_leg_award_notes(race_day)
+        notes.extend(leg_award_notes)
 
         return notes
 
