@@ -351,6 +351,21 @@ class DailySummaryGenerator:
         if not individual_results:
             return []
 
+        realtime_data = self.all_data.get('realtime_report', {})
+        active_legs = set()
+        for team in realtime_data.get('teams', []):
+            if team.get('is_shadow_confederation'):
+                continue
+            runner_name = (team.get('runner') or '').strip()
+            if runner_name == 'ゴール':
+                continue
+            leg_num = team.get('currentLeg')
+            if isinstance(leg_num, int):
+                active_legs.add(leg_num)
+
+        if not active_legs:
+            return []
+
         team_lookup = {}
         for team in self.all_data.get('ekiden_data', {}).get('teams', []):
             team_lookup[team.get('id')] = team.get('name')
@@ -370,7 +385,7 @@ class DailySummaryGenerator:
                     leg_number = int(leg_key)
                 except (TypeError, ValueError):
                     continue
-                if summary.get('rank') != 1:
+                if leg_number not in active_legs:
                     continue
                 last_day = summary.get('lastUpdatedDay')
                 if last_day and last_day > race_day_int:
@@ -385,28 +400,33 @@ class DailySummaryGenerator:
                 except (TypeError, ValueError):
                     continue
 
+                rank_val = summary.get('rank')
+                if rank_val is None:
+                    continue
+                try:
+                    rank_int = int(rank_val)
+                except (TypeError, ValueError):
+                    continue
+                if rank_int != 1:
+                    continue
+
                 entry = leg_best_map.setdefault(leg_number, {
                     "leg": leg_number,
-                    "status": 'final',
-                    "average": average_val,
-                    "performers": []
+                    "performers": [],
+                    "average": average_val
                 })
-                if status != 'final':
-                    entry['status'] = 'provisional'
                 entry['average'] = average_val
                 entry['performers'].append({
                     "runner_name": runner_name,
                     "team_name": team_lookup.get(team_id, '所属不明'),
-                    "status": status,
+                    "status": summary.get('status', 'provisional'),
                     "average": average_val,
+                    "rank": rank_int,
                     "finalDay": final_day,
                     "lastUpdatedDay": last_day
                 })
 
         awards = sorted(leg_best_map.values(), key=lambda item: item['leg'])
-        for award in awards:
-            if any(p.get('status') != 'final' for p in award.get('performers', [])):
-                award['status'] = 'provisional'
         return awards
 
     def _build_leg_award_notes(self, race_day):
@@ -414,16 +434,17 @@ class DailySummaryGenerator:
         if not leg_awards:
             return []
 
-        leg_awards.sort(key=lambda award: (0 if award.get('status') != 'final' else 1, award.get('leg')))
+        leg_awards.sort(key=lambda award: award.get('leg'))
         max_display = 3
         segments = []
         for award in leg_awards[:max_display]:
-            status_label = "確定" if award.get('status') == 'final' else "暫定"
+            performers = award.get('performers', [])
+            if not performers:
+                continue
+            status_label = "確定" if all(p.get('status') == 'final' for p in performers) else "暫定"
             average = award.get('average')
             average_text = f"{average:.1f}km/日" if isinstance(average, (int, float)) else "-"
-            performer_text = "、".join(
-                f"{p['runner_name']}（{p['team_name']}）" for p in award.get('performers', [])
-            )
+            performer_text = "、".join(f"{p.get('rank')}位 {p['runner_name']}（{p['team_name']}）" for p in performers)
             if performer_text:
                 segments.append(f"第{award.get('leg')}区（{status_label}）{performer_text} {average_text}")
 
