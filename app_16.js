@@ -802,16 +802,6 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
     const legKey = String(legNumber);
     const defaultTeamDetails = { name: 'N/A', short_name: 'N/A' };
 
-    const legRankingMap = legAverageRankingsCache.get(legNumber) || new Map();
-    const legHistoryRankMap = new Map();
-    if (legRankHistoryData && Array.isArray(legRankHistoryData.teams)) {
-        legRankHistoryData.teams.forEach(teamEntry => {
-            const ranks = teamEntry.leg_ranks || [];
-            const rankValue = ranks[legNumber - 1];
-            legHistoryRankMap.set(teamEntry.id, rankValue);
-        });
-    }
-
     const runnersToShow = [];
 
     for (const runnerName in individualData) {
@@ -838,10 +828,9 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
             }
         }
 
-        const historyRank = legHistoryRankMap.get(runnerData.teamId);
-        const cacheEntry = legRankingMap.get(runnerName);
-        const summaryRank = summary.rank ?? null;
-        const displayRank = historyRank != null ? historyRank : (cacheEntry?.rank ?? summaryRank);
+        const displayRank = summary.status === 'final'
+            ? (summary.finalRank ?? summary.rank ?? null)
+            : (summary.rank ?? null);
 
         runnersToShow.push({
             runnerName,
@@ -849,7 +838,7 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
             averageDistance,
             status,
             rank: displayRank,
-            isFinal: historyRank != null || summary.status === 'final'
+            isFinal: summary.status === 'final'
         });
     }
 
