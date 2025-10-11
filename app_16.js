@@ -10,6 +10,7 @@ let summaryChartInstance = null; // 選手の大会サマリーグラフのイ�
 let playerTotalChartInstance = null; // 選手の大会全記録グラフのインスタンス (これは別機能なのでそのまま)
 let logFileExists = false; // ログファイルの存在を管理するフラグ
 let legAverageRankingsCache = new Map(); // 区間別平均距離ランキングのキャッシュ
+let legRankHistoryData = null; // leg_rank_history.json の内容を保持
 let goalLatLng = null; // ゴール地点の座標を保持
 
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
@@ -798,187 +799,116 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
     if (!legRankingBody || !legRankingTitle || !legRankingStatus) return;
 
     const currentRaceDay = realtimeData.raceDay;
-    const useSummaryData = Object.values(individualData).some(
-        runner => runner.legSummaries && Object.keys(runner.legSummaries).length > 0
-    );
+    const legKey = String(legNumber);
     const defaultTeamDetails = { name: 'N/A', short_name: 'N/A' };
 
-    if (useSummaryData) {
-        const legKey = String(legNumber);
-        const legRankingMap = legAverageRankingsCache.get(legNumber);
-        const runnersToShow = [];
-
-        for (const runnerName in individualData) {
-            const runnerData = individualData[runnerName];
-            const legSummaries = runnerData.legSummaries || {};
-            const summary = legSummaries[legKey];
-            if (!summary || summary.days === 0) continue;
-
-            const averageDistance = Number(summary.averageDistance);
-            if (!Number.isFinite(averageDistance)) continue;
-
-            const teamDetails = teamsInfoMap.get(runnerData.teamId) || defaultTeamDetails;
-            let status = 'past';
-            const realtimeTeam = realtimeData.teams.find(t => t.id === runnerData.teamId);
-            if (realtimeTeam) {
-                if (realtimeTeam.currentLeg === legNumber) {
-                    status = 'running';
-                } else if (
-                    realtimeTeam.currentLeg > legNumber &&
-                    summary.status === 'final' &&
-                    summary.finalDay === currentRaceDay
-                ) {
-                    status = 'finished_today';
-                }
-            }
-
-            const cacheEntry = legRankingMap ? legRankingMap.get(runnerName) : null;
-            const displayRank = cacheEntry?.rank ?? summary.rank ?? null;
-
-            runnersToShow.push({
-                runnerName,
-                teamDetails,
-                averageDistance,
-                status,
-                rank: displayRank
-            });
-        }
-
-        legRankingBody.innerHTML = '';
-        if (runnersToShow.length > 0) {
-            legRankingStatus.style.display = 'none';
-            runnersToShow.sort((a, b) => {
-                if (a.rank != null && b.rank != null && a.rank !== b.rank) {
-                    return a.rank - b.rank;
-                }
-                if (a.rank != null && b.rank != null) {
-                    return b.averageDistance - a.averageDistance;
-                }
-                return b.averageDistance - a.averageDistance;
-            });
-
-            let lastComparable = null;
-            let fallbackRank = 0;
-            runnersToShow.forEach((record, index) => {
-                let rankToDisplay;
-                if (record.rank != null) {
-                    rankToDisplay = record.rank;
-                } else {
-                    const rounded = record.averageDistance.toFixed(3);
-                    if (rounded !== lastComparable) {
-                        fallbackRank = index + 1;
-                        lastComparable = rounded;
-                    }
-                    rankToDisplay = fallbackRank;
-                }
-
-                const formattedRunnerName = formatRunnerName(record.runnerName);
-                const teamNameHtml = `<span class="full-name">${record.teamDetails.name}</span><span class="short-name">${record.teamDetails.short_name}</span>`;
-
-                let rowClass = 'leg-runner-past';
-                if (record.status === 'running') {
-                    rowClass = 'leg-runner-running';
-                } else if (record.status === 'finished_today') {
-                    rowClass = 'leg-runner-finished-today';
-                }
-
-                const row = document.createElement('tr');
-                row.className = rowClass;
-                row.innerHTML = `<td>${rankToDisplay}</td>
-                    <td class="runner-name player-profile-trigger" data-runner-name="${record.runnerName}">${formattedRunnerName}</td>
-                    <td class="team-name">${teamNameHtml}</td>
-                    <td>${record.averageDistance.toFixed(3)} km</td>`;
-                legRankingBody.appendChild(row);
-            });
-        } else {
-            legRankingStatus.textContent = `本日、${legNumber}区の記録はまだありません。`;
-            legRankingStatus.className = 'result loading';
-            legRankingStatus.style.display = 'block';
-        }
-        return;
+    const legRankingMap = legAverageRankingsCache.get(legNumber) || new Map();
+    const legHistoryRankMap = new Map();
+    if (legRankHistoryData && Array.isArray(legRankHistoryData.teams)) {
+        legRankHistoryData.teams.forEach(teamEntry => {
+            const ranks = teamEntry.leg_ranks || [];
+            const rankValue = ranks[legNumber - 1];
+            legHistoryRankMap.set(teamEntry.id, rankValue);
+        });
     }
 
     const runnersToShow = [];
+
     for (const runnerName in individualData) {
         const runnerData = individualData[runnerName];
-        // 1. 今大会で、選択された区間(legNumber)を走った記録をすべて見つける
-        const recordsForLeg = runnerData.records.filter(r => r.leg === legNumber);
+        const legSummaries = runnerData.legSummaries || {};
+        const summary = legSummaries[legKey];
+        if (!summary || summary.days === 0) continue;
 
-        if (recordsForLeg.length > 0) {
-            // 2. その区間での合計距離と日数を計算
-            const legTotalDistance = recordsForLeg.reduce((sum, record) => sum + record.distance, 0);
-            const daysRunInLeg = recordsForLeg.length;
-            // 3. 平均距離を計算
-            const averageDistance = legTotalDistance / daysRunInLeg;
+        const averageDistance = Number(summary.averageDistance);
+        if (!Number.isFinite(averageDistance)) continue;
 
-            const teamDetails = teamsInfoMap.get(runnerData.teamId) || { name: 'N/A', short_name: 'N/A' };
-            const realtimeTeam = realtimeData.teams.find(t => t.id === runnerData.teamId);
-
-            // 4. 選手の現在の状態を判定
-            let status = 'past'; // デフォルトは過去の記録
-            if (realtimeTeam) {
-                if (realtimeTeam.currentLeg === legNumber) {
-                    status = 'running'; // 現在走行中
-                } else if (realtimeTeam.currentLeg > legNumber) {
-                    // 本日走り終えたか、過去に走り終えたかを判定
-                    const lastDayRunInLeg = Math.max(...recordsForLeg.map(r => r.day));
-                    if (lastDayRunInLeg === currentRaceDay) {
-                        status = 'finished_today'; // 本日走り終えた
-                    }
-                }
+        const teamDetails = teamsInfoMap.get(runnerData.teamId) || defaultTeamDetails;
+        let status = 'past';
+        const realtimeTeam = realtimeData.teams.find(t => t.id === runnerData.teamId);
+        if (realtimeTeam) {
+            if (realtimeTeam.currentLeg === legNumber) {
+                status = 'running';
+            } else if (
+                realtimeTeam.currentLeg > legNumber &&
+                summary.status === 'final' &&
+                summary.finalDay === currentRaceDay
+            ) {
+                status = 'finished_today';
             }
-
-            runnersToShow.push({
-                runnerName,
-                teamDetails: teamDetails,
-                averageDistance: averageDistance, // ソート基準は平均距離
-                status: status // UI表示用のステータス
-            });
         }
+
+        const historyRank = legHistoryRankMap.get(runnerData.teamId);
+        const cacheEntry = legRankingMap.get(runnerName);
+        const summaryRank = summary.rank ?? null;
+        const displayRank = historyRank != null ? historyRank : (cacheEntry?.rank ?? summaryRank);
+
+        runnersToShow.push({
+            runnerName,
+            teamDetails,
+            averageDistance,
+            status,
+            rank: displayRank,
+            isFinal: historyRank != null || summary.status === 'final'
+        });
     }
 
-    // 5. 平均距離の降順でソート
-    runnersToShow.sort((a, b) => b.averageDistance - a.averageDistance);
-
     legRankingBody.innerHTML = '';
-    if (runnersToShow.length > 0) {
-        legRankingStatus.style.display = 'none';
-        let lastAvgDistance = -1;
-        let lastRank = 0;
-        runnersToShow.forEach((record, index) => {
-            // 同順位処理
-            if (record.averageDistance.toFixed(3) !== lastAvgDistance) {
-                lastRank = index + 1;
-                lastAvgDistance = record.averageDistance.toFixed(3);
-            }
-            const formattedRunnerName = formatRunnerName(record.runnerName);
-            const teamNameHtml = `<span class="full-name">${record.teamDetails.name}</span><span class="short-name">${record.teamDetails.short_name}</span>`;
-
-            // 6. ステータスに応じてCSSクラスを決定
-            let rowClass = '';
-            if (record.status === 'running') {
-                rowClass = 'leg-runner-running';
-            } else if (record.status === 'finished_today') {
-                rowClass = 'leg-runner-finished-today';
-            } else { // 'past'
-                rowClass = 'leg-runner-past';
-            }
-
-            const row = document.createElement('tr');
-            if (rowClass) {
-                row.className = rowClass;
-            }
-            row.innerHTML = `<td>${lastRank}</td>
-                <td class="runner-name player-profile-trigger" data-runner-name="${record.runnerName}">${formattedRunnerName}</td>
-                <td class="team-name">${teamNameHtml}</td>
-                <td>${record.averageDistance.toFixed(3)} km</td>`;
-            legRankingBody.appendChild(row);
-        });
-    } else {
+    if (runnersToShow.length === 0) {
         legRankingStatus.textContent = `本日、${legNumber}区の記録はまだありません。`;
         legRankingStatus.className = 'result loading';
         legRankingStatus.style.display = 'block';
+        return;
     }
+
+    legRankingStatus.style.display = 'none';
+
+    runnersToShow.sort((a, b) => {
+        if (a.rank != null && b.rank != null && a.rank !== b.rank) {
+            return a.rank - b.rank;
+        }
+        if (a.rank != null && b.rank != null) {
+            return b.averageDistance - a.averageDistance;
+        }
+        if (a.rank != null) return -1;
+        if (b.rank != null) return 1;
+        return b.averageDistance - a.averageDistance;
+    });
+
+    let lastComparable = null;
+    let fallbackRank = 0;
+    runnersToShow.forEach((record, index) => {
+        let rankToDisplay;
+        if (record.rank != null) {
+            rankToDisplay = record.rank;
+        } else {
+            const rounded = record.averageDistance.toFixed(3);
+            if (rounded !== lastComparable) {
+                fallbackRank = index + 1;
+                lastComparable = rounded;
+            }
+            rankToDisplay = fallbackRank;
+        }
+
+        const formattedRunnerName = formatRunnerName(record.runnerName);
+        const teamNameHtml = `<span class="full-name">${record.teamDetails.name}</span><span class="short-name">${record.teamDetails.short_name}</span>`;
+
+        let rowClass = 'leg-runner-past';
+        if (record.status === 'running') {
+            rowClass = 'leg-runner-running';
+        } else if (record.status === 'finished_today') {
+            rowClass = 'leg-runner-finished-today';
+        }
+
+        const row = document.createElement('tr');
+        row.className = rowClass;
+        const rankLabel = record.isFinal && rankToDisplay != null ? `${rankToDisplay}` : `${rankToDisplay ?? '-'}`;
+        row.innerHTML = `<td>${rankLabel}</td>
+            <td class="runner-name player-profile-trigger" data-runner-name="${record.runnerName}">${formattedRunnerName}</td>
+            <td class="team-name">${teamNameHtml}</td>
+            <td>${record.averageDistance.toFixed(3)} km</td>`;
+        legRankingBody.appendChild(row);
+    });
 };
 
 /**
@@ -1762,11 +1692,12 @@ const fetchEkidenData = async () => {
 
     try {
         // Fetch all necessary data in parallel
-        const [realtimeRes, individualRes, runnerLocationsRes, ekidenDataRes, logFileRes] = await Promise.all([
+        const [realtimeRes, individualRes, runnerLocationsRes, ekidenDataRes, legRankHistoryRes, logFileRes] = await Promise.all([
             fetch(`data/realtime_report.json?_=${new Date().getTime()}`),
             fetch(`data/individual_results.json?_=${new Date().getTime()}`),
             fetch(`data/runner_locations.json?_=${new Date().getTime()}`),
             fetch(`config/ekiden_data.json?_=${new Date().getTime()}`),
+            fetch(`data/leg_rank_history.json?_=${new Date().getTime()}`),
             fetch(`data/realtime_log.jsonl?_=${new Date().getTime()}`) // ログファイルの存在確認
         ]);
 
@@ -1782,6 +1713,7 @@ const fetchEkidenData = async () => {
         const individualData = await individualRes.json();
         const runnerLocations = await runnerLocationsRes.json();
         const ekidenData = await ekidenDataRes.json();
+        legRankHistoryData = legRankHistoryRes.ok ? await legRankHistoryRes.json() : null;
 
         // グローバルキャッシュに保存
         ekidenDataCache = ekidenData;
