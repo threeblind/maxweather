@@ -385,19 +385,14 @@ class DailySummaryGenerator:
                     leg_number = int(leg_key)
                 except (TypeError, ValueError):
                     continue
-                if leg_number not in active_legs:
-                    continue
-                last_day = summary.get('lastUpdatedDay')
-                if last_day and last_day > race_day_int:
-                    continue
+                entry = leg_best_map.setdefault(leg_number, {
+                    "performers": [],
+                    "average": None,
+                    "all_final": True
+                })
                 status = summary.get('status', 'provisional')
-                final_day = summary.get('finalDay')
-                if status == 'final' and final_day and final_day > race_day_int:
-                    status = 'provisional'
-                average = summary.get('averageDistance')
-                try:
-                    average_val = float(average)
-                except (TypeError, ValueError):
+                if status != 'final':
+                    entry['all_final'] = False
                     continue
 
                 rank_val = summary.get('rank')
@@ -407,26 +402,41 @@ class DailySummaryGenerator:
                     rank_int = int(rank_val)
                 except (TypeError, ValueError):
                     continue
-                if rank_int != 1:
-                    continue
 
-                entry = leg_best_map.setdefault(leg_number, {
-                    "leg": leg_number,
-                    "performers": [],
-                    "average": average_val
-                })
-                entry['average'] = average_val
+                average = summary.get('averageDistance')
+                try:
+                    average_val = float(average)
+                except (TypeError, ValueError):
+                    average_val = None
+                if average_val is not None:
+                    entry['average'] = average_val
+
                 entry['performers'].append({
                     "runner_name": runner_name,
                     "team_name": team_lookup.get(team_id, '所属不明'),
-                    "status": summary.get('status', 'provisional'),
+                    "status": status,
                     "average": average_val,
                     "rank": rank_int,
-                    "finalDay": final_day,
-                    "lastUpdatedDay": last_day
+                    "finalDay": summary.get('finalDay'),
+                    "lastUpdatedDay": summary.get('lastUpdatedDay')
                 })
 
-        awards = sorted(leg_best_map.values(), key=lambda item: item['leg'])
+        awards = []
+        for leg_number, data in leg_best_map.items():
+            if leg_number not in active_legs:
+                continue
+            if not data.get('all_final'):
+                continue
+            top_performers = [p for p in data.get('performers', []) if p.get('rank') == 1]
+            if not top_performers:
+                continue
+            avg_val = top_performers[0].get('average')
+            awards.append({
+                "leg": leg_number,
+                "performers": top_performers,
+                "average": avg_val if isinstance(avg_val, (int, float)) else data.get('average')
+            })
+        awards.sort(key=lambda item: item['leg'])
         return awards
 
     def _build_leg_award_notes(self, race_day):
