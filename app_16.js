@@ -921,18 +921,44 @@ const switchLegTab = (legNumber, realtimeData, individualData, teamsInfoMap) => 
  * @param {object} ekidenData - ekiden_data.json のデータ
  */
 const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
-    const teamsInfoMap = new Map(realtimeData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name }]));
+    const legRankingBody = document.getElementById('legRankingBody');
+    const legRankingStatus = document.getElementById('legRankingStatus');
     const legPrizeWinnerDiv = document.getElementById('legPrizeWinner');
     const tabsContainer = document.getElementById('leg-tabs-container');
 
     if (!legPrizeWinnerDiv || !tabsContainer) return;
 
+    const hasTeams = realtimeData && Array.isArray(realtimeData.teams) && realtimeData.teams.length > 0;
+    const legPrizeNavLink = document.querySelector('a[href="#section-leg-prize"]');
+
+    if (!hasTeams) {
+        tabsContainer.innerHTML = '';
+        if (legRankingBody) legRankingBody.innerHTML = '';
+        if (legRankingStatus) {
+            legRankingStatus.textContent = '区間記録のデータはまだありません。';
+            legRankingStatus.className = 'result info';
+            legRankingStatus.style.display = 'block';
+        }
+        legPrizeWinnerDiv.innerHTML = '';
+        legPrizeWinnerDiv.style.display = 'none';
+        if (legPrizeNavLink) {
+            legPrizeNavLink.parentElement.style.display = 'none';
+        }
+        return;
+    }
+
+    if (legRankingStatus) {
+        legRankingStatus.style.display = 'none';
+    }
+
+    const teamsInfoMap = new Map(realtimeData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name }]));
+
     // ekiden_data.json から最大区間数を取得
-    const maxLegs = ekidenData.leg_boundaries.length;
+    const maxLegs = Array.isArray(ekidenData.leg_boundaries) ? ekidenData.leg_boundaries.length : 0;
 
     // 1. Identify and sort active legs
-    const activeLegs = [...new Set(realtimeData.teams.map(t => t.currentLeg))]
-        .filter(leg => leg <= maxLegs) // ゴール済み(11区)など、最大区間数より大きい区間を除外
+    const activeLegs = [...new Set(realtimeData.teams.map(t => t.currentLeg).filter(leg => typeof leg === 'number'))]
+        .filter(leg => maxLegs === 0 || leg <= maxLegs) // ゴール済み(11区)など、最大区間数より大きい区間を除外
         .sort((a, b) => b - a);
 
     // 2. Generate and display tabs
@@ -959,7 +985,10 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
     legPrizeWinnerDiv.style.display = 'none'; // Hide by default
 
     // Find the minimum current leg across all teams. This determines which legs are fully completed.
-    let minCurrentLeg = Math.min(...realtimeData.teams.map(t => t.currentLeg));
+    let minCurrentLeg = Math.min(...realtimeData.teams.map(t => t.currentLeg).filter(leg => typeof leg === 'number'));
+    if (!Number.isFinite(minCurrentLeg)) {
+        minCurrentLeg = maxLegs || 1;
+    }
 
     // --- 表示テスト用 ---
     // 以下の行を有効にすると、3区が進行中（1区と2区の記録が確定済み）の状態をシミュレートできます。
@@ -1104,7 +1133,6 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
     }
 
     // Toggle visibility of the navigation link based on whether any prize sections are displayed
-    const legPrizeNavLink = document.querySelector('a[href="#section-leg-prize"]');
     if (legPrizeNavLink) {
         if (legPrizeWinnerDiv.style.display === 'block') {
             legPrizeNavLink.parentElement.style.display = '';
@@ -1452,15 +1480,19 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
     const rankingStatus = document.getElementById('ekidenRankingStatus');
     if (!rankingBody || !rankingStatus) return;
 
-    if (!realtimeData || !realtimeData.teams || !ekidenData || !ekidenData.leg_boundaries) {
-        rankingStatus.textContent = '駅伝ランキングデータを読み込めませんでした。';
-        rankingStatus.className = 'result error';
-        rankingStatus.style.display = 'block';
+    const hasTeams = realtimeData && Array.isArray(realtimeData.teams) && realtimeData.teams.length > 0;
+    const hasLegBoundaries = ekidenData && Array.isArray(ekidenData.leg_boundaries) && ekidenData.leg_boundaries.length > 0;
+
+    if (!hasTeams || !hasLegBoundaries) {
         rankingBody.innerHTML = '';
+        rankingStatus.textContent = 'まだ総合順位のデータがありません。';
+        rankingStatus.className = 'result info';
+        rankingStatus.style.display = 'block';
         return;
     }
 
     rankingStatus.style.display = 'none';
+
     rankingBody.innerHTML = ''; // テーブルをクリア
 
     const currentRaceDay = realtimeData.raceDay;
@@ -1693,16 +1725,38 @@ const fetchEkidenData = async () => {
         // ログファイルの存在をチェックしてフラグを更新
         logFileExists = logFileRes.ok;
 
-        // ログファイル以外の必須ファイルを確認
-        if (!realtimeRes.ok || !individualRes.ok || !runnerLocationsRes.ok || !ekidenDataRes.ok) {
-            throw new Error(`HTTP error! One or more data files failed to load.`);
+        let realtimeData = realtimeRes.ok ? await realtimeRes.json() : {};
+        let individualData = individualRes.ok ? await individualRes.json() : {};
+        let runnerLocations = runnerLocationsRes.ok ? await runnerLocationsRes.json() : [];
+        let ekidenData = ekidenDataRes.ok ? await ekidenDataRes.json() : {};
+        legRankHistoryData = legRankHistoryRes.ok ? await legRankHistoryRes.json() : null;
+
+        if (!realtimeRes.ok) {
+            console.warn('realtime_report.json が見つかりません。初期状態として扱います。');
+        }
+        if (!individualRes.ok) {
+            console.warn('individual_results.json が見つかりません。初期状態として扱います。');
+        }
+        if (!runnerLocationsRes.ok) {
+            console.warn('runner_locations.json が見つかりません。初期状態として扱います。');
+        }
+        if (!ekidenDataRes.ok) {
+            console.warn('ekiden_data.json が見つかりません。最低限の設定で処理を続行します。');
         }
 
-        const realtimeData = await realtimeRes.json();
-        const individualData = await individualRes.json();
-        const runnerLocations = await runnerLocationsRes.json();
-        const ekidenData = await ekidenDataRes.json();
-        legRankHistoryData = legRankHistoryRes.ok ? await legRankHistoryRes.json() : null;
+        // データの既定値を整える
+        realtimeData = realtimeData && typeof realtimeData === 'object' ? realtimeData : {};
+        realtimeData.teams = Array.isArray(realtimeData.teams) ? realtimeData.teams : [];
+        realtimeData.raceDay = realtimeData.raceDay ?? 0;
+        realtimeData.updateTime = realtimeData.updateTime ?? '未更新';
+
+        individualData = individualData && typeof individualData === 'object' ? individualData : {};
+
+        runnerLocations = Array.isArray(runnerLocations) ? runnerLocations.filter(r => r && typeof r.rank === 'number') : [];
+
+        ekidenData = ekidenData && typeof ekidenData === 'object' ? ekidenData : {};
+        ekidenData.teams = Array.isArray(ekidenData.teams) ? ekidenData.teams : [];
+        ekidenData.leg_boundaries = Array.isArray(ekidenData.leg_boundaries) ? ekidenData.leg_boundaries : [];
 
         // グローバルキャッシュに保存
         ekidenDataCache = ekidenData;
@@ -1829,8 +1883,10 @@ const fetchEkidenData = async () => {
         }
 
         // Update title and update time
-        titleEl.textContent = `🏆 ${realtimeData.raceDay}日目 総合順位`;
-        updateTimeEl.textContent = `(更新: ${realtimeData.updateTime})`;
+        const raceDayLabel = realtimeData.teams.length > 0 ? `${realtimeData.raceDay}日目` : 'データ未取得';
+        const updateTimeLabel = realtimeData.updateTime || '未更新';
+        titleEl.textContent = `🏆 ${raceDayLabel} 総合順位`;
+        updateTimeEl.textContent = `(更新: ${updateTimeLabel})`;
 
         // Update breaking news comment from realtime_report.json
         const newsContainer = document.getElementById('breaking-news-container');
