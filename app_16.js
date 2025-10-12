@@ -15,7 +15,7 @@ let goalLatLng = null; // ゴール地点の座標を保持
 
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
-let EKIDEN_START_DATE = '2025-09-01'; // outline.json で上書き
+let EKIDEN_START_DATE = '2025-10-13'; // outline.json で上書き
 let CURRENT_EDITION = 16; // outline.json で上書き
 
 /**
