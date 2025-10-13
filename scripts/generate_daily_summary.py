@@ -546,11 +546,17 @@ class DailySummaryGenerator:
             return ""
 
         # テンプレートに動的データを埋め込む
+        tournament_title = outline_data.get('title')
+        details = outline_data.get('details', {}) if isinstance(outline_data, dict) else {}
+        metadata = outline_data.get('metadata', {}) if isinstance(outline_data, dict) else {}
+        start_date = details.get('startDate') or metadata.get('startDate')
+        course_description = details.get('course')
+
         base_prompt = prompt_template.format(
             team_prefecture_list=team_prefecture_text,
-            tournament_title=outline_data.get('title', '第16回 全国大学対抗高温駅伝大会'),
-            start_date=outline_data.get('details', {}).get('startDate', '2025年9月1日（月）'),
-            course_description=outline_data.get('details', {}).get('course', '(旧)気象庁庁舎前(東京) ～ 下関駅前(山口) 全10区間 1055km'),
+            tournament_title=tournament_title or '大会名称未設定',
+            start_date=start_date or '開始日未設定',
+            course_description=course_description or 'コース情報未設定',
             leg_configuration=leg_configuration
         )
         
