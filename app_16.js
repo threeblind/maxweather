@@ -2076,6 +2076,9 @@ async function displayDailySummary() {
 
             // 記事をセクション（見出し＋本文）ごとに解析し、適切なHTMLタグに変換
             const sections = data.article.split(/^(?=#)/m); // 行頭の#で見出しセクションを分割
+            const processBold = (text) => text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            const formatParagraph = (text) => `<p>${processBold(text).replace(/\n/g, '<br>')}</p>`;
+
             const htmlParts = sections.map(section => {
                 const trimmedSection = section.trim();
                 if (!trimmedSection) return '';
@@ -2084,22 +2087,19 @@ async function displayDailySummary() {
                 const firstLine = lines.shift();
                 const bodyText = lines.join('\n').trim();
 
-                // テキスト内の太字を処理するヘルパー関数
-                const processBold = (text) => text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-                if (firstLine.startsWith('##')) {
-                    const headingHtml = `<h4>${processBold(firstLine.substring(2).trim())}</h4>`;
-                    const bodyHtml = bodyText ? `<p>${processBold(bodyText.replace(/\n/g, '<br>'))}</p>` : '';
-                    // 本文がある場合のみ区切り線を追加
-                    const separatorHtml = bodyText ? '<hr class="article-separator">' : '';
+                const headingMatch = firstLine.match(/^(#{1,6})\s*(.*)$/);
+                if (headingMatch) {
+                    const level = headingMatch[1].length;
+                    const headingContent = headingMatch[2].trim();
+                    const headingLevel = Math.min(6, level + 2); // h3 〜 h6 を利用
+                    const headingHtml = `<h${headingLevel}>${processBold(headingContent)}</h${headingLevel}>`;
+                    const bodyHtml = bodyText ? formatParagraph(bodyText) : '';
+                    const separatorHtml = level > 1 && bodyText ? '<hr class="article-separator">' : '';
                     return `${headingHtml}${bodyHtml}${separatorHtml}`;
-                } else if (firstLine.startsWith('#')) {
-                    const headingHtml = `<h3>${processBold(firstLine.substring(1).trim())}</h3>`;
-                    const bodyHtml = bodyText ? `<p>${processBold(bodyText.replace(/\n/g, '<br>'))}</p>` : '';
-                    return `${headingHtml}${bodyHtml}`; // 見出し1には区切り線なし
                 }
+
                 // 見出しで始まらないセクション（記事の冒頭など）
-                return `<p>${processBold(trimmedSection.replace(/\n/g, '<br>'))}</p>`;
+                return formatParagraph(trimmedSection);
             });
             const formattedArticle = htmlParts.join('');
 
