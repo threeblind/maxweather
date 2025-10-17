@@ -398,6 +398,8 @@ def generate_breaking_news_comment(current_results, previous_report_data):
         _generate_timed_report_comment,
     ]
 
+    last_comment = previous_report_data.get('breakingNewsComment', "")
+
     for generator in comment_generators:
         if generator in [_generate_rank_change_comment]:
              comment = generator(current_results, previous_ranks)
@@ -405,6 +407,8 @@ def generate_breaking_news_comment(current_results, previous_report_data):
             comment = generator(current_results, previous_report_data)
         
         if comment:
+            if comment == last_comment:
+                continue
             return comment
 
     return ""
