@@ -1,8 +1,8 @@
 {
-  "updateTime": "2025/10/19 14:35",
+  "updateTime": "2025/10/19 14:45",
   "raceDay": 7,
-  "breakingNewsComment": "【定時速報】現在トップは琉球大学！総合距離223.0kmです！",
-  "breakingNewsTimestamp": "2025-10-19T14:15:07.669235",
+  "breakingNewsComment": "【定時速報】本日のトップは川内（鹿児島）選手！30.5kmと素晴らしい走りです！",
+  "breakingNewsTimestamp": "2025-10-19T14:45:08.219969",
   "breakingNewsFullText": "",
   "teams": [
     {
@@ -134,6 +134,22 @@
       "is_shadow_confederation": false
     },
     {
+      "id": 10,
+      "name": "三重大学",
+      "short_name": "三重",
+      "currentLeg": 2,
+      "runner": "2五條",
+      "todayDistance": 21.5,
+      "todayRank": 11,
+      "totalDistance": 179.9,
+      "overallRank": 9,
+      "previousRank": 10,
+      "nextRunner": "3小俣",
+      "error": null,
+      "finishDay": null,
+      "is_shadow_confederation": false
+    },
+    {
       "id": 5,
       "name": "立命館大学",
       "short_name": "立命",
@@ -142,25 +158,9 @@
       "todayDistance": 21.1,
       "todayRank": 12,
       "totalDistance": 179.7,
-      "overallRank": 9,
+      "overallRank": 10,
       "previousRank": 9,
       "nextRunner": "3京田辺",
-      "error": null,
-      "finishDay": null,
-      "is_shadow_confederation": false
-    },
-    {
-      "id": 10,
-      "name": "三重大学",
-      "short_name": "三重",
-      "currentLeg": 2,
-      "runner": "2五條",
-      "todayDistance": 21.3,
-      "todayRank": 11,
-      "totalDistance": 179.7,
-      "overallRank": 9,
-      "previousRank": 10,
-      "nextRunner": "3小俣",
       "error": null,
       "finishDay": null,
       "is_shadow_confederation": false
