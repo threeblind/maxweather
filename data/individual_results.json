@@ -900,7 +900,7 @@
     }
   },
   "加計": {
-    "totalDistance": 100.9,
+    "totalDistance": 101.2,
     "teamId": 6,
     "records": [
       {
@@ -933,22 +933,22 @@
       {
         "day": 8,
         "leg": 2,
-        "distance": 22.8,
-        "legAverageDistance": 25.225,
+        "distance": 23.1,
+        "legAverageDistance": 25.3,
         "legRank": 5,
-        "legAverageStatus": "provisional",
-        "legRankStatus": "provisional"
+        "legAverageStatus": "final",
+        "legRankStatus": "final"
       }
     ],
     "legSummaries": {
       "2": {
-        "totalDistance": 100.9,
+        "totalDistance": 101.2,
         "days": 4,
-        "averageDistance": 25.225,
+        "averageDistance": 25.3,
         "rank": 5,
-        "status": "provisional",
-        "finalRank": null,
-        "finalDay": null,
+        "status": "final",
+        "finalRank": 5,
+        "finalDay": 8,
         "lastUpdatedDay": 8
       }
     }
