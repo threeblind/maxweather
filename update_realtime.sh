@@ -36,13 +36,37 @@ if ! git diff --quiet --exit-code \
   data/rank_history.json \
   data/leg_rank_history.json \
   data/runner_locations.json \
-  data/realtime_log.jsonl; then
+  data/realtime_log.jsonl \
+; then
     echo "速報ファイル (realtime_report.json, etc.) に変更を検出しました。GitHubにプッシュします。"
+
+    # --- スナップショットの当日分のみリポジトリに含める（古いものは削除） ---
+    TODAY=$(date +'%Y%m%d')
+    SNAP_DIR="data/snapshots"
+
+    # 当日分の snapshot を add（存在しなければ無視）
+    if compgen -G "$SNAP_DIR/realtime_report_${TODAY}_*.json" > /dev/null; then
+        git add "$SNAP_DIR"/realtime_report_${TODAY}_*.json || true
+    fi
+    # snapshot_index.json も add（存在すれば）
+    if [[ -f "$SNAP_DIR/snapshot_index.json" ]]; then
+        git add "$SNAP_DIR/snapshot_index.json" || true
+    fi
+
+    # リポジトリに既にある過去の snapshot ファイル（当日以外）を削除してコミット対象にする
+    for f in $(git ls-files "$SNAP_DIR"/realtime_report_*.json 2>/dev/null || true); do
+        if [[ "$f" != "$SNAP_DIR/realtime_report_${TODAY}_"* ]]; then
+            echo "古いスナップショットを削除: $f"
+            git rm --ignore-unmatch "$f" || true
+        fi
+    done
+
+    # 主要な速報ファイルを add
     git add data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json data/realtime_log.jsonl
-    git commit -m "Update realtime report [bot] $(date +'%Y-%m-%d %H:%M:%S')"
+
+    git commit -m "Update realtime report [bot] $(date +'%Y-%m-%d %H:%M:%S')" || true
 
     # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash) します。
-    # これにより、`git pull --rebase` が安全に実行できます。
     STASH_RESULT=$(git stash)
 
     # リモートの変更を取り込んでからプッシュする (non-fast-forwardエラー対策)

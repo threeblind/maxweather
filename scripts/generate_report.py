@@ -17,6 +17,7 @@ CONFIG_DIR = Path('config')
 DATA_DIR = Path('data')
 LOGS_DIR = Path('logs')
 HISTORY_DATA_DIR = Path('history_data')
+SNAPSHOT_DIR = DATA_DIR / 'snapshots'  # スナップショットの保存ディレクトリ
 
 # --- ファイルパス定義 ---
 EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
@@ -651,6 +652,152 @@ def append_to_realtime_log(results):
     except IOError as e:
         print(f"エラー: '{REALTIME_LOG_FILE}' への書き込みに失敗しました: {e}")
 
+def should_generate_snapshot():
+    """スナップショット生成の条件を判定する
+    1. 毎時5分のタイミング（24時間）
+    2. 大きな状態変化（首位交代、区間完走など）があった場合
+    """
+    now = datetime.now()
+    return now.minute == 5  # 24時間毎時5分でスナップショットを生成
+
+def list_snapshots():
+    """スナップショットの一覧を取得する
+    Returns:
+        list: スナップショットファイルのリスト（タイムスタンプ順）
+    """
+    SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+    snapshots = []
+    for file in SNAPSHOT_DIR.glob('realtime_report_*.json'):
+        try:
+            timestamp_str = file.stem.replace('realtime_report_', '')
+            timestamp = datetime.strptime(timestamp_str, '%Y%m%d_%H%M')
+            snapshots.append({
+                'filename': file.name,
+                'path': str(file),
+                'timestamp': timestamp,
+                'timestamp_str': timestamp_str
+            })
+        except ValueError:
+            continue
+    return sorted(snapshots, key=lambda x: x['timestamp'])
+
+def save_snapshot(results, race_day, breaking_news_comment, breaking_news_timestamp, breaking_news_full_text="", individual_results=None):
+    """速報データのスナップショットを保存する
+    
+    スナップショットには以下の情報が含まれます：
+    - チーム情報（順位、走者、距離など）
+    - ランナーの位置情報（緯度経度）
+    - 個人記録
+    - 区間記録履歴
+    - 速報コメント
+    
+    また、スナップショット一覧ファイルも自動的に更新します。
+    """
+    now = datetime.now()
+    timestamp_str = now.strftime('%Y%m%d_%H%M')
+    
+    # 位置情報の計算
+    runner_locations = []
+    try:
+        with open(COURSE_PATH_FILE, 'r', encoding='utf-8') as f:
+            all_points = json.load(f)
+            
+        for team in results:
+            target_distance_km = team.get('totalDistance', 0)
+            cumulative_distance_km = 0.0
+            team_lat, team_lon = all_points[0]['lat'], all_points[0]['lon']
+            current_leg = team.get('currentLegNumber', 1)
+            
+            for i in range(1, len(all_points)):
+                p1 = (all_points[i-1]['lat'], all_points[i-1]['lon'])
+                p2 = (all_points[i]['lat'], all_points[i]['lon'])
+                segment_distance_km = geodesic(p1, p2).kilometers
+                
+                if cumulative_distance_km <= target_distance_km < cumulative_distance_km + segment_distance_km:
+                    distance_into_segment = target_distance_km - cumulative_distance_km
+                    fraction = distance_into_segment / segment_distance_km if segment_distance_km > 0 else 0
+                    team_lat = p1[0] + fraction * (p2[0] - p1[0])
+                    team_lon = p1[1] + fraction * (p2[1] - p1[1])
+                    break
+                cumulative_distance_km += segment_distance_km
+            
+            runner_locations.append({
+                "team_id": team["id"],
+                "team_name": team.get("name"),
+                "leg": current_leg,
+                "runner": team.get("runner"),
+                "distance": target_distance_km,
+                "latitude": team_lat,
+                "longitude": team_lon,
+                "is_shadow_confederation": team.get("is_shadow_confederation", False)
+            })
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"警告: コース情報の読み込みに失敗しました: {e}")
+        runner_locations = []
+
+    snapshot_data = {
+        "updateTime": now.strftime('%Y/%m/%d %H:%M'),
+        "timestamp": now.isoformat(),
+        "raceDay": race_day,
+        "breakingNewsComment": breaking_news_comment,
+        "breakingNewsTimestamp": breaking_news_timestamp,
+        "breakingNewsFullText": breaking_news_full_text,
+        "teams": [],
+        "runnerLocations": runner_locations
+    }
+
+    team_info_map = {t['id']: t for t in all_teams_data}
+    for r in results:
+        team_info = team_info_map.get(r['id'])
+        if not team_info:
+            continue
+
+        runner_display = "ゴール"
+        if r['runner'] != 'ゴール':
+            if r.get('is_shadow_confederation'):
+                runner_display = r['runner']
+            else:
+                runner_display = f"{r['currentLegNumber']}{r['runner']}"
+
+        next_runner_name = '----'
+        if r['currentLegNumber'] < len(team_info.get('runners', [])):
+            next_runner_name = team_info['runners'][r['currentLegNumber']]['name']
+        
+        next_runner_str = 'ゴール' if next_runner_name == '----' else f"{r['currentLegNumber'] + 1}{next_runner_name}"
+
+        snapshot_data["teams"].append({
+            "id": r["id"], "name": r["name"],
+            "short_name": team_info.get("short_name", r["name"]),
+            "currentLeg": r["currentLegNumber"], "runner": runner_display,
+            "todayDistance": r["todayDistance"], "todayRank": r["todayRank"],
+            "totalDistance": r["totalDistance"], "overallRank": r["overallRank"],
+            "previousRank": r["previousRank"], "nextRunner": next_runner_str,
+            "error": r['rawTempResult']['error'], "finishDay": r.get("finishDay"),
+            "is_shadow_confederation": r.get("is_shadow_confederation", False)
+        })
+
+    snapshot_path = SNAPSHOT_DIR / f"realtime_report_{timestamp_str}.json"
+    SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+    
+    with open(snapshot_path, 'w', encoding='utf-8') as f:
+        json.dump(snapshot_data, f, indent=2, ensure_ascii=False)
+    print(f"✅ スナップショットを '{snapshot_path}' に保存しました。")
+
+    # スナップショット一覧の更新
+    snapshots = list_snapshots()
+    snapshot_index = {
+        'lastUpdated': now.isoformat(),
+        'snapshots': [{
+            'filename': s['filename'],
+            'timestamp': s['timestamp'].isoformat(),
+            'timestamp_str': s['timestamp_str']
+        } for s in snapshots]
+    }
+    index_path = SNAPSHOT_DIR / 'snapshot_index.json'
+    with open(index_path, 'w', encoding='utf-8') as f:
+        json.dump(snapshot_index, f, indent=2, ensure_ascii=False)
+    print(f"✅ スナップショット一覧を更新しました（計 {len(snapshots)} 件）")
+
 def update_leg_rank_history(results, previous_data, leg_rank_history_file_path, is_commit_mode=False):
     """区間通過順位の履歴を更新する。
     - is_commit_mode=False (リアルタイム): 前回の速報データと比較し、この瞬間に区間を通過したチームの順位を記録する。
@@ -788,6 +935,7 @@ def main():
     parser.add_argument('--realtime', action='store_true', help='リアルタイム速報用のJSONを生成します。')
     parser.add_argument('--commit', action='store_true', help='本日の結果を状態ファイルに保存します。')
     parser.add_argument('--test-notification', action='store_true', help='定時順位通知を強制的に送信してテストします。')
+    parser.add_argument('--force-snapshot', action='store_true', help='強制的にスナップショットを生成します。')
     parser.add_argument('--state-file', default=STATE_FILE, help=f'チームの状態ファイルパス (デフォルト: {STATE_FILE})')
     parser.add_argument('--individual-state-file', default=INDIVIDUAL_STATE_FILE, help=f'個人の状態ファイルパス (デフォルト: {INDIVIDUAL_STATE_FILE})')
     parser.add_argument('--history-file', default=RANK_HISTORY_FILE, help=f'日次順位履歴ファイルパス (デフォルト: {RANK_HISTORY_FILE})')
@@ -1108,6 +1256,19 @@ def main():
         append_to_realtime_log(all_results)
 
         comment_to_save, timestamp_to_save, full_text_to_save = "", "", ""
+
+        # スナップショット生成（毎時5分、重要な状態変化時、または強制指定時）
+        if should_generate_snapshot() or args.force_snapshot:
+            print("\nスナップショットを生成します...")
+            save_snapshot(
+                results=all_results,
+                race_day=race_day,
+                breaking_news_comment=comment_to_save,
+                breaking_news_timestamp=timestamp_to_save,
+                breaking_news_full_text=full_text_to_save,
+                individual_results=individual_results
+            )
+            print(f"✅ スナップショットを {SNAPSHOT_DIR} に保存しました。")
 
         # 1. 監督の日中コメントをチェック
         daytime_comment = fetch_daytime_manager_comment(ekiden_data)
