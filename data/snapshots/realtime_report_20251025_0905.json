@@ -1,8 +1,9 @@
 {
   "updateTime": "2025/10/25 09:05",
+  "timestamp": "2025-10-25T09:05:08.004672",
   "raceDay": 13,
-  "breakingNewsComment": "【定時速報】本日のトップは名護選手！27.8kmと素晴らしい走りです！",
-  "breakingNewsTimestamp": "2025-10-25T08:45:08.342007",
+  "breakingNewsComment": "",
+  "breakingNewsTimestamp": "",
   "breakingNewsFullText": "",
   "teams": [
     {
@@ -291,6 +292,188 @@
       "nextRunner": "3大村",
       "error": null,
       "finishDay": null,
+      "is_shadow_confederation": false
+    }
+  ],
+  "runnerLocations": [
+    {
+      "team_id": 18,
+      "team_name": "琉球大学",
+      "leg": 4,
+      "runner": "名護",
+      "distance": 392.5,
+      "latitude": 34.93451530813792,
+      "longitude": 136.59629082478193,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 12,
+      "team_name": "熊本学園大学",
+      "leg": 4,
+      "runner": "人吉",
+      "distance": 353.6,
+      "latitude": 35.12429304466674,
+      "longitude": 136.8817066362339,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 17,
+      "team_name": "鹿児島大学",
+      "leg": 4,
+      "runner": "西米良",
+      "distance": 341.1,
+      "latitude": 35.06129035227523,
+      "longitude": 136.97992823700653,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 7,
+      "team_name": "福岡大学",
+      "leg": 4,
+      "runner": "朝倉",
+      "distance": 338.1,
+      "latitude": 35.04595409873518,
+      "longitude": 137.00530422917743,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 15,
+      "team_name": "四国大学",
+      "leg": 3,
+      "runner": "御荘",
+      "distance": 326.5,
+      "latitude": 34.98097850401257,
+      "longitude": 137.10201772252276,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 6,
+      "team_name": "広島経済大学",
+      "leg": 3,
+      "runner": "府中（広島）",
+      "distance": 309.0,
+      "latitude": 34.895374949890055,
+      "longitude": 137.2528263052253,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 9,
+      "team_name": "鳥取大学",
+      "leg": 3,
+      "runner": "広瀬",
+      "distance": 299.4,
+      "latitude": 34.83788010824812,
+      "longitude": 137.32643062180838,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 5,
+      "team_name": "立命館大学",
+      "leg": 3,
+      "runner": "京田辺",
+      "distance": 297.7,
+      "latitude": 34.82708551954699,
+      "longitude": 137.33865564338925,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 3,
+      "team_name": "関西大学",
+      "leg": 3,
+      "runner": "上郡",
+      "distance": 295.6,
+      "latitude": 34.81278168160263,
+      "longitude": 137.35358964614306,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 1,
+      "team_name": "名古屋大学",
+      "leg": 3,
+      "runner": "大垣",
+      "distance": 295.2,
+      "latitude": 34.80999760080278,
+      "longitude": 137.3563666913941,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 10,
+      "team_name": "三重大学",
+      "leg": 3,
+      "runner": "小俣",
+      "distance": 291.7,
+      "latitude": 34.784706904421775,
+      "longitude": 137.3792007213811,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 13,
+      "team_name": "金沢大学",
+      "leg": 3,
+      "runner": "七尾",
+      "distance": 279.1,
+      "latitude": 34.714503671062026,
+      "longitude": 137.46960012155282,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 2,
+      "team_name": "上武大学",
+      "leg": 3,
+      "runner": "熊谷",
+      "distance": 269.4,
+      "latitude": 34.684528946936595,
+      "longitude": 137.54938742829913,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 11,
+      "team_name": "日本大学",
+      "leg": 3,
+      "runner": "下館",
+      "distance": 266.3,
+      "latitude": 34.69403464475363,
+      "longitude": 137.5789500894621,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 4,
+      "team_name": "山梨学院大学",
+      "leg": 3,
+      "runner": "大月",
+      "distance": 248.4,
+      "latitude": 34.71066336740722,
+      "longitude": 137.75387777449401,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 16,
+      "team_name": "福島大学",
+      "leg": 3,
+      "runner": "津川",
+      "distance": 241.9,
+      "latitude": 34.7263126777314,
+      "longitude": 137.81645650582422,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 14,
+      "team_name": "東北大学",
+      "leg": 2,
+      "runner": "山形（山形）",
+      "distance": 194.2,
+      "latitude": 34.88343514663271,
+      "longitude": 138.24473517951103,
+      "is_shadow_confederation": false
+    },
+    {
+      "team_id": 8,
+      "team_name": "学連選抜",
+      "leg": 2,
+      "runner": "新潟",
+      "distance": 191.9,
+      "latitude": 34.893029620781384,
+      "longitude": 138.26676604723698,
       "is_shadow_confederation": false
     }
   ]
