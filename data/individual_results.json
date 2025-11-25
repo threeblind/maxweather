@@ -7977,7 +7977,7 @@
     }
   },
   "丸森": {
-    "totalDistance": 112.6,
+    "totalDistance": 113.3,
     "teamId": 14,
     "records": [
       {
@@ -8055,22 +8055,22 @@
       {
         "day": 45,
         "leg": 6,
-        "distance": 6.9,
-        "legAverageDistance": 12.511,
+        "distance": 7.6,
+        "legAverageDistance": 12.589,
         "legRank": 18,
-        "legAverageStatus": "provisional",
-        "legRankStatus": "provisional"
+        "legAverageStatus": "final",
+        "legRankStatus": "final"
       }
     ],
     "legSummaries": {
       "6": {
-        "totalDistance": 112.6,
+        "totalDistance": 113.3,
         "days": 9,
-        "averageDistance": 12.511,
+        "averageDistance": 12.589,
         "rank": 18,
-        "status": "provisional",
-        "finalRank": null,
-        "finalDay": null,
+        "status": "final",
+        "finalRank": 18,
+        "finalDay": 45,
         "lastUpdatedDay": 45
       }
     }
