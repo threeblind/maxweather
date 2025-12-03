@@ -9135,7 +9135,7 @@
     }
   },
   "秋田": {
-    "totalDistance": 84.1,
+    "totalDistance": 84.3,
     "teamId": 14,
     "records": [
       {
@@ -9200,18 +9200,27 @@
         "legRank": 18,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 53,
+        "leg": 7,
+        "distance": 0.2,
+        "legAverageDistance": 10.537,
+        "legRank": 18,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "7": {
-        "totalDistance": 84.1,
-        "days": 7,
-        "averageDistance": 12.014,
+        "totalDistance": 84.3,
+        "days": 8,
+        "averageDistance": 10.537,
         "rank": 18,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 52
+        "lastUpdatedDay": 53
       }
     }
   },
