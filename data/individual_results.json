@@ -1980,7 +1980,7 @@
     }
   },
   "大阪": {
-    "totalDistance": 81.7,
+    "totalDistance": 81.8,
     "teamId": 3,
     "records": [
       {
@@ -2031,8 +2031,8 @@
       {
         "day": 55,
         "leg": 10,
-        "distance": 5.7,
-        "legAverageDistance": 13.617,
+        "distance": 5.8,
+        "legAverageDistance": 13.633,
         "legRank": 7,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
@@ -2040,9 +2040,9 @@
     ],
     "legSummaries": {
       "10": {
-        "totalDistance": 81.7,
+        "totalDistance": 81.8,
         "days": 6,
-        "averageDistance": 13.617,
+        "averageDistance": 13.633,
         "rank": 7,
         "status": "provisional",
         "finalRank": null,
@@ -3345,7 +3345,7 @@
     }
   },
   "大津（滋賀）": {
-    "totalDistance": 33.6,
+    "totalDistance": 33.8,
     "teamId": 5,
     "records": [
       {
@@ -3378,8 +3378,8 @@
       {
         "day": 55,
         "leg": 10,
-        "distance": 3.0,
-        "legAverageDistance": 8.4,
+        "distance": 3.2,
+        "legAverageDistance": 8.45,
         "legRank": 13,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
@@ -3387,9 +3387,9 @@
     ],
     "legSummaries": {
       "10": {
-        "totalDistance": 33.6,
+        "totalDistance": 33.8,
         "days": 4,
-        "averageDistance": 8.4,
+        "averageDistance": 8.45,
         "rank": 13,
         "status": "provisional",
         "finalRank": null,
@@ -7395,7 +7395,7 @@
     }
   },
   "青梅": {
-    "totalDistance": 35.6,
+    "totalDistance": 36.2,
     "teamId": 11,
     "records": [
       {
@@ -7424,18 +7424,27 @@
         "legRank": 12,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 55,
+        "leg": 10,
+        "distance": 0.6,
+        "legAverageDistance": 9.05,
+        "legRank": 12,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "10": {
-        "totalDistance": 35.6,
-        "days": 3,
-        "averageDistance": 11.867,
+        "totalDistance": 36.2,
+        "days": 4,
+        "averageDistance": 9.05,
         "rank": 12,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 54
+        "lastUpdatedDay": 55
       }
     }
   },
