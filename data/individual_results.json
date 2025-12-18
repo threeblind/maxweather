@@ -9900,7 +9900,7 @@
     }
   },
   "東根": {
-    "totalDistance": 90.4,
+    "totalDistance": 90.7,
     "teamId": 14,
     "records": [
       {
@@ -10019,18 +10019,27 @@
         "legRank": 18,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 68,
+        "leg": 8,
+        "distance": 0.3,
+        "legAverageDistance": 6.479,
+        "legRank": 18,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "8": {
-        "totalDistance": 90.4,
-        "days": 13,
-        "averageDistance": 6.954,
+        "totalDistance": 90.7,
+        "days": 14,
+        "averageDistance": 6.479,
         "rank": 18,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 67
+        "lastUpdatedDay": 68
       }
     }
   },
