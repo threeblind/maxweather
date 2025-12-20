@@ -2784,7 +2784,7 @@
         "totalDistance": 105.9,
         "days": 8,
         "averageDistance": 13.238,
-        "rank": 15,
+        "rank": 14,
         "status": "final",
         "finalRank": 14,
         "finalDay": 55,
@@ -5619,7 +5619,7 @@
         "totalDistance": 104.8,
         "days": 8,
         "averageDistance": 13.1,
-        "rank": 16,
+        "rank": 15,
         "status": "final",
         "finalRank": 15,
         "finalDay": 56,
@@ -9144,7 +9144,7 @@
         "totalDistance": 91.6,
         "days": 7,
         "averageDistance": 13.086,
-        "rank": 17,
+        "rank": 16,
         "status": "final",
         "finalRank": 16,
         "finalDay": 53,
@@ -10044,7 +10044,7 @@
     }
   },
   "江刺": {
-    "totalDistance": 13.9,
+    "totalDistance": 19.0,
     "teamId": 14,
     "records": [
       {
@@ -10055,18 +10055,27 @@
         "legRank": 14,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 70,
+        "leg": 9,
+        "distance": 5.1,
+        "legAverageDistance": 9.5,
+        "legRank": 17,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "9": {
-        "totalDistance": 13.9,
-        "days": 1,
-        "averageDistance": 13.9,
-        "rank": 14,
+        "totalDistance": 19.0,
+        "days": 2,
+        "averageDistance": 9.5,
+        "rank": 17,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 69
+        "lastUpdatedDay": 70
       }
     }
   },
@@ -11538,10 +11547,31 @@
     }
   },
   "若松": {
-    "totalDistance": 0,
+    "totalDistance": 4.1,
     "teamId": 16,
-    "records": [],
-    "legSummaries": {}
+    "records": [
+      {
+        "day": 70,
+        "leg": 10,
+        "distance": 4.1,
+        "legAverageDistance": 4.1,
+        "legRank": 17,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
+      }
+    ],
+    "legSummaries": {
+      "10": {
+        "totalDistance": 4.1,
+        "days": 1,
+        "averageDistance": 4.1,
+        "rank": 17,
+        "status": "provisional",
+        "finalRank": null,
+        "finalDay": null,
+        "lastUpdatedDay": 70
+      }
+    }
   },
   "村上": {
     "totalDistance": 0,
