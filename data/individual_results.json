@@ -10044,7 +10044,7 @@
     }
   },
   "江刺": {
-    "totalDistance": 90.0,
+    "totalDistance": 90.1,
     "teamId": 14,
     "records": [
       {
@@ -10190,18 +10190,27 @@
         "legRank": 18,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 86,
+        "leg": 9,
+        "distance": 0.1,
+        "legAverageDistance": 5.3,
+        "legRank": 18,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "9": {
-        "totalDistance": 90.0,
-        "days": 16,
-        "averageDistance": 5.625,
+        "totalDistance": 90.1,
+        "days": 17,
+        "averageDistance": 5.3,
         "rank": 18,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 85
+        "lastUpdatedDay": 86
       }
     }
   },
