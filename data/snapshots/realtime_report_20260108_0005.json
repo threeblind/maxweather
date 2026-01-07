@@ -1,7 +1,7 @@
 {
-  "updateTime": "2026/01/07 05:05",
-  "timestamp": "2026-01-07T05:05:01.492271",
-  "raceDay": 87,
+  "updateTime": "2026/01/08 00:05",
+  "timestamp": "2026-01-08T00:05:01.920834",
+  "raceDay": 88,
   "breakingNewsComment": "",
   "breakingNewsTimestamp": "",
   "breakingNewsFullText": "",
@@ -268,13 +268,13 @@
       "short_name": "福島",
       "currentLeg": 10,
       "runner": "10若松",
-      "todayDistance": -0.3,
+      "todayDistance": 0.0,
       "todayRank": 17,
-      "totalDistance": 1034.6,
+      "totalDistance": 1036.9,
       "overallRank": 17,
       "previousRank": 17,
       "nextRunner": "ゴール",
-      "error": null,
+      "error": "気温が数値でない",
       "finishDay": null,
       "is_shadow_confederation": false
     },
@@ -284,13 +284,13 @@
       "short_name": "東北",
       "currentLeg": 9,
       "runner": "9江刺",
-      "todayDistance": -2.8,
+      "todayDistance": 0.0,
       "todayRank": 18,
-      "totalDistance": 927.4,
+      "totalDistance": 934.4,
       "overallRank": 18,
       "previousRank": 18,
       "nextRunner": "10米沢",
-      "error": null,
+      "error": "気温が数値でない",
       "finishDay": null,
       "is_shadow_confederation": false
     }
@@ -461,9 +461,9 @@
       "team_name": "福島大学",
       "leg": 10,
       "runner": "若松",
-      "distance": 1034.6,
-      "latitude": 34.047582212424295,
-      "longitude": 131.06180699338694,
+      "distance": 1036.9,
+      "latitude": 34.063944606122895,
+      "longitude": 131.05243528258458,
       "is_shadow_confederation": false
     },
     {
@@ -471,9 +471,9 @@
       "team_name": "東北大学",
       "leg": 9,
       "runner": "江刺",
-      "distance": 927.4,
-      "latitude": 34.090890922556106,
-      "longitude": 132.02915840332437,
+      "distance": 934.4,
+      "latitude": 34.0592130477643,
+      "longitude": 131.97327958214498,
       "is_shadow_confederation": false
     }
   ]
