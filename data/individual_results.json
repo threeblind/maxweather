@@ -10251,10 +10251,31 @@
     }
   },
   "米沢": {
-    "totalDistance": 0,
+    "totalDistance": 0.4,
     "teamId": 14,
-    "records": [],
-    "legSummaries": {}
+    "records": [
+      {
+        "day": 91,
+        "leg": 10,
+        "distance": 0.4,
+        "legAverageDistance": 0.4,
+        "legRank": 18,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
+      }
+    ],
+    "legSummaries": {
+      "10": {
+        "totalDistance": 0.4,
+        "days": 1,
+        "averageDistance": 0.4,
+        "rank": 18,
+        "status": "provisional",
+        "finalRank": null,
+        "finalDay": null,
+        "lastUpdatedDay": 91
+      }
+    }
   },
   "鷹巣": {
     "totalDistance": 0,
