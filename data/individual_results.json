@@ -10251,7 +10251,7 @@
     }
   },
   "米沢": {
-    "totalDistance": 4.3,
+    "totalDistance": 6.7,
     "teamId": 14,
     "records": [
       {
@@ -10271,18 +10271,27 @@
         "legRank": 18,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 93,
+        "leg": 10,
+        "distance": 2.4,
+        "legAverageDistance": 2.233,
+        "legRank": 18,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "10": {
-        "totalDistance": 4.3,
-        "days": 2,
-        "averageDistance": 2.15,
+        "totalDistance": 6.7,
+        "days": 3,
+        "averageDistance": 2.233,
         "rank": 18,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 92
+        "lastUpdatedDay": 93
       }
     }
   },
