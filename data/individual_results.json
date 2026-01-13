@@ -11757,7 +11757,7 @@
     }
   },
   "若松": {
-    "totalDistance": 96.3,
+    "totalDistance": 98.2,
     "teamId": 16,
     "records": [
       {
@@ -11970,22 +11970,22 @@
       {
         "day": 93,
         "leg": 10,
-        "distance": 3.4,
-        "legAverageDistance": 4.013,
+        "distance": 5.3,
+        "legAverageDistance": 4.092,
         "legRank": 18,
-        "legAverageStatus": "provisional",
-        "legRankStatus": "provisional"
+        "legAverageStatus": "final",
+        "legRankStatus": "final"
       }
     ],
     "legSummaries": {
       "10": {
-        "totalDistance": 96.3,
+        "totalDistance": 98.2,
         "days": 24,
-        "averageDistance": 4.013,
+        "averageDistance": 4.092,
         "rank": 18,
-        "status": "provisional",
-        "finalRank": null,
-        "finalDay": null,
+        "status": "final",
+        "finalRank": 18,
+        "finalDay": 93,
         "lastUpdatedDay": 93
       }
     }
