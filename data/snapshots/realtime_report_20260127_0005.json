@@ -1,7 +1,7 @@
 {
-  "updateTime": "2026/01/26 09:05",
-  "timestamp": "2026-01-26T09:05:01.411986",
-  "raceDay": 106,
+  "updateTime": "2026/01/27 00:05",
+  "timestamp": "2026-01-27T00:05:01.098939",
+  "raceDay": 107,
   "breakingNewsComment": "",
   "breakingNewsTimestamp": "",
   "breakingNewsFullText": "",
@@ -284,13 +284,13 @@
       "short_name": "東北",
       "currentLeg": 10,
       "runner": "10米沢",
-      "todayDistance": -3.5,
+      "todayDistance": 0.0,
       "todayRank": 18,
-      "totalDistance": 986.6,
+      "totalDistance": 990.0,
       "overallRank": 18,
       "previousRank": 18,
       "nextRunner": "ゴール",
-      "error": null,
+      "error": "気温が数値でない",
       "finishDay": null,
       "is_shadow_confederation": false
     }
@@ -471,9 +471,9 @@
       "team_name": "東北大学",
       "leg": 10,
       "runner": "米沢",
-      "distance": 986.6,
-      "latitude": 34.05556863037568,
-      "longitude": 131.49871400590294,
+      "distance": 990.0,
+      "latitude": 34.06999373900902,
+      "longitude": 131.46781856641294,
       "is_shadow_confederation": false
     }
   ]
