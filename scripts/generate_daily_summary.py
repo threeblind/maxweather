@@ -5,9 +5,9 @@ import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from dotenv import load_dotenv
-import google.generativeai as genai
 from bs4 import BeautifulSoup
 import unicodedata
+import google.generativeai as genai
 
 # --- ディレクトリ定義 ---
 CONFIG_DIR = Path('config')
@@ -20,15 +20,12 @@ MANAGER_COMMENTS_FILE = DATA_DIR / 'manager_comments.json'
 EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
 RANK_HISTORY_FILE = DATA_DIR / 'rank_history.json'
 ARTICLE_HISTORY_FILE = DATA_DIR / 'article_history.json'
-SUMMARY_PROMPT_TEMPLATE_FILE = CONFIG_DIR / 'summary_prompt_template.txt'
-OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 OUTPUT_FILE = DATA_DIR / 'daily_summary.json'
 INDIVIDUAL_RESULTS_FILE = DATA_DIR / 'individual_results.json'
 
 class DailySummaryGenerator:
     """
-    Generates a daily summary article for the Ekiden race using Gemini,
-    with conversation history managed by Momento Cache for context.
+    Generates a daily summary article for the Ekiden race using an LLM.
     """
 
     def __init__(self, dry_run=False):
@@ -37,19 +34,23 @@ class DailySummaryGenerator:
         self.gemini_model = None
 
         load_dotenv()
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-3.1-flash")
         self._setup_clients()
 
     def _setup_clients(self):
         """Initializes Gemini API client."""
-        # --- Gemini Setup ---
         if not self.dry_run:
-            gemini_api_key = os.getenv("GEMINI_API_KEY")
-            if not gemini_api_key:
+            api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
                 print("エラー: 環境変数 'GEMINI_API_KEY' が設定されていません。")
                 exit(1)
-            genai.configure(api_key=gemini_api_key)
-            self.gemini_model = genai.GenerativeModel('gemini-3.1-flash')
-            print("✅ Geminiクライアントを初期化しました。")
+
+            genai.configure(api_key=api_key)
+            self.gemini_model = genai.GenerativeModel(
+                self.model_name,
+                system_instruction=self.build_system_prompt()
+            )
+            print(f"✅ Geminiクライアントを初期化しました。model={self.model_name}")
 
     def _get_article_history(self, num_articles=2):
         """Fetches the last N articles and prompts from the local history file."""
@@ -184,7 +185,7 @@ class DailySummaryGenerator:
             total_distance = team.get('totalDistance', 0.0)
             gap = "----" if team.get('overallRank') == 1 else f"-{top_distance - total_distance:.1f}km"
             previous_rank = team.get("previousRank", 0)
-            rank_change = "ー (－)" if not previous_rank else f"ー ({previous_rank})"
+            rank_change = self._rank_move_label(previous_rank, team.get('overallRank'))
 
             row = [
                 team.get('overallRank', ''),
@@ -282,6 +283,90 @@ class DailySummaryGenerator:
         runner = team.get('runner') or ''
         rank_str = f"{rank}位" if rank else "順位不明"
         return f"{team.get('name')}（{rank_str} / 累計{total:.1f}km / 本日{today:.1f}km / 走者:{runner}）"
+
+    @staticmethod
+    def _describe_gap(gap):
+        if gap is None:
+            return "差不明"
+        if gap <= 1.0:
+            return f"{gap:.1f}km差のデッドヒート"
+        if gap >= 5.0:
+            return f"{gap:.1f}km差で独走態勢"
+        return f"{gap:.1f}km差"
+
+    @staticmethod
+    def _rank_move_label(previous_rank, current_rank):
+        if not previous_rank or not current_rank:
+            return "前日比較なし"
+        diff = previous_rank - current_rank
+        if diff >= 3:
+            return f"{diff}ランクアップ"
+        if diff >= 1:
+            return f"{diff}ランクアップ"
+        if diff == 0:
+            return "順位維持"
+        return f"{abs(diff)}ランクダウン"
+
+    def _build_story_angle(self):
+        teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
+        if not teams:
+            return []
+
+        notes = []
+        if len(teams) >= 2:
+            lead_gap = teams[0].get('totalDistance', 0.0) - teams[1].get('totalDistance', 0.0)
+            notes.append(f"- 今日の軸: 首位争いは{teams[0].get('name')}と{teams[1].get('name')}の{self._describe_gap(lead_gap)}。")
+
+        upper_mid = [t for t in teams if t.get('overallRank') and 4 <= t['overallRank'] <= 8]
+        if len(upper_mid) >= 2:
+            spread = upper_mid[0].get('totalDistance', 0.0) - upper_mid[-1].get('totalDistance', 0.0)
+            notes.append(f"- 中位戦線: 4〜8位帯は最大{spread:.1f}km差の混戦。")
+
+        rank10 = next((t for t in teams if t.get('overallRank') == 10), None)
+        rank11 = next((t for t in teams if t.get('overallRank') == 11), None)
+        if rank10 and rank11:
+            seed_gap = rank10.get('totalDistance', 0.0) - rank11.get('totalDistance', 0.0)
+            notes.append(f"- シード争い: 10位{rank10.get('name')}と11位{rank11.get('name')}は{self._describe_gap(abs(seed_gap))}。")
+
+        risers = []
+        fallers = []
+        for team in teams:
+            previous_rank = team.get('previousRank')
+            current_rank = team.get('overallRank')
+            if not previous_rank or not current_rank:
+                continue
+            if current_rank < previous_rank:
+                risers.append(f"{team.get('name')}（{previous_rank}位→{current_rank}位）")
+            elif current_rank > previous_rank:
+                fallers.append(f"{team.get('name')}（{previous_rank}位→{current_rank}位）")
+
+        if risers:
+            notes.append("- 順位上昇校: " + "、".join(risers[:4]))
+        if fallers:
+            notes.append("- 順位後退校: " + "、".join(fallers[:4]))
+
+        return notes
+
+    def _build_continuity_note(self):
+        history = self._get_article_history(num_articles=1)
+        if not history:
+            return []
+
+        latest = history[0]
+        article = re.sub(r'\s+', ' ', str(latest.get('article', '') or '')).strip()
+        if not article:
+            return []
+
+        article = article.replace("**", "")
+        article = re.sub(r'^#+\s*', '', article)
+        if len(article) > 140:
+            article = article[:140].rstrip() + "..."
+
+        date_text = latest.get('date') or '前日'
+        return [
+            f"- 前回記事（{date_text}）の主題: {article}",
+            "- 今日の記事では前日の焦点が継続しているのか、入れ替わったのかを自然に接続すること。"
+        ]
 
     def build_coverage_checklist(self):
         teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
@@ -507,10 +592,27 @@ class DailySummaryGenerator:
 
         return notes
 
-    def _build_prompt(self):
-        """Builds the complete prompt for the Gemini API call."""
+    def build_system_prompt(self):
+        return "\n".join([
+            "あなたは「高温大学駅伝」の専門解説者です。",
+            "出力は日本語のMarkdown記事です。",
+            "",
+            "必ず守ること:",
+            "- 提供されたデータにない情報を創作しない",
+            "- 総合順位が上がっていないチームに「浮上」「ジャンプアップ」「逆転」を使わない",
+            "- 監督コメントは提供された場合のみ言及する",
+            "- 既にゴールしたチームには、当日新規性がある場合を除き重点的に触れない",
+            "- 記事は事実優先で書き、数字や順位差は提供データを優先する",
+            "",
+            "文体:",
+            "- 情熱はあるが、実況ではなく解説記事",
+            "- 単なるデータ羅列ではなく、レースの構図が伝わるように書く",
+            "- 具体的な大学名、選手名、距離差、区間を自然に織り込む",
+        ])
+
+    def build_user_prompt(self):
+        """Builds the complete user prompt for the OpenAI API call."""
         realtime_data = self.all_data.get('realtime_report', {})
-        ekiden_data = self.all_data.get('ekiden_data', {})
         race_day = realtime_data.get('raceDay', 'N/A')
         race_status_summary = "レース集計中"
         active_sorted = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
@@ -521,76 +623,89 @@ class DailySummaryGenerator:
             top_team = realtime_data['teams'][0]
             race_status_summary = "トップチームはゴールしました" if top_team.get('runner') == 'ゴール' else f"トップは第{top_team.get('currentLeg', 'N/A')}区を走行中"
 
-        # 大学と都道府県のリストを作成
+        ekiden_data = self.all_data.get('ekiden_data', {})
         team_prefecture_list = []
-        if ekiden_data.get('teams'):
-            for team in ekiden_data['teams']:
-                team_name = team.get('name', '不明')
-                prefectures = team.get('prefectures', '')
-                team_prefecture_list.append(f"- {team_name}: {prefectures}")
-        
+        for team in ekiden_data.get('teams', []):
+            team_name = team.get('name', '不明')
+            prefectures = team.get('prefectures', '')
+            team_prefecture_list.append(f"- {team_name}: {prefectures}")
         team_prefecture_text = "\n".join(team_prefecture_list)
 
-        # outline.jsonから大会情報を取得
         outline_data = self._load_outline_data()
-        
-        # 区間構成を整形
         leg_configuration = self._format_leg_configuration(outline_data.get('legs', []))
-
-        # プロンプトテンプレートを読み込む
-        try:
-            with open(SUMMARY_PROMPT_TEMPLATE_FILE, 'r', encoding='utf-8') as f:
-                prompt_template = f.read()
-        except FileNotFoundError:
-            print(f"エラー: プロンプトテンプレートファイル '{SUMMARY_PROMPT_TEMPLATE_FILE}' が見つかりません。")
-            return ""
-
-        # テンプレートに動的データを埋め込む
         tournament_title = outline_data.get('title')
         details = outline_data.get('details', {}) if isinstance(outline_data, dict) else {}
         metadata = outline_data.get('metadata', {}) if isinstance(outline_data, dict) else {}
         start_date = details.get('startDate') or metadata.get('startDate')
         course_description = details.get('course')
 
-        base_prompt = prompt_template.format(
-            team_prefecture_list=team_prefecture_text,
-            tournament_title=tournament_title or '大会名称未設定',
-            start_date=start_date or '開始日未設定',
-            course_description=course_description or 'コース情報未設定',
-            leg_configuration=leg_configuration
-        )
-        
-        prompt_parts = [base_prompt]
-
-        prompt_parts.append("\n## 【本日のレース状況】")
+        prompt_parts = [
+            "# 大会コンテキスト",
+            f"- 大会名: {tournament_title or '大会名称未設定'}",
+            f"- スタート日: {start_date or '開始日未設定'}",
+            f"- コース概要: {course_description or 'コース情報未設定'}",
+            "- 読者は大会ルールを理解している前提で書くこと。",
+            "- 走行距離と順位のルール説明は不要。",
+            "- 出場校と担当都道府県:",
+            team_prefecture_text or "- 情報なし",
+            "- 区間構成:",
+            leg_configuration,
+            "",
+            "# 本日の記事方針",
+            "- 文字数は350〜550字程度。",
+            "- 見出しは最大3個。",
+            "- その日の最大テーマを最優先で描くこと。候補は首位の独走、上位のデッドヒート、中位混戦、シードライン攻防、大きな順位変動、好走者、交代・タスキリレー。",
+            "- 上記のうち、実際に動きが大きいものを2〜3点選んで重点的に書くこと。",
+            "- 好走者には原則触れること。シード権ラインは接戦または順位変動がある場合に優先して触れること。",
+            "- 交代またはタスキリレーがあれば自然に触れること。",
+            "- 監督コメントがある場合は、結果と結びつけて触れること。",
+            "- 最後は短い総括で締めること。",
+            "",
+            "# 本日のレース状況",
+        ]
         prompt_parts.append(f"- 大会日: {race_day}日目")
         prompt_parts.append(f"- 現在のレース状況: {race_status_summary}")
         prompt_parts.append("- 本日の総合順位:")
         prompt_parts.append(self.format_ranking_table())
 
+        story_angle = self._build_story_angle()
+        if story_angle:
+            prompt_parts.append("\n# 今日の焦点")
+            prompt_parts.extend(story_angle)
+
         coverage_checklist = self.build_coverage_checklist()
         if coverage_checklist:
-            prompt_parts.append("\n## 【カバレッジチェック】")
+            prompt_parts.append("\n# カバレッジチェック")
             prompt_parts.extend(coverage_checklist)
 
         daily_notes = self.build_daily_notes(race_day)
         if daily_notes:
-            prompt_parts.append("\n## 【取材メモ】")
+            prompt_parts.append("\n# 取材メモ")
             prompt_parts.extend(daily_notes)
 
         relay_infos = self.format_relay_info()
         if relay_infos:
-            prompt_parts.append("\n## 【本日の主なタスキリレー】")
+            prompt_parts.append("\n# 本日の主なタスキリレー")
             prompt_parts.extend(relay_infos)
 
         manager_comments = self.prepare_manager_comments()
         if manager_comments:
-            prompt_parts.append("\n## 【昨晩の監督コメント】")
+            prompt_parts.append("\n# 昨晩の監督コメント")
             prompt_parts.extend(manager_comments)
+
+        continuity_notes = self._build_continuity_note()
+        if continuity_notes:
+            prompt_parts.append("\n# 前日からの文脈")
+            prompt_parts.extend(continuity_notes)
 
         prompt_parts.append(
             "\n---\n"
-            "上記の情報を踏まえて、熱量のあるスポーツ記事の文体で300〜400字程度のMarkdown記事を作成してください。\n"
+            "# 出力形式\n"
+            "- 1行目はタイトル。\n"
+            "- 本文は3〜5段落。\n"
+            "- Markdown見出しは最大3個。\n"
+            "- 過剰な箇条書きは使わない。\n"
+            "- 熱量のあるスポーツ記事の文体で、350〜550字程度のMarkdown記事を作成すること。\n"
             "- 記事全体を現在走行中のチーム・走者の動きに集中させ、既にゴールしたチームや確定順位の回顧は避けること。\n"
             "- 走行中チーム同士の首位・シードライン・追い上げの構図を具体的な距離差や区間情報とともに描写すること。\n"
             "- 本日の距離が際立った走者・区間での躍動を必ず紹介し、Markdownの見出しや強調を適宜用いること。\n"
@@ -602,11 +717,15 @@ class DailySummaryGenerator:
         """Main execution logic."""
         print("日次振り返り解説の生成を開始します...")
         self.load_all_data()
-        prompt = self._build_prompt()
+        system_prompt = self.build_system_prompt()
+        user_prompt = self.build_user_prompt()
 
         print("------------------------------------")
-        print("Geminiへの統合プロンプト:")
-        print(prompt)
+        print("Geminiへのsystem prompt:")
+        print(system_prompt)
+        print("------------------------------------")
+        print("Geminiへのuser prompt:")
+        print(user_prompt)
         print("------------------------------------")
 
         if self.dry_run:
@@ -614,12 +733,17 @@ class DailySummaryGenerator:
             return
 
         try:
-            response = self.gemini_model.generate_content(prompt)
+            response = self.gemini_model.generate_content(user_prompt)
             raw_article_text = response.text.strip()
             print("記事をMarkdownでフォーマットしています...")
             article_text = self.format_article_with_markdown(raw_article_text)
             print("✅ Geminiによる解説記事の生成に成功しました。")
-            self._save_article_to_history(prompt, raw_article_text)
+            prompt_payload = json.dumps(
+                {"system": system_prompt, "user": user_prompt},
+                ensure_ascii=False,
+                indent=2
+            )
+            self._save_article_to_history(prompt_payload, raw_article_text)
         except Exception as e:
             print(f"❌ Gemini API呼び出し中にエラーが発生しました: {e}")
             article_text = "本日の解説記事は、システムの問題により生成できませんでした。ご了承ください。"
