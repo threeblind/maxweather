@@ -371,6 +371,7 @@ let runnerMarkersLayer = null;
 let teamColorMap = new Map();
 let trackedTeamName = "lead_group"; // デフォルトは先頭集団を追跡
 let coursePolyline = null; // コースのポリラインをグローバルに保持
+let shouldAutoFollowMap = true; // ユーザーが地図を触るまでは追跡を維持する
 
 /**
  * Initializes the interactive map, draws the course, and places relay point markers.
@@ -384,6 +385,12 @@ async function initializeMap() {
         return;
     }
     map = L.map(mapContainer);
+    mapContainer.addEventListener('pointerdown', () => {
+        shouldAutoFollowMap = false;
+    });
+    mapContainer.addEventListener('wheel', () => {
+        shouldAutoFollowMap = false;
+    }, { passive: true });
     // Leafletのアイコンパスが自動検出できない問題への対処 (マップ初期化後に実行)
     try {
         delete L.Icon.Default.prototype._getIconUrl;
@@ -423,7 +430,6 @@ async function initializeMap() {
         if (coursePath && coursePath.length > 0) {
             const latlngs = coursePath.map(p => [p.lat, p.lon]);
             coursePolyline = L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
-            map.fitBounds(coursePolyline.getBounds().pad(0.1));
             goalLatLng = latlngs[latlngs.length - 1] || null;
         }
 
@@ -542,9 +548,12 @@ function setupTeamTracker(teams) {
     shadowOption.textContent = '区間最高記録';
     selectEl.appendChild(shadowOption);
 
+    selectEl.value = trackedTeamName;
+
     // Add event listener
     selectEl.addEventListener('change', (event) => {
         trackedTeamName = event.target.value;
+        shouldAutoFollowMap = true;
         // Immediately update the map view without waiting for the next 30-second interval
         // We can do this by re-fetching the data, which will trigger the map update logic.
         fetchEkidenData(); 
@@ -634,6 +643,10 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
 
         runner.display_lat_lng = markerLatLng;
     });
+
+    if (!shouldAutoFollowMap) {
+        return;
+    }
 
     // --- Map View Update Logic ---
     if (trackedTeamName === "full_course") {
@@ -1970,28 +1983,33 @@ async function displayOutline() {
     if (!container) return;
 
     try {
-        const response = await fetch('config/outline.json');
+        const response = await fetch(`config/outline.json?_=${Date.now()}`, { cache: 'no-store' });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
 
+        const metadata = data.metadata || {};
+        const details = data.details || {};
+        const site = data.site || {};
+        const startDateLabel = details.startDateLabel || details.startDate || metadata.startDate || '未設定';
+
         if (data.metadata) {
-            const editionValue = parseInt(data.metadata.edition, 10);
+            const editionValue = parseInt(metadata.edition, 10);
             if (!Number.isNaN(editionValue)) {
                 CURRENT_EDITION = editionValue;
             }
-            if (data.metadata.startDate) {
-                EKIDEN_START_DATE = data.metadata.startDate;
+            if (metadata.startDate) {
+                EKIDEN_START_DATE = metadata.startDate;
             }
         }
 
         if (data.site) {
-            if (data.site.pageTitle) {
-                document.title = data.site.pageTitle;
+            if (site.pageTitle) {
+                document.title = site.pageTitle;
             }
-            if (pageTopHeading && data.site.headerTitle) {
-                pageTopHeading.textContent = data.site.headerTitle;
+            if (pageTopHeading && site.headerTitle) {
+                pageTopHeading.textContent = site.headerTitle;
             }
         }
 
@@ -2023,8 +2041,8 @@ async function displayOutline() {
 
         // 大会要項
         html += `<h3>${data.title}</h3>`;
-        html += `<p><strong>スタート日:</strong> ${data.details.startDateLabel || data.details.startDate || data.metadata.startDate || '未設定'}</p>`;
-        html += `<p><strong>コース:</strong> ${data.details.course}</p>`;
+        html += `<p><strong>スタート日:</strong> ${startDateLabel}</p>`;
+        html += `<p><strong>コース:</strong> ${details.course || '未設定'}</p>`;
 
         // 区間
         html += '<h4>区間</h4><ul>';

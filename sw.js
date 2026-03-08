@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ekiden-sokuhou-cache-v2';
+const CACHE_NAME = 'ekiden-sokuhou-cache-v4';
 // オフライン時に利用できるようにキャッシュするファイルのリスト
 const urlsToCache = [
   './', // ルートURL
