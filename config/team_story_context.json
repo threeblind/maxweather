@@ -1,0 +1,297 @@
+{
+  "_schema_version": 1,
+  "_notes": {
+    "source": "第1回〜第15回の総合順位メモをもとに作成した初期版。記事生成用の補助文脈であり、断定よりも語り口のヒントを優先する。",
+    "usage": "story_tags と history_summary は必要なときだけ参照し、当日の事実より前に出しすぎない。rival_candidates は候補であり固定の因縁とはみなさない。"
+  },
+  "teams": {
+    "名古屋大学": {
+      "historical_tier": "強豪",
+      "history_summary": "近年は第14回・第15回を連覇。長期でも上位常連で、現代の基準校として語りやすい。",
+      "stats": {
+        "appearances": 14,
+        "championships": 3,
+        "podiums": 8,
+        "top10_finishes": 13,
+        "average_rank": 4.21,
+        "recent_positions": [3, 1, 1]
+      },
+      "story_tags": ["優勝候補", "近年王者", "上位常連", "安定感"],
+      "rival_candidates": ["上武大学", "関西大学", "三重大学"],
+      "rivalry_basis": ["近年の優勝争い", "上位帯での直接対決", "地域近接"],
+      "context_confidence": "high"
+    },
+    "上武大学": {
+      "historical_tier": "強豪",
+      "history_summary": "優勝3回。波はあるが上位進出力が高く、近年も再びタイトル圏に戻ってきた。",
+      "stats": {
+        "appearances": 15,
+        "championships": 3,
+        "podiums": 5,
+        "top10_finishes": 9,
+        "average_rank": 7.27,
+        "recent_positions": [1, 4, 2]
+      },
+      "story_tags": ["復権", "優勝経験", "破壊力", "上位争い"],
+      "rival_candidates": ["名古屋大学", "関西大学", "福岡大学"],
+      "rivalry_basis": ["優勝経験校同士", "近年の上位争い"],
+      "context_confidence": "high"
+    },
+    "関西大学": {
+      "historical_tier": "名門",
+      "history_summary": "優勝3回、表彰台9回、平均順位3.40。長い大会史を通じて最も安定感のある伝統校の一つ。",
+      "stats": {
+        "appearances": 15,
+        "championships": 3,
+        "podiums": 9,
+        "top10_finishes": 15,
+        "average_rank": 3.4,
+        "recent_positions": [4, 5, 3]
+      },
+      "story_tags": ["伝統校", "安定感", "優勝争い", "王道"],
+      "rival_candidates": ["名古屋大学", "上武大学", "立命館大学"],
+      "rivalry_basis": ["優勝経験校同士", "関西勢", "長期の上位帯競争"],
+      "context_confidence": "high"
+    },
+    "山梨学院大学": {
+      "historical_tier": "上位常連",
+      "history_summary": "優勝こそ未到達だが、上位に顔を出す回数が多い。あと一歩を狙う強豪候補として描きやすい。",
+      "stats": {
+        "appearances": 14,
+        "championships": 0,
+        "podiums": 1,
+        "top10_finishes": 9,
+        "average_rank": 9.0,
+        "recent_positions": [10, 10, 4]
+      },
+      "story_tags": ["あと一歩", "上位常連", "浮上候補"],
+      "rival_candidates": ["三重大学", "立命館大学", "熊本学園大学"],
+      "rivalry_basis": ["優勝未経験の上位帯", "中上位での競争"],
+      "context_confidence": "medium"
+    },
+    "立命館大学": {
+      "historical_tier": "上位常連",
+      "history_summary": "表彰台3回、10位以内12回。優勝経験はないが、長く前線にいる安定校。",
+      "stats": {
+        "appearances": 15,
+        "championships": 0,
+        "podiums": 3,
+        "top10_finishes": 12,
+        "average_rank": 7.73,
+        "recent_positions": [7, 14, 5]
+      },
+      "story_tags": ["安定勢力", "上位圏", "しぶとさ"],
+      "rival_candidates": ["関西大学", "山梨学院大学", "熊本学園大学"],
+      "rivalry_basis": ["近い順位帯", "関西勢"],
+      "context_confidence": "medium"
+    },
+    "広島経済大学": {
+      "historical_tier": "古豪",
+      "history_summary": "初期に優勝2回。近年は優勝戦線からは少し遠ざかったが、依然として上位進出力はある。",
+      "stats": {
+        "appearances": 15,
+        "championships": 2,
+        "podiums": 3,
+        "top10_finishes": 14,
+        "average_rank": 6.33,
+        "recent_positions": [9, 8, 6]
+      },
+      "story_tags": ["古豪", "復権", "上位常連"],
+      "rival_candidates": ["福岡大学", "関西大学", "学連選抜"],
+      "rivalry_basis": ["西日本勢", "過去の優勝経験", "中上位帯の競争"],
+      "context_confidence": "medium"
+    },
+    "福岡大学": {
+      "historical_tier": "強豪",
+      "history_summary": "優勝3回。第6回〜第8回の強さが際立ち、長期でも十分な実績を持つ古豪強豪。",
+      "stats": {
+        "appearances": 15,
+        "championships": 3,
+        "podiums": 5,
+        "top10_finishes": 11,
+        "average_rank": 6.73,
+        "recent_positions": [11, 3, 7]
+      },
+      "story_tags": ["古豪", "優勝経験", "爆発力"],
+      "rival_candidates": ["熊本学園大学", "広島経済大学", "上武大学"],
+      "rivalry_basis": ["地域近接", "上位経験校同士"],
+      "context_confidence": "medium"
+    },
+    "学連選抜": {
+      "historical_tier": "変動型",
+      "history_summary": "優勝1回。順位の振れ幅が大きく、毎回レース全体をかき回す台風の目として扱いやすい。",
+      "stats": {
+        "appearances": 13,
+        "championships": 1,
+        "podiums": 2,
+        "top10_finishes": 10,
+        "average_rank": 8.38,
+        "recent_positions": [14, 9, 8]
+      },
+      "story_tags": ["台風の目", "混成チーム", "波乱要員"],
+      "rival_candidates": ["広島経済大学", "熊本学園大学", "福岡大学"],
+      "rivalry_basis": ["中上位帯での競争", "固定校をかき回す役回り"],
+      "context_confidence": "medium"
+    },
+    "鳥取大学": {
+      "historical_tier": "中位常連",
+      "history_summary": "表彰台1回。振れ幅はあるが、長く中位戦線に絡み続けてきた粘り強い存在。",
+      "stats": {
+        "appearances": 15,
+        "championships": 0,
+        "podiums": 1,
+        "top10_finishes": 8,
+        "average_rank": 9.67,
+        "recent_positions": [8, 11, 9]
+      },
+      "story_tags": ["中位巧者", "しぶとさ", "混戦要員"],
+      "rival_candidates": ["三重大学", "四国大学", "福岡大学"],
+      "rivalry_basis": ["中位帯での接戦"],
+      "context_confidence": "medium"
+    },
+    "三重大学": {
+      "historical_tier": "上位常連",
+      "history_summary": "優勝はないが、近年は2位・3位もあり、上位争いの常連に近づいている。堅実な積み上げ型。",
+      "stats": {
+        "appearances": 15,
+        "championships": 0,
+        "podiums": 2,
+        "top10_finishes": 8,
+        "average_rank": 9.67,
+        "recent_positions": [13, 2, 10]
+      },
+      "story_tags": ["上昇機運", "堅実", "上位争い候補"],
+      "rival_candidates": ["名古屋大学", "山梨学院大学", "鳥取大学"],
+      "rivalry_basis": ["地域近接", "近年の上位進出", "中上位での競争"],
+      "context_confidence": "medium"
+    },
+    "日本大学": {
+      "historical_tier": "波乱型",
+      "history_summary": "2位経験はあるが、全体としては振れ幅が大きい。上位進出時は波乱の担い手として映える。",
+      "stats": {
+        "appearances": 15,
+        "championships": 0,
+        "podiums": 1,
+        "top10_finishes": 6,
+        "average_rank": 11.0,
+        "recent_positions": [12, 13, 11]
+      },
+      "story_tags": ["波乱要員", "振れ幅", "浮上待ち"],
+      "rival_candidates": ["金沢大学", "福島大学", "熊本学園大学"],
+      "rivalry_basis": ["中位下位帯での競争"],
+      "context_confidence": "medium"
+    },
+    "熊本学園大学": {
+      "historical_tier": "上位常連",
+      "history_summary": "優勝は未達ながら表彰台3回、10位以内11回。上位圏に顔を出す回数が多い実力校。",
+      "stats": {
+        "appearances": 15,
+        "championships": 0,
+        "podiums": 3,
+        "top10_finishes": 11,
+        "average_rank": 7.33,
+        "recent_positions": [15, 6, 12]
+      },
+      "story_tags": ["実力校", "上位常連", "反発力"],
+      "rival_candidates": ["福岡大学", "立命館大学", "学連選抜"],
+      "rivalry_basis": ["地域近接", "上位帯での競争"],
+      "context_confidence": "medium"
+    },
+    "金沢大学": {
+      "historical_tier": "中位常連",
+      "history_summary": "勝ち切るよりも中位で粘る大会が多い。上位進出時は明確なサプライズとして扱える。",
+      "stats": {
+        "appearances": 15,
+        "championships": 0,
+        "podiums": 0,
+        "top10_finishes": 4,
+        "average_rank": 12.47,
+        "recent_positions": [5, 17, 13]
+      },
+      "story_tags": ["中位争い", "サプライズ候補", "粘り"],
+      "rival_candidates": ["日本大学", "福島大学", "鳥取大学"],
+      "rivalry_basis": ["中位下位帯での競争"],
+      "context_confidence": "low"
+    },
+    "東北大学": {
+      "historical_tier": "挑戦者",
+      "history_summary": "旧北日本を含めて参戦歴はあるが、上位進出は少ない。食い込めば波乱色が強いチーム。",
+      "stats": {
+        "appearances": 14,
+        "championships": 0,
+        "podiums": 0,
+        "top10_finishes": 1,
+        "average_rank": 16.43,
+        "recent_positions": [6, 18, 14]
+      },
+      "story_tags": ["挑戦者", "伏兵", "波乱待ち"],
+      "rival_candidates": ["福島大学", "琉球大学", "鹿児島大学"],
+      "rivalry_basis": ["下位帯での競争", "地域ブロック感"],
+      "context_confidence": "low"
+    },
+    "四国大学": {
+      "historical_tier": "中位常連",
+      "history_summary": "第3回2位が光るが、その後は中位から下位に散る大会も多い。勢いをどう維持するかが物語になる。",
+      "stats": {
+        "appearances": 15,
+        "championships": 0,
+        "podiums": 1,
+        "top10_finishes": 7,
+        "average_rank": 10.4,
+        "recent_positions": [16, 12, 15]
+      },
+      "story_tags": ["古参", "中位戦線", "浮上課題"],
+      "rival_candidates": ["鳥取大学", "鹿児島大学", "福島大学"],
+      "rivalry_basis": ["中位帯での競争"],
+      "context_confidence": "low"
+    },
+    "福島大学": {
+      "historical_tier": "波乱型",
+      "history_summary": "第13回2位が象徴的。普段は下位寄りでも、一度勢いに乗ると上位に跳ねる余地がある。",
+      "stats": {
+        "appearances": 15,
+        "championships": 0,
+        "podiums": 1,
+        "top10_finishes": 3,
+        "average_rank": 13.2,
+        "recent_positions": [2, 15, 16]
+      },
+      "story_tags": ["大化け", "波乱", "上振れ余地"],
+      "rival_candidates": ["日本大学", "金沢大学", "東北大学"],
+      "rivalry_basis": ["中位下位帯での競争"],
+      "context_confidence": "low"
+    },
+    "鹿児島大学": {
+      "historical_tier": "挑戦者",
+      "history_summary": "中位に入る年もあるが、全体としては後方からの追い上げ型。上位進出時は勢いの描写が映える。",
+      "stats": {
+        "appearances": 15,
+        "championships": 0,
+        "podiums": 0,
+        "top10_finishes": 7,
+        "average_rank": 11.07,
+        "recent_positions": [17, 7, 17]
+      },
+      "story_tags": ["追い上げ", "挑戦者", "波乱待ち"],
+      "rival_candidates": ["福岡大学", "熊本学園大学", "四国大学"],
+      "rivalry_basis": ["地域近接", "中位帯での競争"],
+      "context_confidence": "low"
+    },
+    "琉球大学": {
+      "historical_tier": "挑戦者",
+      "history_summary": "上位進出は少ないが、第4回4位の実績はある。飛び出したときのインパクトが大きいタイプ。",
+      "stats": {
+        "appearances": 14,
+        "championships": 0,
+        "podiums": 0,
+        "top10_finishes": 2,
+        "average_rank": 14.14,
+        "recent_positions": [18, 16, 18]
+      },
+      "story_tags": ["飛び道具", "伏兵", "インパクト"],
+      "rival_candidates": ["東北大学", "鹿児島大学", "学連選抜"],
+      "rivalry_basis": ["下位帯での競争", "振れ幅の大きさ"],
+      "context_confidence": "low"
+    }
+  }
+}
