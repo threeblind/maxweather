@@ -40,7 +40,8 @@ STATE_FILE = DATA_DIR / 'ekiden_state.json'
 REALTIME_LOG_FILE = DATA_DIR / 'realtime_log.jsonl'
 
 # --- 定数 ---
-EKIDEN_START_DATE = '2025-09-01'
+# outline.json が読めない場合の最終フォールバック
+EKIDEN_START_DATE = '2025-10-13'
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
 
 # --- グローバル変数 ---
@@ -55,7 +56,7 @@ leg_best_records = {}
 intramural_rankings = {}
 
 def load_start_date_from_outline():
-    """outline.json から大会開始日を取得してグローバル定数を更新する"""
+    """outline.json の metadata.startDate を正本として大会開始日を取得する"""
     global EKIDEN_START_DATE
     try:
         with open(OUTLINE_FILE, 'r', encoding='utf-8') as f:

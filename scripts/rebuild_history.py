@@ -25,13 +25,15 @@ RUNNER_LOCATIONS_OUTPUT_FILE = DATA_DIR / 'runner_locations.json'
 
 # 設定
 OUTLINE_FILE = CONFIG_DIR / 'outline.json'
-EKIDEN_START_DATE = '2025-09-01'
+# outline.json が読めない場合の最終フォールバック
+EKIDEN_START_DATE = '2025-10-13'
 
 # --- グローバル変数 ---
 ekiden_data = {}
 daily_temperatures = {}
 
 def load_start_date_from_outline():
+    """outline.json の metadata.startDate を正本として大会開始日を取得する"""
     global EKIDEN_START_DATE
     try:
         with open(OUTLINE_FILE, 'r', encoding='utf-8') as f:

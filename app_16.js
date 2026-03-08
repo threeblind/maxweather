@@ -1966,6 +1966,7 @@ async function displayOutline() {
     const container = document.getElementById('outlineContainer');
     const linkContainer = document.getElementById('main-thread-link-container');
     const mapFrame = document.getElementById('courseMapFrame');
+    const pageTopHeading = document.getElementById('page-top');
     if (!container) return;
 
     try {
@@ -1982,6 +1983,15 @@ async function displayOutline() {
             }
             if (data.metadata.startDate) {
                 EKIDEN_START_DATE = data.metadata.startDate;
+            }
+        }
+
+        if (data.site) {
+            if (data.site.pageTitle) {
+                document.title = data.site.pageTitle;
+            }
+            if (pageTopHeading && data.site.headerTitle) {
+                pageTopHeading.textContent = data.site.headerTitle;
             }
         }
 
@@ -2013,7 +2023,7 @@ async function displayOutline() {
 
         // 大会要項
         html += `<h3>${data.title}</h3>`;
-        html += `<p><strong>スタート日:</strong> ${data.details.startDate}</p>`;
+        html += `<p><strong>スタート日:</strong> ${data.details.startDateLabel || data.details.startDate || data.metadata.startDate || '未設定'}</p>`;
         html += `<p><strong>コース:</strong> ${data.details.course}</p>`;
 
         // 区間

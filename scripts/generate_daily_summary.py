@@ -841,7 +841,7 @@ class DailySummaryGenerator:
         tournament_title = outline_data.get('title')
         details = outline_data.get('details', {}) if isinstance(outline_data, dict) else {}
         metadata = outline_data.get('metadata', {}) if isinstance(outline_data, dict) else {}
-        start_date = details.get('startDate') or metadata.get('startDate')
+        start_date = details.get('startDateLabel') or details.get('startDate') or metadata.get('startDate')
         course_description = details.get('course')
 
         prompt_parts = [

@@ -13,6 +13,7 @@ HISTORY_DATA_DIR = Path('history_data')
 EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
 AMEDAS_STATIONS_FILE = CONFIG_DIR / 'amedas_stations.json'
 LEG_AWARD_HISTORY_FILE = HISTORY_DATA_DIR / 'leg_award_history.json'
+OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 
 OUTPUT_FILE = CONFIG_DIR / 'player_profiles.json'
 
@@ -41,6 +42,15 @@ def load_json(file_path, default=None):
         print(f"情報: '{file_path}' が見つからないか、形式が不正です。スキップします。")
         return default
 
+def load_current_edition():
+    """outline.json を優先して現在の大会回数を取得する。"""
+    outline = load_json(OUTLINE_FILE, {})
+    metadata = outline.get('metadata', {}) if isinstance(outline, dict) else {}
+    try:
+        return int(metadata.get('edition'))
+    except (TypeError, ValueError):
+        return CURRENT_EDITION
+
 def get_prefecture_name(pref_code):
     """都道府県コードから都道府県名を取得する。北海道の特殊コードにも対応。"""
     if not pref_code:
@@ -52,6 +62,7 @@ def get_prefecture_name(pref_code):
 def main():
     """選手名鑑用のJSONデータを生成するメイン関数"""
     print("選手名鑑データ (player_profiles.json) の生成を開始します...")
+    current_edition = load_current_edition()
 
     # --- 1. データの読み込み ---
     ekiden_data = load_json(EKIDEN_DATA_FILE, {})
@@ -234,6 +245,7 @@ def main():
 
             # 保持区間記録（自己ベスト）の構築
             profile['personal_best'] = personal_best_map.get(runner_name, [])
+            profile['current_edition'] = current_edition
 
             player_profiles[runner_name] = profile
 
