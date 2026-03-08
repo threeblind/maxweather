@@ -26,7 +26,7 @@ RUNNER_LOCATIONS_OUTPUT_FILE = DATA_DIR / 'runner_locations.json'
 # 設定
 OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 # outline.json が読めない場合の最終フォールバック
-EKIDEN_START_DATE = '2025-10-13'
+EKIDEN_START_DATE = '2026-03-08'
 
 # --- グローバル変数 ---
 ekiden_data = {}

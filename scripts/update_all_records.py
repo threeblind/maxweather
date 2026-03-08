@@ -20,7 +20,7 @@ EKIDEN_STATE_FILE = DATA_DIR / 'ekiden_state.json'
 INTRAMURAL_RANKINGS_FILE = DATA_DIR / 'intramural_rankings.json'
 OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 # outline.json が読めない場合の最終フォールバック
-EKIDEN_START_DATE = '2025-10-13'
+EKIDEN_START_DATE = '2026-03-08'
 
 # --- グローバル変数 ---
 stations_data = []

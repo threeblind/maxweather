@@ -41,7 +41,7 @@ REALTIME_LOG_FILE = DATA_DIR / 'realtime_log.jsonl'
 
 # --- 定数 ---
 # outline.json が読めない場合の最終フォールバック
-EKIDEN_START_DATE = '2025-10-13'
+EKIDEN_START_DATE = '2026-03-08'
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
 
 # --- グローバル変数 ---
