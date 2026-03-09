@@ -476,7 +476,7 @@
         "leg": 1,
         "distance": 0.6,
         "legAverageDistance": 6.12,
-        "legRank": 14,
+        "legRank": 13,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
       }
@@ -486,7 +486,7 @@
         "totalDistance": 30.6,
         "days": 5,
         "averageDistance": 6.12,
-        "rank": 14,
+        "rank": 13,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
@@ -1323,7 +1323,7 @@
     "legSummaries": {}
   },
   "秋ヶ島": {
-    "totalDistance": 19.6,
+    "totalDistance": 19.7,
     "teamId": 13,
     "records": [
       {
@@ -1347,19 +1347,19 @@
       {
         "day": 3,
         "leg": 1,
-        "distance": 4.1,
-        "legAverageDistance": 6.0,
-        "legRank": 15,
+        "distance": 4.2,
+        "legAverageDistance": 6.02,
+        "legRank": 14,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "1": {
-        "totalDistance": 30.0,
+        "totalDistance": 30.1,
         "days": 5,
-        "averageDistance": 6.0,
-        "rank": 15,
+        "averageDistance": 6.02,
+        "rank": 14,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
@@ -1659,7 +1659,7 @@
     "legSummaries": {}
   },
   "梁川": {
-    "totalDistance": 17.3,
+    "totalDistance": 17.4,
     "teamId": 16,
     "records": [
       {
@@ -1679,18 +1679,27 @@
         "legRank": 14,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 3,
+        "leg": 1,
+        "distance": 0.1,
+        "legAverageDistance": 5.96,
+        "legRank": 15,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "1": {
-        "totalDistance": 29.7,
-        "days": 4,
-        "averageDistance": 7.425,
-        "rank": 13,
+        "totalDistance": 29.8,
+        "days": 5,
+        "averageDistance": 5.96,
+        "rank": 15,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 2
+        "lastUpdatedDay": 3
       }
     }
   },
