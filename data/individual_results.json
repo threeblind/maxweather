@@ -450,7 +450,7 @@
     "legSummaries": {}
   },
   "東近江": {
-    "totalDistance": 19.6,
+    "totalDistance": 19.8,
     "teamId": 5,
     "records": [
       {
@@ -470,18 +470,27 @@
         "legRank": 13,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 3,
+        "leg": 1,
+        "distance": 0.2,
+        "legAverageDistance": 6.04,
+        "legRank": 14,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "1": {
-        "totalDistance": 30.0,
-        "days": 4,
-        "averageDistance": 7.5,
-        "rank": 12,
+        "totalDistance": 30.2,
+        "days": 5,
+        "averageDistance": 6.04,
+        "rank": 14,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 2
+        "lastUpdatedDay": 3
       }
     }
   },
@@ -1677,7 +1686,7 @@
         "totalDistance": 29.7,
         "days": 4,
         "averageDistance": 7.425,
-        "rank": 14,
+        "rank": 13,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
