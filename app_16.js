@@ -94,7 +94,7 @@ function findStationByName(name) {
 async function fetchMaxTemperature(prefCode, stationCode) {
     const url = `https://weather.yahoo.co.jp/weather/amedas/${prefCode}/${stationCode}.html`;
     const proxyUrl = PROXY_URL_TEMPLATE.replace('%URL%', encodeURIComponent(url));
-    
+
     try {
         const response = await fetch(proxyUrl, { cache: 'no-store' });
         if (!response.ok) {
@@ -106,29 +106,29 @@ async function fetchMaxTemperature(prefCode, stationCode) {
         if (!html) {
             throw new Error('データの取得に失敗しました');
         }
-        
+
         // HTMLを解析
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-        
+
         // recordHighクラスのli要素を探す
         const recordHighLi = doc.querySelector('li.recordHigh');
         if (!recordHighLi) {
             throw new Error('最高気温データが見つかりません');
         }
-        
+
         // dtが「最高」であることを確認
         const dt = recordHighLi.querySelector('dt');
         if (!dt || dt.textContent.trim() !== '最高') {
             throw new Error('最高気温のラベルが見つかりません');
         }
-        
+
         // dd要素から温度情報を取得
         const dd = recordHighLi.querySelector('dd');
         if (!dd) {
             throw new Error('最高気温情報の解析に失敗しました');
         }
-        
+
         // dd要素から各パーツを個別に取得して、より確実に情報を組み立てる
         const tempValue = dd.firstChild?.textContent?.trim();
         const tempUnit = dd.querySelector('.tempUnit')?.textContent;
@@ -155,15 +155,15 @@ async function searchTemperature() {
     const locationInput = document.getElementById('locationInput');
     const resultDiv = document.getElementById('result');
     const locationName = locationInput.value.trim();
-    
+
     if (!locationName) {
         showResult('地点名を入力してください', 'error');
         return;
     }
-    
+
     // ローディング表示
     showResult('検索中...', 'loading');
-    
+
     try {
         // 観測所を検索
         const station = findStationByName(locationName);
@@ -171,12 +171,12 @@ async function searchTemperature() {
             showResult(`地点名「${locationName}」が見つかりません`, 'error');
             return;
         }
-        
+
         // 気温を取得
         const tempInfo = await fetchMaxTemperature(station.pref_code, station.code);
         showResult(`${locationName}の最高気温は ${tempInfo} です`, 'success');
         saveToSearchHistory(locationName);
-        
+
     } catch (error) {
         showResult(`エラーが発生しました: ${error.message}`, 'error');
     }
@@ -279,7 +279,7 @@ async function fetchRankingData() {
     for (let i = 1; i < rows.length; i++) {
         const cells = rows[i].querySelectorAll('td');
         if (cells.length < 4) continue;
-        
+
         const locationLink = cells[1]?.querySelector('a');
         const rank = cells[0]?.textContent.trim();
         const location = locationLink?.textContent.trim().replace(/\s+/g, ' ');
@@ -447,7 +447,7 @@ async function initializeMap() {
 
             relayPoints.forEach(point => {
                 let popupContent = `<b>${point.name}</b><br>${point.target_distance_km} km地点`;
-                
+
                 // point.leg は中継所の「到着区間」を指す
                 const legRecord = legRecordsMap.get(point.leg);
                 if (legRecord) {
@@ -556,7 +556,7 @@ function setupTeamTracker(teams) {
         shouldAutoFollowMap = true;
         // Immediately update the map view without waiting for the next 30-second interval
         // We can do this by re-fetching the data, which will trigger the map update logic.
-        fetchEkidenData(); 
+        fetchEkidenData();
     });
 }
 
@@ -606,7 +606,7 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
 
         const icon = isGoalReached ? createGoalIcon(color) : createRunnerIcon(teamInitial, color);
         const marker = L.marker(markerLatLng, { icon: icon });
-        
+
         let popupContent;
         if (runner.is_shadow_confederation) {
             // 区間記録連合用のポップアップ内容
@@ -857,7 +857,7 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
 
     legRankingBody.innerHTML = '';
     if (runnersToShow.length === 0) {
-        legRankingStatus.textContent = `本日、${legNumber}区の記録はまだありません。`;
+        legRankingStatus.textContent = `(Result: 0) 本日、${legNumber}区の走行データは未達です。`;
         legRankingStatus.className = 'result loading';
         legRankingStatus.style.display = 'block';
         return;
@@ -879,6 +879,7 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
 
     let lastComparable = null;
     let fallbackRank = 0;
+    const fragment = document.createDocumentFragment();
     runnersToShow.forEach((record, index) => {
         let rankToDisplay;
         if (record.rank != null) {
@@ -909,8 +910,9 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
             <td class="runner-name player-profile-trigger" data-runner-name="${record.runnerName}">${formattedRunnerName}</td>
             <td class="team-name">${teamNameHtml}</td>
             <td>${record.averageDistance.toFixed(3)} km</td>`;
-        legRankingBody.appendChild(row);
+        fragment.appendChild(row);
     });
+    legRankingBody.appendChild(fragment);
 };
 
 /**
@@ -948,7 +950,7 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
         tabsContainer.innerHTML = '';
         if (legRankingBody) legRankingBody.innerHTML = '';
         if (legRankingStatus) {
-            legRankingStatus.textContent = '区間記録のデータはまだありません。';
+            legRankingStatus.textContent = '(Result: 0) 区間記録データ未達';
             legRankingStatus.className = 'result info';
             legRankingStatus.style.display = 'block';
         }
@@ -1209,7 +1211,7 @@ async function displayRankHistoryChart() {
                 pointHoverRadius: 6
             };
         });
-        
+
         // Dynamically set the chart width
         const chartWrapper = canvas.parentElement;
         const chartWidth = Math.max(400, historyData.dates.length * 20); // 最小幅を400pxに、1日あたりの幅を20pxに調整
@@ -1231,7 +1233,7 @@ async function displayRankHistoryChart() {
                         max: historyData.teams.length + 0.5, // グラフ下部の余白を確保
                         ticks: {
                             stepSize: 1, // Integer steps for rank
-                            callback: function(value) {
+                            callback: function (value) {
                                 if (Math.floor(value) === value) {
                                     return value;
                                 }
@@ -1243,7 +1245,7 @@ async function displayRankHistoryChart() {
                         }
                     },
                     x: {
-                         title: {
+                        title: {
                             display: true,
                             text: '経過日数'
                         }
@@ -1284,11 +1286,11 @@ async function displayRankHistoryChart() {
                         mode: 'index',
                         intersect: false,
                         callbacks: {
-                            title: function(tooltipItems) {
+                            title: function (tooltipItems) {
                                 const day = tooltipItems[0].dataIndex + 1;
                                 return `${day}日目 (${historyData.dates[tooltipItems[0].dataIndex]})`;
                             },
-                            label: function(context) {
+                            label: function (context) {
                                 let label = context.dataset.label || '';
                                 if (label) {
                                     label += ': ';
@@ -1337,7 +1339,7 @@ async function displayLegRankHistoryTable() {
     // ボタンを一旦非表示にする
     openRankHistoryModalBtn.style.display = 'none';
 
-    statusEl.textContent = '区間通過順位を読み込み中...';
+    statusEl.textContent = '(Loading) 通過順位データ解析中...';
     statusEl.className = 'result loading';
     statusEl.style.display = 'block';
     tableEl.style.display = 'none';
@@ -1362,7 +1364,7 @@ async function displayLegRankHistoryTable() {
 
         // leg_rank_history.json (推移表のデータ) がない場合はメッセージを表示して終了
         if (legHistoryRes.status === 404) {
-            statusEl.textContent = '順位推移の記録はまだありません。';
+            statusEl.textContent = '(Result: 0) 順位推移データ未達';
             return;
         }
 
@@ -1403,7 +1405,7 @@ async function displayLegRankHistoryTable() {
         const rankMap = new Map(realtimeData.teams.map(t => [t.id, t.overallRank]));
         const teamInfoMap = new Map(realtimeData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name }]));
         const sortedTeams = [...historyData.teams].filter(team => team.name !== '区間記録連合') // チーム名で「区間記録連合」を直接除外
-                                                  .sort((a, b) => (rankMap.get(a.id) || 999) - (rankMap.get(b.id) || 999));
+            .sort((a, b) => (rankMap.get(a.id) || 999) - (rankMap.get(b.id) || 999));
 
         // 学内ランキングデータが存在するチームIDのセットを作成
         const intramuralTeamIds = new Set(intramuralData?.teams?.map(t => t.id) || []);
@@ -1427,7 +1429,7 @@ async function displayLegRankHistoryTable() {
 
     } catch (error) {
         console.error('区間通過順位テーブルの描画に失敗:', error);
-        statusEl.textContent = `区間通過順位の表示に失敗: ${error.message}`;
+        statusEl.textContent = `(Error) 通過順位データ解析失敗: ${error.message}`;
         statusEl.className = 'result error';
         tableEl.style.display = 'none';
     }
@@ -1498,7 +1500,7 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
 
     if (!hasTeams || !hasLegBoundaries) {
         rankingBody.innerHTML = '';
-        rankingStatus.textContent = 'まだ総合順位のデータがありません。';
+        rankingStatus.textContent = '(Result: 0) 総合順位データ未達';
         rankingStatus.className = 'result info';
         rankingStatus.style.display = 'block';
         return;
@@ -1507,6 +1509,7 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
     rankingStatus.style.display = 'none';
 
     rankingBody.innerHTML = ''; // テーブルをクリア
+    const fragment = document.createDocumentFragment();
 
     const currentRaceDay = realtimeData.raceDay;
     const finalGoalDistance = ekidenData.leg_boundaries[ekidenData.leg_boundaries.length - 1];
@@ -1576,7 +1579,7 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         };
 
         row.appendChild(createCell(team.overallRank, 'rank'));
-        
+
         // 大学名セルは、フルネームと短縮名を切り替えるために特別なHTML構造を持つ
         const teamNameCell = document.createElement('td');
         teamNameCell.className = 'team-name';
@@ -1637,8 +1640,9 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         }
         row.appendChild(nextRunnerCell);
 
-        rankingBody.appendChild(row);
+        fragment.appendChild(row);
     });
+    rankingBody.appendChild(fragment);
 };
 
 /**
@@ -1665,7 +1669,7 @@ async function refreshRealtimeData() {
             console.error('Ekiden data cache is not available for refresh.');
             return;
         }
-        
+
         lastRealtimeData = realtimeData; // Update global cache
 
         // Sort runner locations
@@ -2174,11 +2178,11 @@ async function displayManagerComments() {
             loungeContent.style.display = 'flex';
 
             loungeContent.innerHTML = ''; // 以前のコメントをクリア
-            
+
             // 時系列（古い順）で表示するため、取得した配列（新しい順）を逆順にする
             comments.reverse().forEach(comment => {
                 const postDiv = document.createElement('div');
-                
+
                 // Normalize names for comparison: remove leading '■', trim whitespace,
                 // and convert full-width parentheses to half-width.
                 const normalizeName = (name) => {
@@ -2241,7 +2245,7 @@ async function setupResponsiveSelectors() {
             if (!response.ok) {
                 if (response.status === 404) {
                     const section = document.getElementById('section-intramural-ranking');
-                    if(section) section.style.display = 'none';
+                    if (section) section.style.display = 'none';
                     const navLink = document.querySelector('a[href="#section-intramural-ranking"]');
                     if (navLink) navLink.parentElement.style.display = 'none';
                 }
@@ -2252,7 +2256,7 @@ async function setupResponsiveSelectors() {
     } catch (error) {
         console.error('UI生成のためのデータ取得に失敗:', error);
         const section = document.getElementById('section-intramural-ranking');
-        if(section) section.style.display = 'none';
+        if (section) section.style.display = 'none';
     }
 
     // --- UI生成 ---
@@ -2333,7 +2337,7 @@ async function displayIntramuralRanking(teamId) {
     // 表示を準備
     contentDiv.style.display = 'none';
     tableBody.innerHTML = '';
-    statusEl.textContent = 'ランキングデータを読み込み中...';
+    statusEl.textContent = '(Loading) ランキングデータ解析中...';
     statusEl.className = 'result loading';
     statusEl.style.display = 'block';
 
@@ -2373,6 +2377,7 @@ async function displayIntramuralRanking(teamId) {
         const substitutedOutRunners = realtimeTeamData.substituted_out || [];
 
         // 6. テーブルを生成
+        const fragment = document.createDocumentFragment();
         intramuralTeamData.daily_results.forEach((result, index) => {
             const runnerName = result.runner_name;
 
@@ -2410,8 +2415,9 @@ async function displayIntramuralRanking(teamId) {
                 <td>${result.distance.toFixed(1)} km</td>
                 <td><span class="status-badge ${statusClass}">${currentStatus}</span></td>
             `;
-            tableBody.appendChild(row);
+            fragment.appendChild(row);
         });
+        tableBody.appendChild(fragment);
 
         statusEl.style.display = 'none';
         contentDiv.style.display = 'block';
@@ -2493,10 +2499,10 @@ class EkidenSimulator {
                 this.closeModal();
             }
         });
-        
+
         // 大学が選択されたらオーダー編集画面を表示
         this.universitySelect.addEventListener('change', () => this.handleUniversityChange());
-        
+
         // シミュレーション実行ボタン
         this.runBtn.addEventListener('click', () => this.runSimulation());
     }
@@ -2519,7 +2525,7 @@ class EkidenSimulator {
             this.ekidenData = await ekidenRes.json();
             this.dailyTemperatures = await dailyTempRes.json();
             this.originalTeamState = await stateRes.json();
-            
+
             this.isDataLoaded = true;
             this.populateUniversitySelect();
             console.log('シミュレーター用のデータを読み込みました。');
@@ -2561,7 +2567,7 @@ class EkidenSimulator {
      */
     populateUniversitySelect() {
         if (!this.ekidenData || !this.ekidenData.teams) return;
-        
+
         // 既存の選択肢をクリア（プレースホルダーは残す）
         this.universitySelect.innerHTML = '<option value="">大学を選んでください</option>';
 
@@ -2572,7 +2578,7 @@ class EkidenSimulator {
             this.universitySelect.appendChild(option);
         });
     }
-    
+
     // --- 以下のメソッドは後のステップで実装します ---
     handleUniversityChange() {
         this.selectedTeamId = parseInt(this.universitySelect.value, 10);
@@ -2618,7 +2624,7 @@ class EkidenSimulator {
         });
 
         this.orderEditor.style.display = 'grid';
-        
+
         // 次のステップで実装するドラッグ＆ドロップ機能をセットアップ
         this.setupDragAndDrop();
     }
@@ -2679,9 +2685,9 @@ async function renderProfileCharts(rawRunnerName, raceDay) {
             const targetDate = new Date(EKIDEN_START_DATE);
             targetDate.setDate(targetDate.getDate() + targetDay - 1);
             const targetDateStr = targetDate.toISOString().split('T')[0];
-            
-            const logFilePath = (targetDay === raceDay) 
-                ? `data/realtime_log.jsonl` 
+
+            const logFilePath = (targetDay === raceDay)
+                ? `data/realtime_log.jsonl`
                 : `data/archive/realtime_log_${targetDateStr}.jsonl`;
 
             let allLogLines = [];
@@ -2861,15 +2867,15 @@ async function showPlayerProfileModal(rawRunnerName) {
                     <thead><tr><th>大会</th><th>区間</th><th>区間順位</th><th>総距離</th><th>平均距離</th></tr></thead>
                     <tbody>
                         ${pastEditions.map(edition => {
-                            const perf = profile.performance[edition].summary;
-                            return `<tr>
+                const perf = profile.performance[edition].summary;
+                return `<tr>
                                 <td>第${edition}回</td>
                                 <td>${perf.legs_run.map(l => `${l}区`).join(', ') || '-'}</td>
                                 <td>${perf.best_leg_rank ? `${perf.best_leg_rank}位` : '-'}</td>
                                 <td>${perf.total_distance.toFixed(1)} km</td>
                                 <td>${perf.average_distance.toFixed(3)} km</td>
                             </tr>`;
-                        }).join('')}
+            }).join('')}
                     </tbody>
                 </table>
                 </div>`;
@@ -2943,7 +2949,7 @@ async function initializeTeamDirectory() {
  */
 function updateActiveButton(containerId, activeTeamId) {
     const buttons = document.querySelectorAll(`#${containerId} .team-logo-btn`);
-    
+
     const dataSource = containerId === 'intramural-team-nav' ? intramuralDataCache?.teams : ekidenDataCache?.teams;
     if (!dataSource) return;
 
@@ -3086,8 +3092,8 @@ function displayTeamDetails(teamId) {
                 <h4>補欠</h4>
                 <ul class="team-substitutes-list">
                     ${teamConfig.substitutes.map(sub => {
-                        return `<li><a href="#" class="runner-name player-profile-trigger" data-runner-name="${sub.name}" onclick="event.preventDefault()" style="color: #007bff;">${formatRunnerName(sub.name)}</a></li>`;
-                    }).join('')}
+            return `<li><a href="#" class="runner-name player-profile-trigger" data-runner-name="${sub.name}" onclick="event.preventDefault()" style="color: #007bff;">${formatRunnerName(sub.name)}</a></li>`;
+        }).join('')}
                 </ul>
             </div>
         `
@@ -3119,7 +3125,7 @@ function displayTeamDetails(teamId) {
 }
 // --- 初期化処理 ---
 
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async function () {
     // --- iOS PWA Install Banner Logic ---
     // isIOS と isStandalone を早期に定義して ReferenceError を解決
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -3175,7 +3181,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     loadSearchHistory(); // アメダス検索履歴の読み込み
     // loadRanking(); // 全国ランキングは index_16.html には無いためコメントアウト
 
-    document.getElementById('locationInput').addEventListener('keypress', function(e) {
+    document.getElementById('locationInput').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             searchTemperature();
         }
@@ -3210,9 +3216,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         toggleBtn.addEventListener('click', () => {
             rankingContainer.classList.toggle('show-full-view');
             if (rankingContainer.classList.contains('show-full-view')) {
-                toggleBtn.textContent = 'SP版';
+                toggleBtn.textContent = '簡易表示';
             } else {
-                toggleBtn.textContent = 'PC版';
+                toggleBtn.textContent = '詳細表示 (フルビュー)';
             }
         });
     }
@@ -3411,7 +3417,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // SP版のドロップダウンメニューをタップで開閉
     document.querySelectorAll('.page-nav .dropbtn').forEach(button => {
-        button.addEventListener('click', function(e) {
+        button.addEventListener('click', function (e) {
             // PC版ではホバーで開くので、SP版でのみ動作させる
             if (window.innerWidth <= 768) {
                 // aタグのデフォルトのページ遷移をキャンセル
@@ -3543,35 +3549,35 @@ document.addEventListener('DOMContentLoaded', async function() {
                         .catch(err => console.error('Failed to set badge', err));
                 }
             });
-    }
-
-    // === 起動時にバッジをリセット ===
-    if ('serviceWorker' in navigator) {
-        try {
-            const apiBaseUrl = getApiBaseUrl();
-            const response = await fetch(`${apiBaseUrl}/api/reset-badge`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            if (response.ok) {
-                console.log("Badge reset request sent to server.");
-                if ('clearAppBadge' in navigator) {
-                    await navigator.clearAppBadge();
-                    console.log("Local badge cleared on startup.");
-                }
-            } else {
-                console.error("Failed to reset badge on server:", await response.text());
-            }
-        } catch (err) {
-            console.error("Error resetting badge:", err);
         }
+
+        // === 起動時にバッジをリセット ===
+        if ('serviceWorker' in navigator) {
+            try {
+                const apiBaseUrl = getApiBaseUrl();
+                const response = await fetch(`${apiBaseUrl}/api/reset-badge`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    console.log("Badge reset request sent to server.");
+                    if ('clearAppBadge' in navigator) {
+                        await navigator.clearAppBadge();
+                        console.log("Local badge cleared on startup.");
+                    }
+                } else {
+                    console.error("Failed to reset badge on server:", await response.text());
+                }
+            } catch (err) {
+                console.error("Error resetting badge:", err);
+            }
+        }
+        // --- アプリ起動時にバッジをリセット ---
+        clearBadge();
     }
-    // --- アプリ起動時にバッジをリセット ---
-    clearBadge();
-}   
 });
 
 /**
