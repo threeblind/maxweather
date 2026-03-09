@@ -2654,9 +2654,9 @@ async function renderProfileCharts(rawRunnerName, raceDay) {
         // --- 0. デフォルトで表示する日を決定する ---
         const runnerRecords = allIndividualData[rawRunnerName]?.records;
         if (!runnerRecords || runnerRecords.length === 0) {
-            // 今大会の記録がない場合は、グラフ描画処理を中断
-            summaryCanvas.style.display = 'none';
-            dailyCanvas.style.display = 'none';
+            // 今大会の記録がない場合は、グラフ描画処理を中断しコンテナごと非表示にする
+            if (summaryCanvas.parentElement) summaryCanvas.parentElement.style.display = 'none';
+            if (dailyCanvas.parentElement) dailyCanvas.parentElement.style.display = 'none';
             statusEl.style.display = 'none';
             return;
         }
@@ -2712,10 +2712,10 @@ async function renderProfileCharts(rawRunnerName, raceDay) {
             });
 
             if (dailyChartData.labels.length === 0) {
-                dailyCanvas.style.display = 'none';
+                if (dailyCanvas.parentElement) dailyCanvas.parentElement.style.display = 'none';
                 return;
             }
-            dailyCanvas.style.display = 'block';
+            if (dailyCanvas.parentElement) dailyCanvas.parentElement.style.display = 'block';
 
             dailyRunnerChartInstance = new Chart(dailyCanvas, {
                 type: 'line',
