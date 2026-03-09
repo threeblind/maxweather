@@ -1869,7 +1869,7 @@
     "legSummaries": {}
   },
   "北原": {
-    "totalDistance": 40.1,
+    "totalDistance": 57.1,
     "teamId": 18,
     "records": [
       {
@@ -1889,18 +1889,27 @@
         "legRank": 1,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 3,
+        "leg": 1,
+        "distance": 17.0,
+        "legAverageDistance": 19.36,
+        "legRank": 1,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "1": {
-        "totalDistance": 79.8,
-        "days": 4,
-        "averageDistance": 19.95,
+        "totalDistance": 96.8,
+        "days": 5,
+        "averageDistance": 19.36,
         "rank": 1,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 2
+        "lastUpdatedDay": 3
       }
     }
   },
