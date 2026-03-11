@@ -126,6 +126,17 @@
             text-align: left;
         }
 
+        td.team-name {
+            font-weight: 700;
+            font-size: 1.05em;
+        }
+
+        td.runner-name {
+            font-weight: normal;
+            font-size: 0.9em;
+            color: var(--text-muted-color);
+        }
+
         /* --- Component Styles --- */
 
         /* Sections */
@@ -741,6 +752,22 @@
             /* グレー */
         }
 
+        #section-overall-ranking {
+            border-top: 4px solid var(--primary-color);
+            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.08);
+        }
+
+        #section-overall-ranking .section-header h2 {
+            font-size: 1.8rem;
+            letter-spacing: -0.02em;
+        }
+
+        #ekidenRankingTable td.rank {
+            font-weight: 700;
+            position: relative;
+            padding-left: 0.9rem;
+        }
+
         /* 区間賞・区間ランキング用スタイル */
         .leg-ranking-container {
             margin-bottom: 40px;
@@ -787,24 +814,17 @@
 
         /* 個人記録テーブルのステータス別スタイル */
         #legRankingTable tbody tr.leg-runner-running {
-            background-color: #fff3cd;
-            /* 薄い黄色 */
-            font-weight: bold;
-        }
-
-        #legRankingTable tbody tr.leg-runner-running td.runner-name {
-            color: #dc3545;
-            /* 走行中の選手名を赤くしてさらに強調 */
+            background-color: #ffffff;
+            font-weight: 600;
         }
 
         #legRankingTable tbody tr.leg-runner-finished-today {
-            /* 本日走行済みはデフォルトスタイル */
+            background-color: #f1f3f5;
         }
 
         #legRankingTable tbody tr.leg-runner-past {
-            opacity: 0.65;
-            background-color: #f8f9fa;
-            /* 少し背景色を変える */
+            background-color: #ffffff;
+            opacity: 1;
         }
 
         /* Leg Tabs Styles */

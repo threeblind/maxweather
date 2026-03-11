@@ -1414,13 +1414,17 @@ async function displayLegRankHistoryTable() {
         bodyEl.innerHTML = sortedTeams.map(team => {
             const teamDetails = teamInfoMap.get(team.id) || { name: team.name, short_name: team.name }; // フォールバック
             const teamNameHtml = `<span class="full-name">${teamDetails.name}</span><span class="short-name">${teamDetails.short_name}</span>`;
+
+            const teamColor = teamColorMap.get(team.id) || teamColorMap.get(team.name) || '#cccccc';
+            const teamNameTdStyle = `border-left: 4px solid ${teamColor}; padding-left: 0.7rem;`;
+
             const cellsHtml = team.leg_ranks.map(rank => {
                 const isFirst = rank === 1;
                 const cellClass = isFirst ? 'class="rank-first"' : '';
                 const displayRank = rank !== null ? rank : '-';
                 return `<td ${cellClass}>${displayRank}</td>`;
             }).join('');
-            return `<tr><td class="team-name">${teamNameHtml}</td>${cellsHtml}</tr>`;
+            return `<tr><td class="team-name" style="${teamNameTdStyle}">${teamNameHtml}</td>${cellsHtml}</tr>`;
         }).join('');
 
         statusEl.style.display = 'none';
@@ -1578,7 +1582,10 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
             return cell;
         };
 
-        row.appendChild(createCell(team.overallRank, 'rank'));
+        const rankCell = createCell(team.overallRank, 'rank');
+        const teamColor = teamColorMap.get(team.name) || '#cccccc';
+        rankCell.style.borderLeft = `5px solid ${teamColor}`;
+        row.appendChild(rankCell);
 
         // 大学名セルは、フルネームと短縮名を切り替えるために特別なHTML構造を持つ
         const teamNameCell = document.createElement('td');
