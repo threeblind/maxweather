@@ -879,7 +879,7 @@ def send_push_notification(title, body):
     }
 
     try:
-        response = requests.post(api_endpoint, headers=headers, json=payload, timeout=15)
+        response = requests.post(api_endpoint, headers=headers, json=payload, timeout=60)
         response.raise_for_status()
         print(f"APIサーバーへの通知リクエスト成功: {response.json().get('message')}")
     except requests.RequestException as e:
