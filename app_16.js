@@ -2908,11 +2908,20 @@ async function showPlayerProfileModal(rawRunnerName) {
                 </div>`;
         }
 
+        const textColor = getContrastingTextColor(teamColor);
+
+        // クローズボタンの色も背景に合わせて変更
+        const closeBtn = document.getElementById('closePlayerProfileModal');
+        if (closeBtn) {
+            closeBtn.style.color = textColor;
+            closeBtn.style.textShadow = textColor === '#ffffff' ? '0 1px 3px rgba(0,0,0,0.3)' : 'none';
+        }
+
         // --- モーダル全体のHTMLを組み立て ---
         contentDiv.innerHTML = `
-            <div class="profile-header" style="border-bottom-color: ${teamColor};">
+            <div class="profile-header" style="--team-color: ${teamColor}; --text-color: ${textColor}; background-color: var(--team-color); color: var(--text-color);">
                 <h3 class="profile-name">${profile.name}</h3>
-                <p class="profile-team" style="color: ${teamColor};">${profile.team_name}</p>
+                <p class="profile-team" style="opacity: 0.9;">${profile.team_name}</p>
             </div>
             <div class="profile-main-info-wrapper">
                 <div class="profile-image-container">
