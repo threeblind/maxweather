@@ -130,7 +130,18 @@ def main() -> int:
     if LOGS_DIR.exists():
         LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("✅ 指定した成果物を削除しました。必要に応じて rebuild_history.py を実行してください。")
+    print("✅ 指定した成果物を削除しました。")
+
+    # シャドーチーム（区間記録連合）を初期化
+    print("\nシャドーチーム（区間記録連合）を再初期化します...")
+    try:
+        import subprocess
+        subprocess.run([sys.executable, "scripts/add_shadow_runners.py"], check=True)
+        print("✅ シャドーチームの再初期化が完了しました。")
+    except Exception as e:
+        print(f"⚠️ シャドーチームの初期化中にエラーが発生しました: {e}")
+
+    print("\n必要に応じて rebuild_history.py を実行してください。")
     return 0
 
 

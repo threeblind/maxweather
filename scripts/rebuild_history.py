@@ -374,6 +374,17 @@ def rebuild_history():
     print(f"✅ 最終状態を {STATE_FILE} に保存しました。")
     print(f"✅ 個人記録を {INDIVIDUAL_STATE_FILE} に保存しました。")
     print(f"✅ チーム位置情報を {RUNNER_LOCATIONS_OUTPUT_FILE} に保存しました。")
+
+    # シャドーチーム（区間記録連合）を初期化
+    print("\nシャドーチーム（区間記録連合）を再初期化します...")
+    try:
+        import subprocess
+        import sys
+        subprocess.run([sys.executable, "scripts/add_shadow_runners.py"], check=True)
+        print("✅ シャドーチームの再初期化が完了しました。")
+    except Exception as e:
+        print(f"⚠️ シャドーチームの初期化中にエラーが発生しました: {e}")
+
     print("\nすべての処理が正常に完了しました。")
 
 if __name__ == '__main__':
