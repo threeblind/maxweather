@@ -2112,15 +2112,16 @@ async function displayDailySummary() {
             // 日付をフォーマット (YYYY/MM/DD -> YYYY年M月D日)
             const dateParts = data.date.split('/');
             const formattedDate = `${dateParts[0]}年${parseInt(dateParts[1], 10)}月${parseInt(dateParts[2], 10)}日`;
-            let displayTitle = `${formattedDate}のレースハイライト`;
+            let titleLabel = 'レースハイライト';
 
             const articleWithoutTitle = data.article.replace(/^#\s+(.+)\n+/, (_, title) => {
-                displayTitle = `${formattedDate}のレースハイライト | ${title.trim()}`;
+                titleLabel = title.trim();
                 return '';
             });
+            const normalizedArticle = articleWithoutTitle.replace(/^\*\*■\s*(.+?)\*\*$/gm, '### $1');
 
             // 記事をセクション（見出し＋本文）ごとに解析し、適切なHTMLタグに変換
-            const sections = articleWithoutTitle.split(/^(?=#)/m); // 行頭の#で見出しセクションを分割
+            const sections = normalizedArticle.split(/^(?=#)/m); // 行頭の#で見出しセクションを分割
             const processBold = (text) => text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             const formatParagraph = (text) => `<p>${processBold(text).replace(/\n/g, '<br>')}</p>`;
 
@@ -2136,7 +2137,7 @@ async function displayDailySummary() {
                 if (headingMatch) {
                     const level = headingMatch[1].length;
                     const headingContent = headingMatch[2].trim();
-                    const headingLevel = Math.min(6, level + 2); // h3 〜 h6 を利用
+                    const headingLevel = Math.min(6, Math.max(3, level)); // 記事本文の見出しは h3 以上で表示
                     const headingHtml = `<h${headingLevel}>${processBold(headingContent)}</h${headingLevel}>`;
                     const bodyHtml = bodyText ? formatParagraph(bodyText) : '';
                     const separatorHtml = level > 1 && bodyText ? '<hr class="article-separator">' : '';
@@ -2149,7 +2150,7 @@ async function displayDailySummary() {
             const formattedArticle = htmlParts.join('');
 
             container.innerHTML = `
-                <h3>${processBold(displayTitle)}</h3>
+                <h3><span class="summary-date-label">${formattedDate}のレースハイライト</span><span class="summary-title-label">${processBold(titleLabel)}</span></h3>
                 <div class="summary-article">${formattedArticle}</div>
             `;
             container.style.display = 'block';
