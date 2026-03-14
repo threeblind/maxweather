@@ -2112,9 +2112,15 @@ async function displayDailySummary() {
             // 日付をフォーマット (YYYY/MM/DD -> YYYY年M月D日)
             const dateParts = data.date.split('/');
             const formattedDate = `${dateParts[0]}年${parseInt(dateParts[1], 10)}月${parseInt(dateParts[2], 10)}日`;
+            let displayTitle = `${formattedDate}のレースハイライト`;
+
+            const articleWithoutTitle = data.article.replace(/^#\s+(.+)\n+/, (_, title) => {
+                displayTitle = `${formattedDate}のレースハイライト | ${title.trim()}`;
+                return '';
+            });
 
             // 記事をセクション（見出し＋本文）ごとに解析し、適切なHTMLタグに変換
-            const sections = data.article.split(/^(?=#)/m); // 行頭の#で見出しセクションを分割
+            const sections = articleWithoutTitle.split(/^(?=#)/m); // 行頭の#で見出しセクションを分割
             const processBold = (text) => text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             const formatParagraph = (text) => `<p>${processBold(text).replace(/\n/g, '<br>')}</p>`;
 
@@ -2143,7 +2149,7 @@ async function displayDailySummary() {
             const formattedArticle = htmlParts.join('');
 
             container.innerHTML = `
-                <h3>${formattedDate}のレースハイライト</h3>
+                <h3>${processBold(displayTitle)}</h3>
                 <div class="summary-article">${formattedArticle}</div>
             `;
             container.style.display = 'block';

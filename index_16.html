@@ -179,30 +179,45 @@
         }
 
         .summary-article h3 {
-            /* #見出し1 */
-            font-size: 1.4rem;
-            /* h4より大きく */
-            font-weight: 700;
-            /* 太字 */
-            margin-top: 2.5rem;
-            margin-bottom: 1.2rem;
-            color: var(--primary-color);
-            /* メインの見出しとして色付け */
+            font-size: 1.75rem;
+            font-weight: 800;
+            line-height: 1.4;
+            margin-top: 3rem;
+            margin-bottom: 1.4rem;
+            padding: 0.25rem 0 0.6rem 1rem;
+            color: #111111;
+            border-left: 6px solid var(--primary-color);
+            border-bottom: 3px solid #c3cad3;
+            letter-spacing: -0.02em;
             text-decoration: none;
-            /* 下線なし */
         }
 
         .summary-article h4 {
-            font-size: 1.2rem;
-            /* h3より小さく */
-            font-weight: 700;
-            /* 太字 */
+            font-size: 1.18rem;
+            font-weight: 800;
+            line-height: 1.55;
+            margin-top: 2.2rem;
+            margin-bottom: 1rem;
+            padding-left: 0.55rem;
+            color: #1f2933;
+            border-left: 3px solid #aeb6bf;
             text-decoration: none;
-            /* 下線なし */
-            margin-top: 2.5rem;
-            /* 前の段落とのスペースを確保 */
-            margin-bottom: 1.2rem;
-            /* 見出しと本文の間のスペース */
+        }
+
+        .summary-article h3:first-child,
+        .summary-article h4:first-child {
+            margin-top: 0.5rem;
+        }
+
+        .summary-article h3 + p,
+        .summary-article h4 + p {
+            margin-top: 0.2rem;
+        }
+
+        .summary-article h3 + h3,
+        .summary-article h3 + h4,
+        .summary-article h4 + h3 {
+            margin-top: 3.2rem;
         }
 
         .article-separator {
