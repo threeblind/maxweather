@@ -2120,8 +2120,11 @@ async function displayDailySummary() {
             });
             const normalizedArticle = articleWithoutTitle.replace(/^\*\*■\s*(.+?)\*\*$/gm, '### $1');
 
+            // 選手名の先頭に付与されてしまった数字（例: 1甲佐君 -> 甲佐君）を取り除く安全策
+            const safeArticle = normalizedArticle.replace(/(?<!\d)(?<!第)\d+([^\d位区日時間]+?)(君|選手)/g, '$1$2');
+
             // 記事をセクション（見出し＋本文）ごとに解析し、適切なHTMLタグに変換
-            const sections = normalizedArticle.split(/^(?=#)/m); // 行頭の#で見出しセクションを分割
+            const sections = safeArticle.split(/^(?=#)/m); // 行頭の#で見出しセクションを分割
             const processBold = (text) => text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             const formatParagraph = (text) => `<p>${processBold(text).replace(/\n/g, '<br>')}</p>`;
 
