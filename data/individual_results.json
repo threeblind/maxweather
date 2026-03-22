@@ -1716,7 +1716,7 @@
     "legSummaries": {}
   },
   "美幌": {
-    "totalDistance": 49.5,
+    "totalDistance": 49.9,
     "teamId": 8,
     "records": [
       {
@@ -1826,18 +1826,27 @@
         "legRank": 18,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 16,
+        "leg": 1,
+        "distance": 0.4,
+        "legAverageDistance": 3.786,
+        "legRank": 18,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "1": {
-        "totalDistance": 52.6,
-        "days": 13,
-        "averageDistance": 4.046,
+        "totalDistance": 53.0,
+        "days": 14,
+        "averageDistance": 3.786,
         "rank": 18,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 15
+        "lastUpdatedDay": 16
       }
     }
   },
