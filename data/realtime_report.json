@@ -1,8 +1,8 @@
 {
-  "updateTime": "2026/03/24 07:05",
+  "updateTime": "2026/03/24 07:15",
   "raceDay": 17,
-  "breakingNewsComment": "",
-  "breakingNewsTimestamp": "",
+  "breakingNewsComment": "【定時速報】現在トップは琉球大学！総合距離405.1kmです！",
+  "breakingNewsTimestamp": "2026-03-24T07:15:08.656789",
   "breakingNewsFullText": "",
   "teams": [
     {
@@ -102,6 +102,22 @@
       "is_shadow_confederation": false
     },
     {
+      "id": 11,
+      "name": "日本大学",
+      "short_name": "日大",
+      "currentLeg": 3,
+      "runner": "3下館",
+      "todayDistance": 8.3,
+      "todayRank": 13,
+      "totalDistance": 248.4,
+      "overallRank": 7,
+      "previousRank": 6,
+      "nextRunner": "4小田原",
+      "error": null,
+      "finishDay": null,
+      "is_shadow_confederation": false
+    },
+    {
       "id": 15,
       "name": "四国大学",
       "short_name": "四国",
@@ -110,25 +126,9 @@
       "todayDistance": 9.5,
       "todayRank": 10,
       "totalDistance": 248.1,
-      "overallRank": 7,
+      "overallRank": 8,
       "previousRank": 8,
       "nextRunner": "4松山",
-      "error": null,
-      "finishDay": null,
-      "is_shadow_confederation": false
-    },
-    {
-      "id": 11,
-      "name": "日本大学",
-      "short_name": "日大",
-      "currentLeg": 3,
-      "runner": "3下館",
-      "todayDistance": 7.9,
-      "todayRank": 14,
-      "totalDistance": 248.0,
-      "overallRank": 8,
-      "previousRank": 6,
-      "nextRunner": "4小田原",
       "error": null,
       "finishDay": null,
       "is_shadow_confederation": false
@@ -156,7 +156,7 @@
       "currentLeg": 3,
       "runner": "3府中（広島）",
       "todayDistance": 8.1,
-      "todayRank": 13,
+      "todayRank": 14,
       "totalDistance": 234.5,
       "overallRank": 10,
       "previousRank": 10,
