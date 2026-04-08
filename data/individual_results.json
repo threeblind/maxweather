@@ -360,7 +360,7 @@
         "totalDistance": 137.5,
         "days": 7,
         "averageDistance": 19.643,
-        "rank": 13,
+        "rank": 12,
         "status": "final",
         "finalRank": 14,
         "finalDay": 31,
@@ -369,7 +369,7 @@
     }
   },
   "豊田（愛知）": {
-    "totalDistance": 19.6,
+    "totalDistance": 27.2,
     "teamId": 1,
     "records": [
       {
@@ -380,18 +380,27 @@
         "legRank": 5,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 6,
+        "distance": 7.6,
+        "legAverageDistance": 13.6,
+        "legRank": 8,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "6": {
-        "totalDistance": 19.6,
-        "days": 1,
-        "averageDistance": 19.6,
-        "rank": 5,
+        "totalDistance": 27.2,
+        "days": 2,
+        "averageDistance": 13.6,
+        "rank": 8,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -798,7 +807,7 @@
         "totalDistance": 125.0,
         "days": 6,
         "averageDistance": 20.833,
-        "rank": 5,
+        "rank": 4,
         "status": "final",
         "finalRank": 8,
         "finalDay": 31,
@@ -807,7 +816,7 @@
     }
   },
   "伊勢崎": {
-    "totalDistance": 18.7,
+    "totalDistance": 28.2,
     "teamId": 2,
     "records": [
       {
@@ -818,18 +827,27 @@
         "legRank": 7,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 6,
+        "distance": 9.5,
+        "legAverageDistance": 14.1,
+        "legRank": 7,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "6": {
-        "totalDistance": 18.7,
-        "days": 1,
-        "averageDistance": 18.7,
+        "totalDistance": 28.2,
+        "days": 2,
+        "averageDistance": 14.1,
         "rank": 7,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -1119,7 +1137,7 @@
         "totalDistance": 113.5,
         "days": 6,
         "averageDistance": 18.917,
-        "rank": 10,
+        "rank": 9,
         "status": "final",
         "finalRank": 9,
         "finalDay": 22,
@@ -1245,7 +1263,7 @@
         "totalDistance": 127.3,
         "days": 6,
         "averageDistance": 21.217,
-        "rank": 4,
+        "rank": 3,
         "status": "final",
         "finalRank": 4,
         "finalDay": 32,
@@ -1254,10 +1272,31 @@
     }
   },
   "豊中": {
-    "totalDistance": 0.0,
+    "totalDistance": 9.2,
     "teamId": 3,
-    "records": [],
-    "legSummaries": {}
+    "records": [
+      {
+        "day": 33,
+        "leg": 6,
+        "distance": 9.2,
+        "legAverageDistance": 9.2,
+        "legRank": 11,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
+      }
+    ],
+    "legSummaries": {
+      "6": {
+        "totalDistance": 9.2,
+        "days": 1,
+        "averageDistance": 9.2,
+        "rank": 11,
+        "status": "provisional",
+        "finalRank": null,
+        "finalDay": null,
+        "lastUpdatedDay": 33
+      }
+    }
   },
   "八尾（大阪）": {
     "totalDistance": 0.0,
@@ -1620,7 +1659,7 @@
     }
   },
   "甲府": {
-    "totalDistance": 87.6,
+    "totalDistance": 99.2,
     "teamId": 4,
     "records": [
       {
@@ -1658,18 +1697,27 @@
         "legRank": 2,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 5,
+        "distance": 11.6,
+        "legAverageDistance": 19.84,
+        "legRank": 11,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "5": {
-        "totalDistance": 87.6,
-        "days": 4,
-        "averageDistance": 21.9,
-        "rank": 2,
+        "totalDistance": 99.2,
+        "days": 5,
+        "averageDistance": 19.84,
+        "rank": 11,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -1953,7 +2001,7 @@
         "totalDistance": 99.8,
         "days": 5,
         "averageDistance": 19.96,
-        "rank": 5,
+        "rank": 4,
         "status": "final",
         "finalRank": 4,
         "finalDay": 22,
@@ -2025,7 +2073,7 @@
     }
   },
   "舞鶴": {
-    "totalDistance": 100.4,
+    "totalDistance": 107.2,
     "teamId": 5,
     "records": [
       {
@@ -2072,18 +2120,27 @@
         "legRank": 11,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 5,
+        "distance": 6.8,
+        "legAverageDistance": 17.867,
+        "legRank": 14,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "5": {
-        "totalDistance": 100.4,
-        "days": 5,
-        "averageDistance": 20.08,
-        "rank": 11,
+        "totalDistance": 107.2,
+        "days": 6,
+        "averageDistance": 17.867,
+        "rank": 14,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -2364,7 +2421,7 @@
         "totalDistance": 97.0,
         "days": 5,
         "averageDistance": 19.4,
-        "rank": 7,
+        "rank": 6,
         "status": "final",
         "finalRank": 5,
         "finalDay": 21,
@@ -2490,7 +2547,7 @@
         "totalDistance": 123.5,
         "days": 6,
         "averageDistance": 20.583,
-        "rank": 8,
+        "rank": 7,
         "status": "final",
         "finalRank": 10,
         "finalDay": 31,
@@ -2499,7 +2556,7 @@
     }
   },
   "高松（香川）": {
-    "totalDistance": 16.6,
+    "totalDistance": 26.4,
     "teamId": 6,
     "records": [
       {
@@ -2510,18 +2567,27 @@
         "legRank": 9,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 6,
+        "distance": 9.8,
+        "legAverageDistance": 13.2,
+        "legRank": 9,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "6": {
-        "totalDistance": 16.6,
-        "days": 1,
-        "averageDistance": 16.6,
+        "totalDistance": 26.4,
+        "days": 2,
+        "averageDistance": 13.2,
         "rank": 9,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -2778,7 +2844,7 @@
         "totalDistance": 95.5,
         "days": 5,
         "averageDistance": 19.1,
-        "rank": 9,
+        "rank": 8,
         "status": "final",
         "finalRank": 4,
         "finalDay": 19,
@@ -2904,7 +2970,7 @@
         "totalDistance": 117.1,
         "days": 6,
         "averageDistance": 19.517,
-        "rank": 14,
+        "rank": 13,
         "status": "final",
         "finalRank": 13,
         "finalDay": 29,
@@ -2913,7 +2979,7 @@
     }
   },
   "博多": {
-    "totalDistance": 63.7,
+    "totalDistance": 75.6,
     "teamId": 7,
     "records": [
       {
@@ -2942,18 +3008,27 @@
         "legRank": 3,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 6,
+        "distance": 11.9,
+        "legAverageDistance": 18.9,
+        "legRank": 3,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "6": {
-        "totalDistance": 63.7,
-        "days": 3,
-        "averageDistance": 21.233,
+        "totalDistance": 75.6,
+        "days": 4,
+        "averageDistance": 18.9,
         "rank": 3,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -3249,7 +3324,7 @@
     }
   },
   "大村": {
-    "totalDistance": 80.2,
+    "totalDistance": 92.4,
     "teamId": 8,
     "records": [
       {
@@ -3287,18 +3362,27 @@
         "legRank": 4,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 3,
+        "distance": 12.2,
+        "legAverageDistance": 18.48,
+        "legRank": 10,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "3": {
-        "totalDistance": 80.2,
-        "days": 4,
-        "averageDistance": 20.05,
-        "rank": 4,
+        "totalDistance": 92.4,
+        "days": 5,
+        "averageDistance": 18.48,
+        "rank": 10,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -3720,7 +3804,7 @@
         "totalDistance": 119.3,
         "days": 6,
         "averageDistance": 19.883,
-        "rank": 12,
+        "rank": 10,
         "status": "final",
         "finalRank": 12,
         "finalDay": 32,
@@ -3729,10 +3813,31 @@
     }
   },
   "松江": {
-    "totalDistance": 0.0,
+    "totalDistance": 8.0,
     "teamId": 9,
-    "records": [],
-    "legSummaries": {}
+    "records": [
+      {
+        "day": 33,
+        "leg": 6,
+        "distance": 8.0,
+        "legAverageDistance": 8.0,
+        "legRank": 12,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
+      }
+    ],
+    "legSummaries": {
+      "6": {
+        "totalDistance": 8.0,
+        "days": 1,
+        "averageDistance": 8.0,
+        "rank": 12,
+        "status": "provisional",
+        "finalRank": null,
+        "finalDay": null,
+        "lastUpdatedDay": 33
+      }
+    }
   },
   "米子": {
     "totalDistance": 0.0,
@@ -4146,7 +4251,7 @@
         "totalDistance": 124.0,
         "days": 6,
         "averageDistance": 20.667,
-        "rank": 7,
+        "rank": 6,
         "status": "final",
         "finalRank": 7,
         "finalDay": 32,
@@ -4155,10 +4260,31 @@
     }
   },
   "新宮": {
-    "totalDistance": 0.0,
+    "totalDistance": 10.5,
     "teamId": 10,
-    "records": [],
-    "legSummaries": {}
+    "records": [
+      {
+        "day": 33,
+        "leg": 6,
+        "distance": 10.5,
+        "legAverageDistance": 10.5,
+        "legRank": 10,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
+      }
+    ],
+    "legSummaries": {
+      "6": {
+        "totalDistance": 10.5,
+        "days": 1,
+        "averageDistance": 10.5,
+        "rank": 10,
+        "status": "provisional",
+        "finalRank": null,
+        "finalDay": null,
+        "lastUpdatedDay": 33
+      }
+    }
   },
   "津": {
     "totalDistance": 0.0,
@@ -4557,7 +4683,7 @@
         "totalDistance": 124.9,
         "days": 6,
         "averageDistance": 20.817,
-        "rank": 6,
+        "rank": 5,
         "status": "final",
         "finalRank": 9,
         "finalDay": 31,
@@ -4566,7 +4692,7 @@
     }
   },
   "八王子": {
-    "totalDistance": 19.0,
+    "totalDistance": 28.9,
     "teamId": 11,
     "records": [
       {
@@ -4577,18 +4703,27 @@
         "legRank": 6,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 6,
+        "distance": 9.9,
+        "legAverageDistance": 14.45,
+        "legRank": 6,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "6": {
-        "totalDistance": 19.0,
-        "days": 1,
-        "averageDistance": 19.0,
+        "totalDistance": 28.9,
+        "days": 2,
+        "averageDistance": 14.45,
         "rank": 6,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -4836,7 +4971,7 @@
         "totalDistance": 97.9,
         "days": 5,
         "averageDistance": 19.58,
-        "rank": 6,
+        "rank": 5,
         "status": "final",
         "finalRank": 3,
         "finalDay": 18,
@@ -4962,7 +5097,7 @@
         "totalDistance": 123.5,
         "days": 6,
         "averageDistance": 20.583,
-        "rank": 8,
+        "rank": 7,
         "status": "final",
         "finalRank": 7,
         "finalDay": 28,
@@ -4971,7 +5106,7 @@
     }
   },
   "大分": {
-    "totalDistance": 78.7,
+    "totalDistance": 88.7,
     "teamId": 12,
     "records": [
       {
@@ -5009,18 +5144,27 @@
         "legRank": 4,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 6,
+        "distance": 10.0,
+        "legAverageDistance": 17.74,
+        "legRank": 4,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "6": {
-        "totalDistance": 78.7,
-        "days": 4,
-        "averageDistance": 19.675,
+        "totalDistance": 88.7,
+        "days": 5,
+        "averageDistance": 17.74,
         "rank": 4,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -5403,7 +5547,7 @@
     }
   },
   "福井": {
-    "totalDistance": 33.8,
+    "totalDistance": 41.9,
     "teamId": 13,
     "records": [
       {
@@ -5423,18 +5567,27 @@
         "legRank": 16,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 5,
+        "distance": 8.1,
+        "legAverageDistance": 13.967,
+        "legRank": 16,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "5": {
-        "totalDistance": 33.8,
-        "days": 2,
-        "averageDistance": 16.9,
+        "totalDistance": 41.9,
+        "days": 3,
+        "averageDistance": 13.967,
         "rank": 16,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -5793,7 +5946,7 @@
     }
   },
   "大館": {
-    "totalDistance": 59.4,
+    "totalDistance": 60.8,
     "teamId": 14,
     "records": [
       {
@@ -5831,18 +5984,27 @@
         "legRank": 17,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 4,
+        "distance": 1.4,
+        "legAverageDistance": 12.16,
+        "legRank": 17,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "4": {
-        "totalDistance": 59.4,
-        "days": 4,
-        "averageDistance": 14.85,
+        "totalDistance": 60.8,
+        "days": 5,
+        "averageDistance": 12.16,
         "rank": 17,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -6132,7 +6294,7 @@
         "totalDistance": 96.8,
         "days": 5,
         "averageDistance": 19.36,
-        "rank": 8,
+        "rank": 7,
         "status": "final",
         "finalRank": 5,
         "finalDay": 20,
@@ -6258,7 +6420,7 @@
         "totalDistance": 122.2,
         "days": 6,
         "averageDistance": 20.367,
-        "rank": 10,
+        "rank": 9,
         "status": "final",
         "finalRank": 13,
         "finalDay": 30,
@@ -6267,7 +6429,7 @@
     }
   },
   "徳島": {
-    "totalDistance": 35.7,
+    "totalDistance": 46.5,
     "teamId": 15,
     "records": [
       {
@@ -6287,18 +6449,27 @@
         "legRank": 8,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 6,
+        "distance": 10.8,
+        "legAverageDistance": 15.5,
+        "legRank": 5,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "6": {
-        "totalDistance": 35.7,
-        "days": 2,
-        "averageDistance": 17.85,
-        "rank": 8,
+        "totalDistance": 46.5,
+        "days": 3,
+        "averageDistance": 15.5,
+        "rank": 5,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -6666,7 +6837,7 @@
     }
   },
   "福島": {
-    "totalDistance": 57.1,
+    "totalDistance": 62.7,
     "teamId": 16,
     "records": [
       {
@@ -6695,18 +6866,27 @@
         "legRank": 15,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 5,
+        "distance": 5.6,
+        "legAverageDistance": 15.675,
+        "legRank": 15,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "5": {
-        "totalDistance": 57.1,
-        "days": 3,
-        "averageDistance": 19.033,
+        "totalDistance": 62.7,
+        "days": 4,
+        "averageDistance": 15.675,
         "rank": 15,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
@@ -7071,7 +7251,7 @@
         "totalDistance": 108.0,
         "days": 5,
         "averageDistance": 21.6,
-        "rank": 3,
+        "rank": 2,
         "status": "final",
         "finalRank": 3,
         "finalDay": 27,
@@ -7143,10 +7323,31 @@
     }
   },
   "鹿児島": {
-    "totalDistance": 0.0,
+    "totalDistance": 15.1,
     "teamId": 17,
-    "records": [],
-    "legSummaries": {}
+    "records": [
+      {
+        "day": 33,
+        "leg": 7,
+        "distance": 15.1,
+        "legAverageDistance": 15.1,
+        "legRank": 2,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
+      }
+    ],
+    "legSummaries": {
+      "7": {
+        "totalDistance": 15.1,
+        "days": 1,
+        "averageDistance": 15.1,
+        "rank": 2,
+        "status": "provisional",
+        "finalRank": null,
+        "finalDay": null,
+        "lastUpdatedDay": 33
+      }
+    }
   },
   "さつま柏原": {
     "totalDistance": 0.0,
@@ -7569,7 +7770,7 @@
     }
   },
   "西表島": {
-    "totalDistance": 54.3,
+    "totalDistance": 76.4,
     "teamId": 18,
     "records": [
       {
@@ -7589,18 +7790,27 @@
         "legRank": 1,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
+      },
+      {
+        "day": 33,
+        "leg": 8,
+        "distance": 22.1,
+        "legAverageDistance": 25.467,
+        "legRank": 1,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "8": {
-        "totalDistance": 54.3,
-        "days": 2,
-        "averageDistance": 27.15,
+        "totalDistance": 76.4,
+        "days": 3,
+        "averageDistance": 25.467,
         "rank": 1,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 32
+        "lastUpdatedDay": 33
       }
     }
   },
