@@ -1,5 +1,5 @@
 {
-  "updateTime": "2026/04/17 15:25",
+  "updateTime": "2026/04/17 15:35",
   "raceDay": 41,
   "breakingNewsComment": "【定時速報】現在トップは琉球大学！総合距離1053.7kmです！",
   "breakingNewsTimestamp": "2026-04-17T15:15:09.746288",
@@ -102,6 +102,22 @@
       "is_shadow_confederation": false
     },
     {
+      "id": 11,
+      "name": "日本大学",
+      "short_name": "日大",
+      "currentLeg": 7,
+      "runner": "7練馬",
+      "todayDistance": 19.7,
+      "todayRank": 13,
+      "totalDistance": 738.0,
+      "overallRank": 7,
+      "previousRank": 7,
+      "nextRunner": "8府中（東京）",
+      "error": null,
+      "finishDay": null,
+      "is_shadow_confederation": false
+    },
+    {
       "id": 2,
       "name": "上武大学",
       "short_name": "上武",
@@ -110,25 +126,9 @@
       "todayDistance": 20.1,
       "todayRank": 12,
       "totalDistance": 737.8,
-      "overallRank": 7,
+      "overallRank": 8,
       "previousRank": 8,
       "nextRunner": "8前橋",
-      "error": null,
-      "finishDay": null,
-      "is_shadow_confederation": false
-    },
-    {
-      "id": 11,
-      "name": "日本大学",
-      "short_name": "日大",
-      "currentLeg": 7,
-      "runner": "7練馬",
-      "todayDistance": 19.4,
-      "todayRank": 13,
-      "totalDistance": 737.7,
-      "overallRank": 8,
-      "previousRank": 7,
-      "nextRunner": "8府中（東京）",
       "error": null,
       "finishDay": null,
       "is_shadow_confederation": false
