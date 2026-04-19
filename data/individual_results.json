@@ -486,7 +486,7 @@
     }
   },
   "大府": {
-    "totalDistance": 87.0,
+    "totalDistance": 87.2,
     "teamId": 1,
     "records": [
       {
@@ -519,19 +519,19 @@
       {
         "day": 44,
         "leg": 8,
-        "distance": 17.2,
-        "legAverageDistance": 21.75,
-        "legRank": 5,
+        "distance": 17.4,
+        "legAverageDistance": 21.8,
+        "legRank": 4,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "8": {
-        "totalDistance": 87.0,
+        "totalDistance": 87.2,
         "days": 4,
-        "averageDistance": 21.75,
-        "rank": 5,
+        "averageDistance": 21.8,
+        "rank": 4,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
@@ -1644,7 +1644,7 @@
     }
   },
   "郡家": {
-    "totalDistance": 39.5,
+    "totalDistance": 39.9,
     "teamId": 3,
     "records": [
       {
@@ -1659,19 +1659,19 @@
       {
         "day": 44,
         "leg": 8,
-        "distance": 17.4,
-        "legAverageDistance": 19.75,
-        "legRank": 9,
+        "distance": 17.8,
+        "legAverageDistance": 19.95,
+        "legRank": 8,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "8": {
-        "totalDistance": 39.5,
+        "totalDistance": 39.9,
         "days": 2,
-        "averageDistance": 19.75,
-        "rank": 9,
+        "averageDistance": 19.95,
+        "rank": 8,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
@@ -2730,7 +2730,7 @@
     }
   },
   "長浜（滋賀）": {
-    "totalDistance": 84.5,
+    "totalDistance": 85.7,
     "teamId": 5,
     "records": [
       {
@@ -2763,22 +2763,22 @@
       {
         "day": 44,
         "leg": 7,
-        "distance": 15.9,
-        "legAverageDistance": 21.125,
-        "legRank": 10,
-        "legAverageStatus": "provisional",
-        "legRankStatus": "provisional"
+        "distance": 17.1,
+        "legAverageDistance": 21.425,
+        "legRank": 9,
+        "legAverageStatus": "final",
+        "legRankStatus": "final"
       }
     ],
     "legSummaries": {
       "7": {
-        "totalDistance": 84.5,
+        "totalDistance": 85.7,
         "days": 4,
-        "averageDistance": 21.125,
-        "rank": 10,
-        "status": "provisional",
-        "finalRank": null,
-        "finalDay": null,
+        "averageDistance": 21.425,
+        "rank": 9,
+        "status": "final",
+        "finalRank": 9,
+        "finalDay": 44,
         "lastUpdatedDay": 44
       }
     }
@@ -3309,7 +3309,7 @@
         "totalDistance": 85.6,
         "days": 4,
         "averageDistance": 21.4,
-        "rank": 9,
+        "rank": 10,
         "status": "final",
         "finalRank": 10,
         "finalDay": 42,
@@ -3318,7 +3318,7 @@
     }
   },
   "引田": {
-    "totalDistance": 38.0,
+    "totalDistance": 38.3,
     "teamId": 6,
     "records": [
       {
@@ -3333,8 +3333,8 @@
       {
         "day": 44,
         "leg": 8,
-        "distance": 17.9,
-        "legAverageDistance": 19.0,
+        "distance": 18.2,
+        "legAverageDistance": 19.15,
         "legRank": 10,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
@@ -3342,9 +3342,9 @@
     ],
     "legSummaries": {
       "8": {
-        "totalDistance": 38.0,
+        "totalDistance": 38.3,
         "days": 2,
-        "averageDistance": 19.0,
+        "averageDistance": 19.15,
         "rank": 10,
         "status": "provisional",
         "finalRank": null,
@@ -8336,7 +8336,7 @@
         "leg": 8,
         "distance": 16.2,
         "legAverageDistance": 19.767,
-        "legRank": 8,
+        "legRank": 9,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional"
       }
@@ -8346,7 +8346,7 @@
         "totalDistance": 59.3,
         "days": 3,
         "averageDistance": 19.767,
-        "rank": 8,
+        "rank": 9,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
