@@ -196,12 +196,12 @@ class DailySummaryGenerator:
 
     def format_ranking_table(self):
         """総合順位をMarkdownテーブル形式で整形する。"""
-        teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
+        teams = sorted(self._get_regular_teams(), key=lambda t: t.get('overallRank') or 999)
         if not teams:
-            return "現在走行中の公式チームはありません。"
+            return "公式チーム情報はありません。"
 
-        header = "| 順位 | 大学名 | 現在走者 | 本日距離(順位) | 総合距離 | トップ差 | 順位変動(前日) |"
-        divider = "|:---|:---|:---|:---|:---|:---|:---|"
+        header = "| 順位 | 大学名 | 状態 | 現在走者 | 本日距離(順位) | 総合距離 | トップ差 | 順位変動(前日) |"
+        divider = "|:---|:---|:---|:---|:---|:---|:---|:---|"
         rows = [header, divider]
 
         top_distance = teams[0].get('totalDistance', 0.0)
@@ -210,10 +210,13 @@ class DailySummaryGenerator:
             gap = "----" if team.get('overallRank') == 1 else f"-{top_distance - total_distance:.1f}km"
             previous_rank = team.get("previousRank", 0)
             rank_change = self._rank_move_label(previous_rank, team.get('overallRank'))
+            finish_day = team.get('finishDay')
+            status = f"ゴール済み（{finish_day}日目）" if finish_day else "走行中"
 
             row = [
                 team.get('overallRank', ''),
                 team.get('name', ''),
+                status,
                 team.get('runner', ''),
                 f"{team.get('todayDistance', 0.0):.1f}km ({team.get('todayRank', '')})",
                 f"{total_distance:.1f}km",
@@ -331,6 +334,48 @@ class DailySummaryGenerator:
             return "順位維持"
         return f"{abs(diff)}ランクダウン"
 
+    def _build_finish_status_notes(self, race_day):
+        teams = sorted(self._get_regular_teams(), key=lambda t: t.get('overallRank') or 999)
+        if not teams:
+            return []
+
+        try:
+            race_day_int = int(race_day)
+        except (TypeError, ValueError):
+            race_day_int = None
+
+        notes = []
+        champion = next((team for team in teams if team.get('overallRank') == 1), None)
+        if champion and champion.get('finishDay'):
+            notes.append(
+                f"- 総合1位は{champion.get('name')}で、{champion.get('finishDay')}日目にフィニッシュ済み。"
+                "他大学が後日フィニッシュしても、この事実を覆さない。"
+            )
+
+        finished_teams = [team for team in teams if team.get('finishDay')]
+        if finished_teams:
+            notes.append(
+                "- ゴール済み順位: "
+                + "、".join(
+                    f"{team.get('overallRank')}位 {team.get('name')}（{team.get('finishDay')}日目）"
+                    for team in finished_teams[:6]
+                )
+            )
+
+        if race_day_int is not None:
+            today_finishers = [team for team in teams if team.get('finishDay') == race_day_int]
+            if today_finishers:
+                notes.append(
+                    "- 本日フィニッシュ: "
+                    + "、".join(
+                        f"{team.get('name')}は総合{team.get('overallRank')}位でフィニッシュ"
+                        for team in today_finishers
+                    )
+                    + "。総合1位・優勝・首位フィニッシュとは書かないこと（総合1位の場合を除く）。"
+                )
+
+        return notes
+
     def _build_story_angle(self):
         teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
         if not teams:
@@ -339,7 +384,10 @@ class DailySummaryGenerator:
         notes = []
         if len(teams) >= 2:
             lead_gap = teams[0].get('totalDistance', 0.0) - teams[1].get('totalDistance', 0.0)
-            notes.append(f"- 今日の軸: 首位争いは{teams[0].get('name')}と{teams[1].get('name')}の{self._describe_gap(lead_gap)}。")
+            notes.append(
+                f"- 今日の軸: 走行中トップ争いは総合{teams[0].get('overallRank')}位{teams[0].get('name')}と"
+                f"総合{teams[1].get('overallRank')}位{teams[1].get('name')}の{self._describe_gap(lead_gap)}。"
+            )
 
         upper_mid = [t for t in teams if t.get('overallRank') and 4 <= t['overallRank'] <= 8]
         if len(upper_mid) >= 2:
@@ -395,7 +443,8 @@ class DailySummaryGenerator:
         date_text = latest.get('date') or '前日'
         return [
             f"- 前回記事（{date_text}）の主題: {article}",
-            "- 今日の記事では前日の焦点が継続しているのか、入れ替わったのかを自然に接続すること。"
+            "- 今日の記事では前日の焦点が継続しているのか、入れ替わったのかを自然に接続すること。",
+            "- ただし前回記事の順位表現は正本ではない。総合順位・ゴール順・優勝表現は必ず本日の総合順位表とゴール済み順位を正とすること。"
         ]
 
     def build_coverage_checklist(self):
@@ -407,7 +456,7 @@ class DailySummaryGenerator:
 
         top_cluster = teams[:3]
         if top_cluster:
-            lines.append("- トップ集団(上位): " + "、".join(self._format_team_snapshot(t) for t in top_cluster))
+            lines.append("- 走行中上位: " + "、".join(self._format_team_snapshot(t) for t in top_cluster))
 
         mid_pack = [t for t in teams if t.get('overallRank') and 4 <= t['overallRank'] <= 8]
         if mid_pack:
@@ -608,9 +657,12 @@ class DailySummaryGenerator:
         if len(teams) > 1:
             runner_up = teams[1]
             gap = top_team.get('totalDistance', 0.0) - runner_up.get('totalDistance', 0.0)
-            notes.append(f"- 首位攻防: 1位 {top_team.get('name')} と2位 {runner_up.get('name')} の差は {gap:.1f}km。")
+            notes.append(
+                f"- 走行中トップ攻防: 総合{top_team.get('overallRank')}位 {top_team.get('name')} と"
+                f"総合{runner_up.get('overallRank')}位 {runner_up.get('name')} の差は {gap:.1f}km。"
+            )
         else:
-            notes.append(f"- 首位状況: {top_team.get('name')} が走行中チームの先頭を独走。")
+            notes.append(f"- 走行中トップ状況: 総合{top_team.get('overallRank')}位 {top_team.get('name')} が走行中チームの先頭。")
 
         today_stars = [t for t in sorted(teams, key=lambda tm: tm.get('todayDistance', 0.0), reverse=True) if t.get('todayDistance', 0.0) > 0][:3]
         if today_stars:
@@ -647,6 +699,8 @@ class DailySummaryGenerator:
             "- 総合順位が上がっていないチームに「浮上」「ジャンプアップ」「逆転」を使わない",
             "- 監督コメントは提供された場合のみ言及する",
             "- 既にゴールしたチームには、当日新規性がある場合を除き重点的に触れない",
+            "- 当日フィニッシュしたチームが総合1位でない場合、優勝・首位・先頭フィニッシュ・大会を支配した、とは書かない",
+            "- ゴール済み順位と走行中トップを混同しない",
             "- 記事は事実優先で書き、数字や順位差は提供データを優先する",
             "",
             "文体:",
@@ -857,8 +911,9 @@ class DailySummaryGenerator:
             leg_configuration,
             "",
             "# 記事の内容構成・ルール",
-            "- その日の最大テーマ（首位独走、上位デッドヒート、中位混戦、シード権攻防など）を優先し、動きが大きいものを3〜4点重点的に書くこと。",
-            "- 記事全体を現在走行中のチーム・走者の動きに集中させ、既にゴールしたチームの回顧は避けること。",
+            "- その日の最大テーマ（総合首位が走行中なら首位独走、走行中トップ争い、上位デッドヒート、中位混戦、シード権攻防など）を優先し、動きが大きいものを3〜4点重点的に書くこと。",
+            "- 記事全体を現在走行中のチーム・走者の動きに集中させ、既にゴールしたチームの回顧は避けること。ただし当日フィニッシュは新規性として扱ってよい。",
+            "- 当日フィニッシュしたチームは、必ず総合順位を確認してから表現すること。総合2位以下なら『2位でフィニッシュ』のように順位を明記し、『先頭』『首位』『優勝』とは書かないこと。",
             "- 走行中チームの首位・シードライン・追い上げの構図は具体的な距離差や区間情報とともに描写すること。",
             "- 好走者（際立った走者・区間での躍動）、タスキリレー、歴代区間記録の更新、監督コメントの情報があれば必ず本文に組み込むこと。",
             "- 大学名、選手名は太字で扱うこと。選手名には必ず「君」付けすること（例:**上武大学**の**佐野君**）。",
@@ -868,6 +923,12 @@ class DailySummaryGenerator:
         ]
         prompt_parts.append(f"- 大会日: {race_day}日目")
         prompt_parts.append(f"- 現在のレース状況: {race_status_summary}")
+
+        finish_status_notes = self._build_finish_status_notes(race_day)
+        if finish_status_notes:
+            prompt_parts.append("\n# ゴール済み順位と本日フィニッシュ")
+            prompt_parts.extend(finish_status_notes)
+
         prompt_parts.append("- 本日の総合順位:")
         prompt_parts.append(self.format_ranking_table())
 
