@@ -2730,7 +2730,7 @@
     }
   },
   "勝沼": {
-    "totalDistance": 110.6,
+    "totalDistance": 111.5,
     "teamId": 4,
     "records": [
       {
@@ -2772,22 +2772,22 @@
       {
         "day": 57,
         "leg": 10,
-        "distance": 25.7,
-        "legAverageDistance": 22.12,
+        "distance": 26.6,
+        "legAverageDistance": 22.3,
         "legRank": 6,
-        "legAverageStatus": "provisional",
-        "legRankStatus": "provisional"
+        "legAverageStatus": "final",
+        "legRankStatus": "final"
       }
     ],
     "legSummaries": {
       "10": {
-        "totalDistance": 110.6,
+        "totalDistance": 111.5,
         "days": 5,
-        "averageDistance": 22.12,
+        "averageDistance": 22.3,
         "rank": 6,
-        "status": "provisional",
-        "finalRank": null,
-        "finalDay": null,
+        "status": "final",
+        "finalRank": 6,
+        "finalDay": 57,
         "lastUpdatedDay": 57
       }
     }
