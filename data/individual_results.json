@@ -5547,7 +5547,7 @@
     }
   },
   "恵那": {
-    "totalDistance": 92.4,
+    "totalDistance": 93.1,
     "teamId": 8,
     "records": [
       {
@@ -5580,22 +5580,22 @@
       {
         "day": 63,
         "leg": 9,
-        "distance": 20.7,
-        "legAverageDistance": 23.1,
+        "distance": 21.4,
+        "legAverageDistance": 23.275,
         "legRank": 6,
-        "legAverageStatus": "provisional",
-        "legRankStatus": "provisional"
+        "legAverageStatus": "final",
+        "legRankStatus": "final"
       }
     ],
     "legSummaries": {
       "9": {
-        "totalDistance": 92.4,
+        "totalDistance": 93.1,
         "days": 4,
-        "averageDistance": 23.1,
+        "averageDistance": 23.275,
         "rank": 6,
-        "status": "provisional",
-        "finalRank": null,
-        "finalDay": null,
+        "status": "final",
+        "finalRank": 6,
+        "finalDay": 63,
         "lastUpdatedDay": 63
       }
     }
