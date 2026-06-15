@@ -1,5 +1,5 @@
 {
-  "updateTime": "2026/06/15 21:25",
+  "updateTime": "2026/06/15 21:35",
   "raceDay": 100,
   "breakingNewsComment": "",
   "breakingNewsTimestamp": "",
@@ -230,6 +230,22 @@
       "is_shadow_confederation": false
     },
     {
+      "id": 11,
+      "name": "日本大学",
+      "short_name": "日大",
+      "currentLeg": 7,
+      "runner": "7練馬",
+      "todayDistance": 21.5,
+      "todayRank": 18,
+      "totalDistance": 713.6,
+      "overallRank": 15,
+      "previousRank": 15,
+      "nextRunner": "8府中（東京）",
+      "error": null,
+      "finishDay": null,
+      "is_shadow_confederation": false
+    },
+    {
       "id": 8,
       "name": "学連選抜",
       "short_name": "学連",
@@ -238,26 +254,10 @@
       "todayDistance": 28.7,
       "todayRank": 10,
       "totalDistance": 693.8,
-      "overallRank": 15,
+      "overallRank": 16,
       "previousRank": 16,
       "nextRunner": "8飯塚",
       "error": null,
-      "finishDay": null,
-      "is_shadow_confederation": false
-    },
-    {
-      "id": 11,
-      "name": "日本大学",
-      "short_name": "日大",
-      "currentLeg": 7,
-      "runner": "7練馬",
-      "todayDistance": 0.0,
-      "todayRank": 18,
-      "totalDistance": 692.1,
-      "overallRank": 16,
-      "previousRank": 15,
-      "nextRunner": "8府中（東京）",
-      "error": "通信エラー: 503 Server Error: Service Temporarily Unavailable for url: https://weather.yahoo.co.jp/weather/amedas/13/44071.html",
       "finishDay": null,
       "is_shadow_confederation": false
     },
