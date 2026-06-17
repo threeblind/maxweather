@@ -11,6 +11,7 @@
 """
 
 import argparse
+from datetime import datetime
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -108,19 +109,21 @@ def main() -> int:
     print("注意: daily_temperatures.json や config/ 配下の設定ファイルは変更しません。")
     print("     削除後に `python3.9 scripts/rebuild_history.py` を実行すると初期状態を再生成できます。")
 
-    if not targets:
-        return 0
-
-    if not args.assume_yes:
+    confirmed = True
+    if targets and not args.assume_yes:
         try:
             answer = input("これらを削除してもよろしいですか？ (y/N): ").strip().lower()
+            if answer not in {"y", "yes"}:
+                print("削除を中止しました。")
+                confirmed = False
         except EOFError:
             print("\n入力がキャンセルされたため中断しました。")
             return 1
-        if answer not in {"y", "yes"}:
-            print("削除を中止しました。")
-            return 0
 
+    if not confirmed:
+        return 0
+
+    # 成果物の削除
     for path in targets:
         if path == DAILY_TEMPS_FILE:
             DAILY_TEMPS_FILE.write_text("{}", encoding="utf-8")
@@ -129,6 +132,34 @@ def main() -> int:
 
     if LOGS_DIR.exists():
         LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # config/outline.json の大会開始日を更新
+    outline_file = Path("config/outline.json")
+    if outline_file.exists():
+        print("\n大会開始日を更新しています...")
+        try:
+            import json
+            with open(outline_file, 'r', encoding='utf-8') as f:
+                outline_data = json.load(f)
+            
+            # 本日の日付を取得
+            today = datetime.now()
+            today_str = today.strftime("%Y-%m-%d")
+            weekdays = ["月", "火", "水", "木", "金", "土", "日"]
+            weekday_str = weekdays[today.weekday()]
+            today_label = f"{today.year}年{today.month}月{today.day}日（{weekday_str}）"
+
+            # jsonを書き換える
+            if "metadata" in outline_data:
+                outline_data["metadata"]["startDate"] = today_str
+            if "details" in outline_data:
+                outline_data["details"]["startDateLabel"] = today_label
+
+            with open(outline_file, 'w', encoding='utf-8') as f:
+                json.dump(outline_data, f, indent=2, ensure_ascii=False)
+            print(f"✅ 大会開始日を '{today_str}' に、ラベルを '{today_label}' に更新しました。")
+        except Exception as e:
+            print(f"⚠️ 大会開始日の更新中にエラーが発生しました: {e}")
 
     print("✅ 指定した成果物を削除しました。")
 
