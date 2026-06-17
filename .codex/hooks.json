@@ -1,0 +1,2 @@
+{"hooks":{"Stop":[{"matcher":"","hooks":[{"type":"command","command":"'/Users/t28k2/.agents/skills/agmsg/scripts/check-inbox.sh' 'codex' '/Users/t28k2/prj/weather'","commandWindows":"$b=$env:GIT_BASH; if (-not $b) { $b=$env:AGMSG_BASH }; if (-not $b) { $b='C:\\Program Files\\Git\\bin\\bash.exe' }; & $b -lc '''/Users/t28k2/.agents/skills/agmsg/scripts/check-inbox.sh'' ''codex'' ''/Users/t28k2/prj/weather'''"}]}]}}
+
