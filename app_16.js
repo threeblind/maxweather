@@ -967,9 +967,7 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
         tabsContainer.innerHTML = '';
         if (legRankingBody) legRankingBody.innerHTML = '';
         if (legRankingStatus) {
-            legRankingStatus.textContent = '(Result: 0) 区間記録データ未達';
-            legRankingStatus.className = 'result info';
-            legRankingStatus.style.display = 'block';
+            legRankingStatus.style.display = 'none';
         }
         legPrizeWinnerDiv.innerHTML = '';
         legPrizeWinnerDiv.style.display = 'none';
@@ -2271,24 +2269,25 @@ async function setupResponsiveSelectors() {
     const directorySelect = document.getElementById('team-directory-select');
 
     // --- データ取得 ---
-    try {
-        if (!intramuralDataCache) {
+    if (!intramuralDataCache) {
+        try {
             const response = await fetch(`data/intramural_rankings.json?_=${new Date().getTime()}`);
             if (!response.ok) {
-                if (response.status === 404) {
-                    const section = document.getElementById('section-intramural-ranking');
-                    if (section) section.style.display = 'none';
-                    const navLink = document.querySelector('a[href="#section-intramural-ranking"]');
-                    if (navLink) navLink.parentElement.style.display = 'none';
+                if (response.status !== 404) {
+                    console.error(`学内ランキングデータの取得に失敗: HTTP ${response.status}`);
                 }
-                return;
+                const section = document.getElementById('section-intramural-ranking');
+                if (section) section.style.display = 'none';
+                const navLink = document.querySelector('a[href="#section-intramural-ranking"]');
+                if (navLink) navLink.parentElement.style.display = 'none';
+            } else {
+                intramuralDataCache = await response.json();
             }
-            intramuralDataCache = await response.json();
+        } catch (error) {
+            console.error('UI生成のための学内ランキングデータ取得に失敗:', error);
+            const section = document.getElementById('section-intramural-ranking');
+            if (section) section.style.display = 'none';
         }
-    } catch (error) {
-        console.error('UI生成のためのデータ取得に失敗:', error);
-        const section = document.getElementById('section-intramural-ranking');
-        if (section) section.style.display = 'none';
     }
 
     // --- UI生成 ---
