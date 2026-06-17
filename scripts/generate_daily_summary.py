@@ -7,7 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 import unicodedata
-import google.generativeai as genai
+from openai import OpenAI
 
 # --- ディレクトリ定義 ---
 CONFIG_DIR = Path('config')
@@ -30,39 +30,27 @@ class DailySummaryGenerator:
     """
     Generates a daily summary article for the Ekiden race using an LLM.
     """
-    DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+    DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 
     def __init__(self, dry_run=False):
         self.dry_run = dry_run
         self.all_data = {}
-        self.gemini_model = None
+        self.client = None
 
         load_dotenv()
-        self.model_name = os.getenv("GEMINI_MODEL", self.DEFAULT_GEMINI_MODEL)
+        self.model_name = os.getenv("OPENAI_MODEL", self.DEFAULT_OPENAI_MODEL)
         self._setup_clients()
 
     def _setup_clients(self):
-        """Initializes Gemini API client."""
+        """OpenAI APIクライアントを初期化します。"""
         if not self.dry_run:
-            api_key = os.getenv("GEMINI_API_KEY")
+            api_key = os.getenv("OPENAI_API_KEY")
             if not api_key:
-                print("エラー: 環境変数 'GEMINI_API_KEY' が設定されていません。")
+                print("エラー: 環境変数 'OPENAI_API_KEY' が設定されていません。")
                 exit(1)
 
-            genai.configure(api_key=api_key)
-            self.gemini_model = genai.GenerativeModel(
-                self.model_name,
-                system_instruction=self.build_system_prompt()
-            )
-            print(f"✅ Geminiクライアントを初期化しました。model={self.model_name}")
-
-    def _switch_gemini_model(self, model_name):
-        self.model_name = model_name
-        self.gemini_model = genai.GenerativeModel(
-            self.model_name,
-            system_instruction=self.build_system_prompt()
-        )
-        print(f"ℹ️ Geminiモデルを切り替えました。model={self.model_name}")
+            self.client = OpenAI(api_key=api_key)
+            print(f"✅ OpenAIクライアントを初期化しました。model={self.model_name}")
 
     def _get_article_history(self, num_articles=2):
         """Fetches the last N articles and prompts from the local history file."""
@@ -1004,10 +992,10 @@ class DailySummaryGenerator:
         user_prompt = self.build_user_prompt()
 
         print("------------------------------------")
-        print("Geminiへのsystem prompt:")
+        print("OpenAIへのsystem prompt:")
         print(system_prompt)
         print("------------------------------------")
-        print("Geminiへのuser prompt:")
+        print("OpenAIへのuser prompt:")
         print(user_prompt)
         print("------------------------------------")
 
@@ -1016,11 +1004,15 @@ class DailySummaryGenerator:
             return
 
         try:
-            response = self.gemini_model.generate_content(user_prompt)
-            raw_article_text = response.text.strip()
+            response = self.client.responses.create(
+                model=self.model_name,
+                instructions=system_prompt,
+                input=user_prompt
+            )
+            raw_article_text = response.output_text.strip()
             print("記事をMarkdownでフォーマットしています...")
             article_text = self.format_article_with_markdown(raw_article_text)
-            print("✅ Geminiによる解説記事の生成に成功しました。")
+            print("✅ OpenAIによる解説記事の生成に成功しました。")
             prompt_payload = json.dumps(
                 {"system": system_prompt, "user": user_prompt},
                 ensure_ascii=False,
@@ -1028,33 +1020,8 @@ class DailySummaryGenerator:
             )
             self._save_article_to_history(prompt_payload, raw_article_text)
         except Exception as e:
-            error_message = str(e)
-            retryable_model_error = (
-                "models/" in error_message
-                and "is not found" in error_message
-                and self.model_name != self.DEFAULT_GEMINI_MODEL
-            )
-            if retryable_model_error:
-                print(f"⚠️ 指定モデル '{self.model_name}' が利用できないため、既定モデルへフォールバックします。")
-                try:
-                    self._switch_gemini_model(self.DEFAULT_GEMINI_MODEL)
-                    response = self.gemini_model.generate_content(user_prompt)
-                    raw_article_text = response.text.strip()
-                    print("記事をMarkdownでフォーマットしています...")
-                    article_text = self.format_article_with_markdown(raw_article_text)
-                    print("✅ Geminiによる解説記事の生成に成功しました。")
-                    prompt_payload = json.dumps(
-                        {"system": system_prompt, "user": user_prompt},
-                        ensure_ascii=False,
-                        indent=2
-                    )
-                    self._save_article_to_history(prompt_payload, raw_article_text)
-                except Exception as retry_error:
-                    print(f"❌ Gemini API呼び出し中にエラーが発生しました: {retry_error}")
-                    article_text = "本日の解説記事は、システムの問題により生成できませんでした。ご了承ください。"
-            else:
-                print(f"❌ Gemini API呼び出し中にエラーが発生しました: {e}")
-                article_text = "本日の解説記事は、システムの問題により生成できませんでした。ご了承ください。"
+            print(f"❌ OpenAI API呼び出し中にエラーが発生しました: {e}")
+            article_text = "本日の解説記事は、システムの問題により生成できませんでした。ご了承ください。"
 
         output_data = {
             "date": self.all_data.get('realtime_report', {}).get('updateTime', datetime.now().strftime('%Y/%m/%d %H:%M')).split(' ')[0],
@@ -1072,7 +1039,7 @@ class DailySummaryGenerator:
 def main():
     """Parses arguments and runs the generator."""
     parser = argparse.ArgumentParser(description='高温大学駅伝の1日の総括記事を生成します（履歴機能付き）。')
-    parser.add_argument('--dry-run', action='store_true', help='Gemini APIを呼び出さずにプロンプトのデバッグ表示のみ行います。')
+    parser.add_argument('--dry-run', action='store_true', help='OpenAI APIを呼び出さずにプロンプトのデバッグ表示のみ行います。')
     args = parser.parse_args()
 
     generator = DailySummaryGenerator(dry_run=args.dry_run)
