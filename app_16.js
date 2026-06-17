@@ -372,6 +372,7 @@ let teamColorMap = new Map();
 let trackedTeamName = "lead_group"; // デフォルトは先頭集団を追跡
 let coursePolyline = null; // コースのポリラインをグローバルに保持
 let shouldAutoFollowMap = true; // ユーザーが地図を触るまでは追跡を維持する
+let startLatLng = null; // スタート地点の緯度経度
 
 /**
  * Initializes the interactive map, draws the course, and places relay point markers.
@@ -431,6 +432,7 @@ async function initializeMap() {
             const latlngs = coursePath.map(p => [p.lat, p.lon]);
             coursePolyline = L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
             goalLatLng = latlngs[latlngs.length - 1] || null;
+            startLatLng = latlngs[0] || null;
         }
 
         // 6. Draw relay point markers with leg record info
@@ -570,6 +572,21 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
 
     // 古いマーカーをクリア
     runnerMarkersLayer.clearLayers();
+
+    if ((!runnerLocations || runnerLocations.length === 0) && ekidenData && ekidenData.teams && startLatLng) {
+        runnerLocations = ekidenData.teams.map((team, index) => {
+            return {
+                rank: index + 1,
+                team_name: team.name,
+                team_short_name: team.short_name || team.name,
+                runner_name: team.runners && team.runners[0] ? team.runners[0].name : "第1走者",
+                total_distance_km: 0.0,
+                latitude: startLatLng[0],
+                longitude: startLatLng[1],
+                is_shadow_confederation: false
+            };
+        });
+    }
 
     if (!runnerLocations || runnerLocations.length === 0) {
         return; // 表示するランナーがいない場合は何もしない
@@ -1362,9 +1379,9 @@ async function displayLegRankHistoryTable() {
             }
         }
 
-        // leg_rank_history.json (推移表のデータ) がない場合はメッセージを表示して終了
+        // leg_rank_history.json (推移表のデータ) がない場合は非表示にして終了
         if (legHistoryRes.status === 404) {
-            statusEl.textContent = '(Result: 0) 順位推移データ未達';
+            statusEl.style.display = 'none';
             return;
         }
 
@@ -1504,9 +1521,7 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
 
     if (!hasTeams || !hasLegBoundaries) {
         rankingBody.innerHTML = '';
-        rankingStatus.textContent = '(Result: 0) 総合順位データ未達';
-        rankingStatus.className = 'result info';
-        rankingStatus.style.display = 'block';
+        rankingStatus.style.display = 'none';
         return;
     }
 
@@ -1907,9 +1922,9 @@ const fetchEkidenData = async () => {
         }
 
         // Update title and update time
-        const raceDayLabel = realtimeData.teams.length > 0 ? `${realtimeData.raceDay}日目` : 'データ未取得';
+        const raceDayLabel = realtimeData.teams.length > 0 ? `${realtimeData.raceDay}日目 ` : '';
         const updateTimeLabel = realtimeData.updateTime || '未更新';
-        titleEl.textContent = `🏆 ${raceDayLabel} 総合順位`;
+        titleEl.textContent = `🏆 ${raceDayLabel}総合順位`;
         updateTimeEl.textContent = `(更新: ${updateTimeLabel})`;
 
         // Update breaking news comment from realtime_report.json
