@@ -1952,6 +1952,7 @@ const fetchEkidenData = async () => {
         updateEkidenRankingTable(realtimeData, ekidenData);
         updateIndividualSections(realtimeData, individualData, ekidenData);
         updateRunnerMarkers(runnerLocations, ekidenData); // Update map markers
+        await setupResponsiveSelectors();
 
     } catch (error) {
         console.error('Error fetching ekiden data:', error);
@@ -2267,6 +2268,7 @@ async function setupResponsiveSelectors() {
     const intramuralSelect = document.getElementById('intramural-team-select');
     const directoryNav = document.getElementById('team-directory-nav');
     const directorySelect = document.getElementById('team-directory-select');
+    const directoryContent = document.getElementById('team-directory-content');
 
     // --- データ取得 ---
     if (!intramuralDataCache) {
@@ -2307,6 +2309,8 @@ async function setupResponsiveSelectors() {
 
     const createSelectors = (teams, navEl, selectEl, callback) => {
         if (!navEl || !selectEl) return;
+        navEl.innerHTML = '';
+        selectEl.innerHTML = '';
         const sortedTeams = [...teams].sort((a, b) => a.id - b.id);
 
         sortedTeams.forEach(team => {
@@ -2326,7 +2330,7 @@ async function setupResponsiveSelectors() {
             option.textContent = team.name;
             selectEl.appendChild(option);
         });
-        selectEl.addEventListener('change', (e) => callback(parseInt(e.target.value, 10)));
+        selectEl.onchange = (e) => callback(parseInt(e.target.value, 10));
     };
 
     if (intramuralDataCache) {
@@ -2338,12 +2342,17 @@ async function setupResponsiveSelectors() {
 
     if (ekidenDataCache) {
         const regularTeams = ekidenDataCache.teams.filter(t => !t.is_shadow_confederation);
+        const previouslySelectedTeamId = parseInt(directorySelect?.value, 10);
         createSelectors(regularTeams, directoryNav, directorySelect, displayTeamDetails);
-        const firstTeamId = regularTeams.length > 0 ? regularTeams[0].id : null;
-        if (firstTeamId) {
-            directorySelect.value = firstTeamId;
-            updateActiveButton('team-directory-nav', firstTeamId);
-            displayTeamDetails(firstTeamId);
+        const selectedTeamId = regularTeams.some(t => t.id === previouslySelectedTeamId)
+            ? previouslySelectedTeamId
+            : (regularTeams.length > 0 ? regularTeams[0].id : null);
+        if (selectedTeamId) {
+            directorySelect.value = selectedTeamId;
+            updateActiveButton('team-directory-nav', selectedTeamId);
+            displayTeamDetails(selectedTeamId);
+        } else if (directoryContent) {
+            directoryContent.innerHTML = '';
         }
     }
 }
