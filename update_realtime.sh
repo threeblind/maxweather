@@ -30,6 +30,13 @@ echo "scripts/generate_report.py を実行中..."
 python scripts/generate_report.py --realtime
 
 # 3. 速報ファイルに変更があるか確認し、変更があればPush
+# 未追跡の新規ファイルも差分検知の対象にするため、存在すれば git add -N (intent-to-add) を行います。
+for f in data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json data/realtime_log.jsonl; do
+    if [[ -f "$f" ]]; then
+        git add -N "$f" || true
+    fi
+done
+
 if ! git diff --quiet --exit-code \
   data/realtime_report.json \
   data/individual_results.json \
@@ -38,7 +45,7 @@ if ! git diff --quiet --exit-code \
   data/runner_locations.json \
   data/realtime_log.jsonl \
 ; then
-    echo "速報ファイル (realtime_report.json, etc.) に変更を検出しました。GitHubにプッシュします。"
+    echo "速報ファイルに変更を検出しました。GitHubにプッシュします。"
 
     # --- スナップショットの当日分のみリポジトリに含める（古いものは削除） ---
     TODAY=$(date +'%Y%m%d')
@@ -61,8 +68,12 @@ if ! git diff --quiet --exit-code \
         fi
     done
 
-    # 主要な速報ファイルを add
-    git add data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json data/realtime_log.jsonl
+    # 主要な速報ファイルを add（存在するファイルのみ）
+    for f in data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json data/realtime_log.jsonl; do
+        if [[ -f "$f" ]]; then
+            git add "$f"
+        fi
+    done
 
     git commit -m "Update realtime report [bot] $(date +'%Y-%m-%d %H:%M:%S')" || true
 
