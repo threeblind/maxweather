@@ -25,6 +25,7 @@ INDIVIDUAL_RESULTS_FILE = DATA_DIR / 'individual_results.json'
 PLAYER_STORY_CONTEXT_FILE = CONFIG_DIR / 'player_story_context.json'
 TEAM_STORY_CONTEXT_FILE = CONFIG_DIR / 'team_story_context.json'
 LEG_STORY_CONTEXT_FILE = CONFIG_DIR / 'leg_story_context.json'
+NARRATIVE_STATE_FILE = DATA_DIR / 'race_narrative_state.json'
 
 class DailySummaryGenerator:
     """
@@ -36,10 +37,56 @@ class DailySummaryGenerator:
         self.dry_run = dry_run
         self.all_data = {}
         self.client = None
+        self.narrative_state = {}
 
         load_dotenv()
         self.model_name = os.getenv("OPENAI_MODEL", self.DEFAULT_OPENAI_MODEL)
         self._setup_clients()
+        self.load_narrative_state()
+
+    def load_narrative_state(self):
+        """race_narrative_state.jsonを読み込み、存在しない場合はデフォルト状態で初期化します。"""
+        if not NARRATIVE_STATE_FILE.exists():
+            print(f"情報: {NARRATIVE_STATE_FILE} が存在しないため、デフォルト状態で初期化します。")
+            self.narrative_state = {
+                "schema_version": 1,
+                "updated_day": 0,
+                "main_story": {},
+                "ongoing_battles": [],
+                "momentum": [],
+                "runner_threads": [],
+                "resolved_stories": []
+            }
+            return
+
+        try:
+            with open(NARRATIVE_STATE_FILE, 'r', encoding='utf-8') as f:
+                self.narrative_state = json.load(f)
+            print(f"✅ 物語状態をロードしました。updated_day={self.narrative_state.get('updated_day')}")
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"警告: {NARRATIVE_STATE_FILE} の読み込み中にエラーが発生しました: {e}。新規に初期化します。")
+            self.narrative_state = {
+                "schema_version": 1,
+                "updated_day": 0,
+                "main_story": {},
+                "ongoing_battles": [],
+                "momentum": [],
+                "runner_threads": [],
+                "resolved_stories": []
+            }
+
+    def save_narrative_state(self):
+        """現在の物語状態を race_narrative_state.json に保存します。"""
+        if self.dry_run:
+            print("[dry-run] 物語状態の保存はスキップします。")
+            return
+        try:
+            DATA_DIR.mkdir(parents=True, exist_ok=True)
+            with open(NARRATIVE_STATE_FILE, 'w', encoding='utf-8') as f:
+                json.dump(self.narrative_state, f, indent=2, ensure_ascii=False)
+            print(f"✅ 物語状態を '{NARRATIVE_STATE_FILE}' に保存しました。")
+        except IOError as e:
+            print(f"エラー: 物語状態の保存に失敗しました: {e}")
 
     def _setup_clients(self):
         """OpenAI APIクライアントを初期化します。"""
@@ -181,6 +228,86 @@ class DailySummaryGenerator:
                 print(f"エラー: JSONファイルの形式が正しくありません: {file_path} - {e}")
                 exit(1)
         self.all_data = data
+
+    def calculate_race_metrics(self):
+        """Python側で現在順位、前日順位、首位差、シード差などの数値を計算します。"""
+        realtime_data = self.all_data.get('realtime_report', {})
+        race_day = realtime_data.get('raceDay')
+        try:
+            day_idx = int(race_day) - 1
+        except (TypeError, ValueError):
+            day_idx = 0
+
+        teams = self._get_regular_teams()
+        if not teams:
+            return {}
+
+        # 順位でソート
+        teams_sorted = sorted(teams, key=lambda t: t.get('overallRank') or 999)
+
+        # 1位と2位
+        lead_battle = None
+        if len(teams_sorted) >= 2:
+            t1, t2 = teams_sorted[0], teams_sorted[1]
+            gap_current = t1.get('totalDistance', 0.0) - t2.get('totalDistance', 0.0)
+
+            # 前日のgapを取得
+            gap_prev = None
+            t1_hist = next((t for t in self.all_data.get('rank_history', {}).get('teams', []) if t['name'] == t1['name']), None)
+            t2_hist = next((t for t in self.all_data.get('rank_history', {}).get('teams', []) if t['name'] == t2['name']), None)
+            if t1_hist and t2_hist and day_idx > 0:
+                d1_hist_len = len(t1_hist.get('distances', []))
+                d2_hist_len = len(t2_hist.get('distances', []))
+                if d1_hist_len >= day_idx and d2_hist_len >= day_idx:
+                    gap_prev = t1_hist['distances'][day_idx-1] - t2_hist['distances'][day_idx-1]
+
+            lead_battle = {
+                "team1": t1['name'],
+                "team2": t2['name'],
+                "gap_current": gap_current,
+                "gap_prev": gap_prev,
+                "change": (gap_current - gap_prev) if gap_prev is not None else None
+            }
+
+        # シード争い (10位と11位)
+        seed_battle = None
+        t10 = next((t for t in teams_sorted if t.get('overallRank') == 10), None)
+        t11 = next((t for t in teams_sorted if t.get('overallRank') == 11), None)
+        if t10 and t11:
+            gap_current = t10.get('totalDistance', 0.0) - t11.get('totalDistance', 0.0)
+            gap_prev = None
+            t10_hist = next((t for t in self.all_data.get('rank_history', {}).get('teams', []) if t['name'] == t10['name']), None)
+            t11_hist = next((t for t in self.all_data.get('rank_history', {}).get('teams', []) if t['name'] == t11['name']), None)
+            if t10_hist and t11_hist and day_idx > 0:
+                if len(t10_hist.get('distances', [])) >= day_idx and len(t11_hist.get('distances', [])) >= day_idx:
+                    gap_prev = t10_hist['distances'][day_idx-1] - t11_hist['distances'][day_idx-1]
+
+            seed_battle = {
+                "team10": t10['name'],
+                "team11": t11['name'],
+                "gap_current": gap_current,
+                "gap_prev": gap_prev,
+                "change": (gap_current - gap_prev) if gap_prev is not None else None
+            }
+
+        # 各チームの順位変化
+        rank_changes = {}
+        for t in teams_sorted:
+            prev_rank = t.get('previousRank')
+            curr_rank = t.get('overallRank')
+            if prev_rank and curr_rank:
+                rank_changes[t['name']] = {
+                    "prev": prev_rank,
+                    "curr": curr_rank,
+                    "diff": prev_rank - curr_rank # 正の値は上昇、負の値は下降
+                }
+
+        return {
+            "race_day": int(race_day) if race_day else 1,
+            "lead_battle": lead_battle,
+            "seed_battle": seed_battle,
+            "rank_changes": rank_changes
+        }
 
     def format_ranking_table(self):
         """総合順位をMarkdownテーブル形式で整形する。"""
@@ -630,43 +757,8 @@ class DailySummaryGenerator:
         return [note_text]
 
     def build_daily_notes(self, race_day):
-        teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
-        if not teams:
-            return ["- 現在走行中のチーム情報は取得できません。"]
-
+        """順位表や今日の焦点に含まれない、当日固有の出来事だけを返す。"""
         notes = []
-        try:
-            race_day_int = int(race_day)
-            notes.append(f"- 第{race_day_int}日目の継続走行校は{len(teams)}校。")
-        except (TypeError, ValueError):
-            pass
-
-        top_team = teams[0]
-        if len(teams) > 1:
-            runner_up = teams[1]
-            gap = top_team.get('totalDistance', 0.0) - runner_up.get('totalDistance', 0.0)
-            notes.append(
-                f"- 走行中トップ攻防: 総合{top_team.get('overallRank')}位 {top_team.get('name')} と"
-                f"総合{runner_up.get('overallRank')}位 {runner_up.get('name')} の差は {gap:.1f}km。"
-            )
-        else:
-            notes.append(f"- 走行中トップ状況: 総合{top_team.get('overallRank')}位 {top_team.get('name')} が走行中チームの先頭。")
-
-        today_stars = [t for t in sorted(teams, key=lambda tm: tm.get('todayDistance', 0.0), reverse=True) if t.get('todayDistance', 0.0) > 0][:3]
-        if today_stars:
-            notes.append("- 本日の距離トップ: " + "、".join(f"{t.get('name')} {t.get('todayDistance', 0.0):.1f}km（{t.get('runner')}）" for t in today_stars))
-
-        seed_ten = next((t for t in teams if t.get('overallRank') == 10), None)
-        seed_eleven = next((t for t in teams if t.get('overallRank') == 11), None)
-        if seed_ten and seed_eleven:
-            diff = seed_ten.get('totalDistance', 0.0) - seed_eleven.get('totalDistance', 0.0)
-            try:
-                race_day_int = int(race_day)
-            except (TypeError, ValueError):
-                race_day_int = None
-            if abs(diff) <= 0.5 or (race_day_int is not None and race_day_int >= 3 and abs(diff) <= 1.5):
-                notes.append(f"- シードライン差: 10位 {seed_ten.get('name')} と11位 {seed_eleven.get('name')} の距離差は {diff:.1f}km。")
-
         substitutions = self._load_recent_substitution_logs()
         if substitutions:
             for entry in substitutions:
@@ -679,7 +771,7 @@ class DailySummaryGenerator:
 
     def build_system_prompt(self):
         return "\n".join([
-            "あなたは「高温大学駅伝」の専門解説者です。",
+            "あなたは「高温大学駅伝」の実況アナウンサー兼解説者です。",
             "出力は日本語のMarkdown記事です。",
             "",
             "必ず守ること:",
@@ -692,10 +784,139 @@ class DailySummaryGenerator:
             "- 記事は事実優先で書き、数字や順位差は提供データを優先する",
             "",
             "文体:",
-            "- 情熱はあるが、実況ではなく解説記事",
-            "- 単なるデータ羅列ではなく、レースの構図が伝わるように書く",
+            "- テレビのスポーツハイライトのように、興奮と緊迫感を出す",
+            "- 各トピックは短い実況調の一文で始め、その後に数字を使った解説を続ける",
+            "- 大げさな形容を連発せず、順位や距離差そのものをドラマとして見せる",
             "- 具体的な大学名、選手名、距離差、区間を自然に織り込む",
         ])
+
+    def select_today_themes(self, metrics):
+        """Python側で決定的に今日の焦点テーマ（2〜3件）を選定します。"""
+        themes = []
+        used_teams = set()
+
+        realtime_data = self.all_data.get('realtime_report', {})
+        teams_data = realtime_data.get('teams', [])
+        goal_teams = [
+            t for t in teams_data
+            if t.get('runner') == 'ゴール'
+            and not t.get('is_shadow_confederation')
+            and t.get('finishDay') == metrics.get('race_day')
+
+        ]
+
+        lead_battle = metrics.get('lead_battle')
+        is_lead_changed = False
+        day_idx = metrics.get('race_day', 1) - 1
+        prev_leader = None
+        if day_idx > 0:
+            for t_hist in self.all_data.get('rank_history', {}).get('teams', []):
+                if t_hist.get('ranks') and len(t_hist['ranks']) > day_idx and t_hist['ranks'][day_idx-1] == 1:
+                    prev_leader = t_hist['name']
+                    break
+
+        curr_leader = lead_battle['team1'] if lead_battle else None
+        if prev_leader and curr_leader and prev_leader != curr_leader and curr_leader != '区間記録連合':
+            is_lead_changed = True
+
+        # 1. 優勝 / ゴール / 首位逆転
+        if goal_teams:
+            names = [t['name'] for t in goal_teams]
+            # 総合1位以外は「ゴール」と表記し、「優勝/首位」とは書かない
+            detail_parts = []
+            for t in goal_teams:
+                rank_str = f"総合{t.get('overallRank')}位"
+                detail_parts.append(f"{t['name']}が{rank_str}でフィニッシュ")
+            themes.append({
+                "type": "goal",
+                "title": f"フィニッシュ達成：{', '.join(names)}がゴール",
+                "details": f"{'、'.join(detail_parts)}。"
+            })
+            used_teams.update(names)
+        elif is_lead_changed:
+            themes.append({
+                "type": "lead_change",
+                "title": f"首位交代：{curr_leader}が首位奪還",
+                "details": f"前日首位の{prev_leader}に代わり、{curr_leader}が新たな首位に立ちました。"
+            })
+            used_teams.add(curr_leader)
+            if prev_leader:
+                used_teams.add(prev_leader)
+
+        # 2. 歴代区間記録更新
+        record_breaks = self._build_record_break_notes(metrics.get('race_day'))
+        if record_breaks:
+            for rb in record_breaks:
+                themes.append({
+                    "type": "record_broken",
+                    "title": "歴代区間記録の更新",
+                    "details": rb
+                })
+
+        # 3. 首位差の顕著な縮小
+        if len(themes) < 3 and lead_battle:
+            gap_curr = lead_battle['gap_current']
+            gap_prev = lead_battle['gap_prev']
+            if gap_prev is not None and gap_curr < gap_prev:
+                closed = gap_prev - gap_curr
+                if closed >= 0.5 or gap_curr <= 1.0:
+                    t1, t2 = lead_battle['team1'], lead_battle['team2']
+                    if t1 not in used_teams or t2 not in used_teams:
+                        themes.append({
+                            "type": "lead_gap_closed",
+                            "title": f"首位争いの激化：{t2}が{t1}を急追",
+                            "details": f"首位{t1}と2位{t2}の差が、前日の{gap_prev:.1f}kmから{gap_curr:.1f}km（{closed:.1f}km縮小）に接近。"
+                        })
+                        used_teams.add(t1)
+                        used_teams.add(t2)
+
+        # 4. 大幅順位変動（3ランク以上上昇）
+        if len(themes) < 3:
+            rank_changes = metrics.get('rank_changes', {})
+            for t_name, change in sorted(rank_changes.items(), key=lambda x: x[1]['diff'], reverse=True):
+                if change['diff'] >= 3:
+                    if t_name not in used_teams:
+                        themes.append({
+                            "type": "large_rank_change",
+                            "title": f"{t_name}が急浮上",
+                            "details": f"前日{change['prev']}位から本日{change['curr']}位へ大幅ランクアップ（+{change['diff']}）。"
+                        })
+                        used_teams.add(t_name)
+                        if len(themes) >= 3:
+                            break
+
+        # 5. シード権争い（1.5km以内の接戦）
+        if len(themes) < 3:
+            seed_battle = metrics.get('seed_battle')
+            if seed_battle:
+                gap_curr = seed_battle['gap_current']
+                if gap_curr <= 1.5:
+                    t10, t11 = seed_battle['team10'], seed_battle['team11']
+                    if t10 not in used_teams or t11 not in used_teams:
+                        themes.append({
+                            "type": "seed_battle",
+                            "title": "シード権攻防戦",
+                            "details": f"10位{t10}と11位{t11}の差はわずか{gap_curr:.1f}km。"
+                        })
+                        used_teams.add(t10)
+                        used_teams.add(t11)
+
+        # 6. 当日好走（本日距離1位）
+        if len(themes) < 3:
+            active_teams = self._get_active_teams()
+            if active_teams:
+                today_stars = sorted(active_teams, key=lambda t: t.get('todayDistance', 0.0), reverse=True)
+                if today_stars and today_stars[0].get('todayDistance', 0.0) > 0:
+                    star = today_stars[0]
+                    if star['name'] not in used_teams:
+                        themes.append({
+                            "type": "today_fastest",
+                            "title": f"{star['name']}が本日最速の走り",
+                            "details": f"本日距離{star.get('todayDistance', 0.0):.1f}km（走者: {star.get('runner')}）を記録し、チームを牽引。"
+                        })
+                        used_teams.add(star['name'])
+
+        return themes[:3]
 
     def _get_relevant_player_story_notes(self):
         context_root = self.all_data.get('player_story_context') or {}
@@ -725,7 +946,7 @@ class DailySummaryGenerator:
             add_runner(team.get('runner'))
 
         notes = []
-        for runner_name in selected[:5]:
+        for runner_name in selected[:2]:
             context = player_map.get(runner_name, {})
             summary = context.get('summary')
             highlights = context.get('highlights') or []
@@ -746,6 +967,81 @@ class DailySummaryGenerator:
             return []
 
         notes.insert(0, "- 以下は走者本人の補助文脈。歴代記録保持者や複数回上位入りなどの格付けは、当日の走りを補強する範囲でのみ使うこと。")
+        return notes
+
+    def _get_light_team_story_notes(self, selected_themes):
+        """今日の選定テーマに関係するチームを優先して、チーム文脈（最大2校）を抽出します。"""
+        context_root = self.all_data.get('team_story_context') or {}
+        team_map = context_root.get('teams', {}) if isinstance(context_root, dict) else {}
+        if not team_map:
+            return []
+
+        related_teams = []
+        for theme in selected_themes:
+            details = theme.get('details', '')
+            for t_name in team_map.keys():
+                if t_name in details and t_name not in related_teams:
+                    related_teams.append(t_name)
+
+        if len(related_teams) < 2:
+            teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
+            for t in teams:
+                name = t.get('name')
+                if name in team_map and name not in related_teams:
+                    related_teams.append(name)
+                    if len(related_teams) >= 2:
+                        break
+
+        notes = []
+        for team_name in related_teams[:2]:
+            context = team_map.get(team_name, {})
+            summary = context.get('history_summary')
+            rivals = context.get('rival_candidates') or []
+            if not summary:
+                continue
+            line = f"- {team_name}: {summary}"
+            if rivals:
+                line += f" ライバル候補: {', '.join(rivals[:2])}。"
+            notes.append(line)
+
+        if not notes:
+            return []
+
+        notes.insert(0, "- 以下はチーム対決の補助文脈（最大2校）。記事の軸は当日の順位差と走りに置き、必要な対立構図だけを薄く使うこと。")
+        return notes
+
+    def _get_light_leg_story_notes(self):
+        """現在走行中の区間（最大1区間）の補助文脈を抽出します。"""
+        context_root = self.all_data.get('leg_story_context') or {}
+        leg_map = context_root.get('legs', {}) if isinstance(context_root, dict) else {}
+        if not leg_map:
+            return []
+
+        active_legs = []
+        for team in sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999):
+            leg_num = team.get('currentLeg')
+            if isinstance(leg_num, int) and leg_num not in active_legs:
+                active_legs.append(leg_num)
+
+        notes = []
+        for leg_num in active_legs[:1]:
+            context = leg_map.get(str(leg_num))
+            if not context:
+                continue
+            summary = context.get('summary')
+            dominant_notes = context.get('dominant_notes') or []
+            pieces = []
+            if summary:
+                pieces.append(summary)
+            if dominant_notes:
+                pieces.append(dominant_notes[0])
+            if pieces:
+                notes.append(f"- 第{leg_num}区: " + " ".join(pieces))
+
+        if not notes:
+            return []
+
+        notes.insert(0, "- 以下は当日走行区間の補助文脈（最大1区間）。区間の性格づけとして短く使うこと。")
         return notes
 
     def _build_record_break_notes(self, race_day):
@@ -787,78 +1083,8 @@ class DailySummaryGenerator:
 
         return notes
 
-    def _get_light_team_story_notes(self):
-        context_root = self.all_data.get('team_story_context') or {}
-        team_map = context_root.get('teams', {}) if isinstance(context_root, dict) else {}
-        if not team_map:
-            return []
-
-        teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
-        spotlight = []
-
-        for team in teams[:3]:
-            name = team.get('name')
-            if name and name not in spotlight and name in team_map:
-                spotlight.append(name)
-
-        upper_mid = [t.get('name') for t in teams if t.get('overallRank') and 4 <= t.get('overallRank') <= 8]
-        for name in upper_mid[:2]:
-            if name and name not in spotlight and name in team_map:
-                spotlight.append(name)
-
-        notes = []
-        for team_name in spotlight[:4]:
-            context = team_map.get(team_name, {})
-            summary = context.get('history_summary')
-            rivals = context.get('rival_candidates') or []
-            if not summary:
-                continue
-            line = f"- {team_name}: {summary}"
-            if rivals:
-                line += f" ライバル候補: {', '.join(rivals[:2])}。"
-            notes.append(line)
-
-        if not notes:
-            return []
-
-        notes.insert(0, "- 以下はチーム対決の補助文脈。記事の軸は当日の順位差と走りに置き、必要な対立構図だけを薄く使うこと。")
-        return notes
-
-    def _get_light_leg_story_notes(self):
-        context_root = self.all_data.get('leg_story_context') or {}
-        leg_map = context_root.get('legs', {}) if isinstance(context_root, dict) else {}
-        if not leg_map:
-            return []
-
-        active_legs = []
-        for team in sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999):
-            leg_num = team.get('currentLeg')
-            if isinstance(leg_num, int) and leg_num not in active_legs:
-                active_legs.append(leg_num)
-
-        notes = []
-        for leg_num in active_legs[:1]:
-            context = leg_map.get(str(leg_num))
-            if not context:
-                continue
-            summary = context.get('summary')
-            dominant_notes = context.get('dominant_notes') or []
-            pieces = []
-            if summary:
-                pieces.append(summary)
-            if dominant_notes:
-                pieces.append(dominant_notes[0])
-            if pieces:
-                notes.append(f"- 第{leg_num}区: " + " ".join(pieces))
-
-        if not notes:
-            return []
-
-        notes.insert(0, "- 以下は当日走行区間の補助文脈。区間の性格づけとして短く使うこと。")
-        return notes
-
-    def build_user_prompt(self):
-        """Builds the complete user prompt for the OpenAI API call."""
+    def build_user_prompt(self, metrics):
+        """Builds the complete user prompt for the OpenAI API call using selected themes."""
         realtime_data = self.all_data.get('realtime_report', {})
         race_day = realtime_data.get('raceDay', 'N/A')
         race_status_summary = "レース集計中"
@@ -870,21 +1096,16 @@ class DailySummaryGenerator:
             top_team = realtime_data['teams'][0]
             race_status_summary = "トップチームはゴールしました" if top_team.get('runner') == 'ゴール' else f"トップは第{top_team.get('currentLeg', 'N/A')}区を走行中"
 
-        ekiden_data = self.all_data.get('ekiden_data', {})
-        team_prefecture_list = []
-        for team in ekiden_data.get('teams', []):
-            team_name = team.get('name', '不明')
-            prefectures = team.get('prefectures', '')
-            team_prefecture_list.append(f"- {team_name}: {prefectures}")
-        team_prefecture_text = "\n".join(team_prefecture_list)
-
         outline_data = self._load_outline_data()
-        leg_configuration = self._format_leg_configuration(outline_data.get('legs', []))
         tournament_title = outline_data.get('title')
         details = outline_data.get('details', {}) if isinstance(outline_data, dict) else {}
         metadata = outline_data.get('metadata', {}) if isinstance(outline_data, dict) else {}
         start_date = details.get('startDateLabel') or details.get('startDate') or metadata.get('startDate')
         course_description = details.get('course')
+
+        # 今日のテーマ選定
+        selected_themes = self.select_today_themes(metrics)
+        themes_text = "\n".join([f"- **{t['title']}**: {t['details']}" for t in selected_themes])
 
         prompt_parts = [
             "# 大会コンテキスト",
@@ -893,24 +1114,22 @@ class DailySummaryGenerator:
             f"- コース概要: {course_description or 'コース情報未設定'}",
             "- 読者は大会ルールを理解している前提で書くこと。",
             "- 走行距離と順位のルール説明は不要。",
-            "- 出場校と担当都道府県:",
-            team_prefecture_text or "- 情報なし",
-            "- 区間構成:",
-            leg_configuration,
             "",
             "# 記事の内容構成・ルール",
-            "- その日の最大テーマ（総合首位が走行中なら首位独走、走行中トップ争い、上位デッドヒート、中位混戦、シード権攻防など）を優先し、動きが大きいものを3〜4点重点的に書くこと。",
+            "- 選定された「今日の選定テーマ」に沿って、動きが大きい話題に集中して書くこと。",
             "- 記事全体を現在走行中のチーム・走者の動きに集中させ、既にゴールしたチームの回顧は避けること。ただし当日フィニッシュは新規性として扱ってよい。",
             "- 当日フィニッシュしたチームは、必ず総合順位を確認してから表現すること。総合2位以下なら『2位でフィニッシュ』のように順位を明記し、『先頭』『首位』『優勝』とは書かないこと。",
             "- 走行中チームの首位・シードライン・追い上げの構図は具体的な距離差や区間情報とともに描写すること。",
-            "- 好走者（際立った走者・区間での躍動）、タスキリレー、歴代区間記録の更新、監督コメントの情報があれば必ず本文に組み込むこと。",
             "- 大学名、選手名は太字で扱うこと。選手名には必ず「君」付けすること（例:**上武大学**の**佐野君**）。",
             "- 選手名の先頭に数字がある場合（例: 1甲佐）、出力時は数字を削除して名前のみ（甲佐君）にすること。",
             "",
+            "# 今日の選定テーマ",
+            themes_text or "- 特になし",
+            "",
             "# 本日のレース状況",
+            f"- 大会日: {race_day}日目",
+            f"- 現在のレース状況: {race_status_summary}",
         ]
-        prompt_parts.append(f"- 大会日: {race_day}日目")
-        prompt_parts.append(f"- 現在のレース状況: {race_status_summary}")
 
         finish_status_notes = self._build_finish_status_notes(race_day)
         if finish_status_notes:
@@ -920,25 +1139,43 @@ class DailySummaryGenerator:
         prompt_parts.append("- 本日の総合順位:")
         prompt_parts.append(self.format_ranking_table())
 
-        story_angle = self._build_story_angle()
-        if story_angle:
-            prompt_parts.append("\n# 今日の焦点")
-            prompt_parts.extend(story_angle)
+        # 物語状態から継続中のコンテキストを追加
+        narrative_notes = []
+        state = self.narrative_state
+        if state.get('main_story'):
+            m = state['main_story']
+            started = m.get('started_day', 1)
+            if started < int(race_day):
+                narrative_notes.append(f"- 前回からの主要テーマ: {m.get('summary')} (開始: {started}日目 ※前回値として参照)")
+            else:
+                narrative_notes.append(f"- 今日の主要テーマ: {m.get('summary')}")
 
-        coverage_checklist = self.build_coverage_checklist()
-        if coverage_checklist:
-            prompt_parts.append("\n# カバレッジチェック")
-            prompt_parts.extend(coverage_checklist)
+        if state.get('ongoing_battles'):
+            for b in state['ongoing_battles']:
+                narrative_notes.append(f"- 継続中の攻防: {b.get('summary')} (開始: {b.get('started_day')}日目、前日の差: {b.get('previous_gap_km', 0.0):.1f}km ※前回値として参照)")
+
+        if state.get('momentum'):
+            for mo in state['momentum']:
+                narrative_notes.append(f"- 勢いのあるチーム: {mo.get('team')} ({mo.get('summary')}、開始: {mo.get('started_day')}日目 ※前回値として参照)")
+
+        if state.get('runner_threads'):
+            for r in state['runner_threads']:
+                narrative_notes.append(f"- 注目選手スレッド: {r.get('team')}の{r.get('runner')}君 ({r.get('summary')}、開始: {r.get('started_day')}日目)")
+
+        resolved_today = [s for s in state.get('resolved_stories', []) if s.get('resolved_day') == int(race_day)]
+        if resolved_today:
+            narrative_notes.append("- 本日決着した物語:")
+            for s in resolved_today[:2]:
+                narrative_notes.append(f"  * {s.get('summary')} (理由: {s.get('reason')})")
+
+        if narrative_notes:
+            prompt_parts.append("\n# 継続中の物語（race_narrative_state）")
+            prompt_parts.extend(narrative_notes)
 
         daily_notes = self.build_daily_notes(race_day)
         if daily_notes:
             prompt_parts.append("\n# 取材メモ")
             prompt_parts.extend(daily_notes)
-
-        record_break_notes = self._build_record_break_notes(race_day)
-        if record_break_notes:
-            prompt_parts.append("\n# 歴代区間記録の更新")
-            prompt_parts.extend(record_break_notes)
 
         relay_infos = self.format_relay_info()
         if relay_infos:
@@ -950,7 +1187,7 @@ class DailySummaryGenerator:
             prompt_parts.append("\n# 昨晩の監督コメント")
             prompt_parts.extend(manager_comments)
 
-        team_story_notes = self._get_light_team_story_notes()
+        team_story_notes = self._get_light_team_story_notes(selected_themes)
         if team_story_notes:
             prompt_parts.append("\n# 注目チームの対決文脈")
             prompt_parts.extend(team_story_notes)
@@ -962,34 +1199,445 @@ class DailySummaryGenerator:
 
         player_story_notes = self._get_relevant_player_story_notes()
         if player_story_notes:
-            prompt_parts.append("\n# 注目走者の個人実績")
+            prompt_parts.append("\n# 注目走者の個人実績 (最大2名まで活用可)")
             prompt_parts.extend(player_story_notes)
-
-        continuity_notes = self._build_continuity_note()
-        if continuity_notes:
-            prompt_parts.append("\n# 前日からの文脈")
-            prompt_parts.extend(continuity_notes)
 
         prompt_parts.append(
             "\n---\n"
             "# 出力フォーマットと文体\n"
-            "- 文字数は450〜700字程度とし、緊迫した展開では積極的に長く語ること。\n"
+            "- 文字数は450〜650字程度。\n"
             "- 1行目はタイトル（『# 』を使用）。\n"
-            "- 2行目以降は、レース全体を象徴するメイン見出し（『### 』）を1つ、その下に各トピックの小見出し（『#### 』）を3〜4つ書くこと（箇条書きは多用しない）。\n"
+            "- 2行目以降は、レース全体を象徴するメイン見出し（『### 』）を1つ、その下に各トピックの小見出し（『#### 』）を2〜3つ書くこと（箇条書きは多用しない）。\n"
             "- 最後の小見出しは必ず『#### 今日の総括』とし、一日の軌跡と明日への期待で締めること。\n"
             "- 各見出しは、何が起きたかが一読で分かり、かつドラマチックな表現を含めること。\n"
-            "- 単なる事実の羅列ではなく、スポーツ実況アナウンサーのような「実況風・ドラマ重視」の熱狂的な文体にすること。\n"
-            "- 「死闘」「意地」「驚異的な粘り」など、駅伝特有のエモーショナルで熱量の高い語彙を積極的に使うこと。\n"
+            "- 各トピックは『追いつかせない！』のような短い実況文を1文だけ置き、続けて数値に基づく解説を書くこと。\n"
             "解説記事:"
         )
         return "\n".join(prompt_parts)
+
+
+    def validate_generated_article(self, article_text, metrics):
+        """生成された記事の内容について簡易的な事実検証を行います。
+        検証に問題がある場合は警告を出力し、Falseを返します。"""
+        ekiden_data = self.all_data.get('ekiden_data', {})
+
+        # Markdown太字装飾（**）を前処理で除去したプレーンテキストを生成
+        plain_article = re.sub(r'\*\*([^*]+)\*\*', r'\1', article_text)
+
+        # 1. マスタデータの準備
+        valid_teams = {t.get('name') for t in ekiden_data.get('teams', []) if t.get('name')}
+        valid_teams_fuzzy = set(valid_teams)
+        for t in valid_teams:
+            valid_teams_fuzzy.add(t.replace('大学', '大'))
+            if t.endswith('大学'):
+                valid_teams_fuzzy.add(t[:-2])
+
+        valid_runners = set()
+        for t in ekiden_data.get('teams', []):
+            for member_type in ['runners', 'substitutes', 'substituted_out']:
+                valid_runners.update(
+                    p.get('name') for p in t.get(member_type, []) if isinstance(p, dict) and p.get('name')
+                )
+        plain_runners = {re.sub(r'（.+）', '', name).strip() for name in valid_runners if name}
+        plain_runners = {re.sub(r'^\d+', '', name).strip() for name in plain_runners}
+        valid_runners.update(plain_runners)
+
+        valid_runners_fuzzy = set(valid_runners)
+        for name in valid_runners:
+            valid_runners_fuzzy.add(name.replace('選手', '').replace('君', '').strip())
+
+        warnings = []
+
+        # 2. 本文全体から大学名・選手名と思われる箇所を抽出して照合 (非太字も含む、装飾除去済みテキストを使用)
+        team_candidates = re.findall(r'([\u4e00-\u9faf\u30a0-\u30ff]{2,}(?:大学|大))(?:[がはのを受けに]|$)', plain_article)
+        for cand in team_candidates:
+            clean_cand = cand.strip()
+            if clean_cand in ["大会", "大差", "最大", "重大", "東大", "京大", "全国大学"] or not clean_cand:
+                continue
+            if clean_cand.endswith('大') and len(clean_cand) <= 2:
+                continue
+            if clean_cand not in valid_teams_fuzzy:
+                stem = clean_cand[:-1] if clean_cand.endswith('大') else clean_cand[:-2]
+                if stem not in valid_teams_fuzzy:
+                    warnings.append(f"マスタに存在しない大学名と思われる表記: {cand}")
+
+        runner_candidates = re.findall(r'([\u4e00-\u9faf\u30a0-\u30ff]{2,}(?:君|選手))(?:[がはのを受けに]|$)', plain_article)
+        exclude_prefixes = ["注目", "両", "各", "全", "有力", "先頭", "出場", "現役", "若手", "エース", "後続", "同", "新", "元", "実況", "解説", "日本人", "新鋭", "他"]
+        for cand in runner_candidates:
+            clean_cand = cand.replace('君', '').replace('選手', '').strip()
+            clean_cand = re.sub(r'^\d+', '', clean_cand).strip()
+            if not clean_cand or len(clean_cand) < 2:
+                continue
+            if any(clean_cand.startswith(prefix) for prefix in exclude_prefixes) or clean_cand in exclude_prefixes:
+                continue
+            if clean_cand not in valid_runners_fuzzy:
+                warnings.append(f"マスタに存在しない選手名と思われる表記: {cand}")
+
+        # 3. 危険語（「逆転」「浮上」「優勝」等）の文脈整合性チェック
+        rank_changes = metrics.get('rank_changes', {})
+
+        keywords = ["逆転", "浮上", "ジャンプアップ"]
+        for kw in keywords:
+            pos = 0
+            while True:
+                idx = plain_article.find(kw, pos)
+                if idx == -1:
+                    break
+
+                start = max(0, idx - 30)
+                end = min(len(plain_article), idx + len(kw) + 30)
+                window = plain_article[start:end]
+
+                found_teams = []
+                for team in valid_teams:
+                    short_team = team.replace('大学', '大')
+                    stem_team = team[:-2] if team.endswith('大学') else team
+                    if team in window or short_team in window or stem_team in window:
+                        found_teams.append(team)
+
+                for team in found_teams:
+                    change = rank_changes.get(team)
+                    if change:
+                        if change['diff'] <= 0:
+                            warnings.append(f"順位が上昇していないチーム '{team}' に関連して 『{kw}』 という表現が使われています。(周辺テキスト: '...{window}...')")
+
+                pos = idx + len(kw)
+
+        # 4. 全体的な危険語の使用制限
+        has_rank_up = any(change['diff'] > 0 for change in rank_changes.values())
+        if ("逆転" in plain_article or "浮上" in plain_article) and not has_rank_up:
+            warnings.append("記事内に『逆転』または『浮上』の表記がありますが、本日の順位データに順位上昇校がありません。")
+
+        # 5. 「優勝」の不適切な使用制限
+        sentences = re.split(r'[。！\n]', plain_article)
+        for s in sentences:
+            s = s.strip()
+            if not s:
+                continue
+
+            has_winner_keyword = any(k in s for k in ["優勝", "王者", "頂点", "制した"])
+            if not has_winner_keyword:
+                continue
+
+            # 歴史記述・過去の言及かチェック
+            is_history = False
+            history_patterns = [
+                r"過去に(?:優勝|王者|頂点|制した)",
+                r"(?:前回|前年)大会の(?:優勝|王者)",
+                r"第\d+回(?:大会)?で(?:優勝|王者|頂点|制した)",
+                r"(?:優勝|制覇|連覇)した実績",
+                r"前回王者",
+                r"(?:連覇|優勝)経験",
+                r"歴代(?:優勝|王者)"
+            ]
+            for hp in history_patterns:
+                if re.search(hp, s):
+                    is_history = True
+                    break
+
+            if is_history:
+                continue
+
+            is_present_victory = any(k in s for k in ["優勝した", "優勝を決めた", "王者となった", "頂点に立った", "頂点に輝いた", "制した", "優勝は", "優勝を決めたのは"])
+            if not is_present_victory:
+                continue
+
+            # 優勝の主語を正規表現で厳密に抽出する
+            found_team_name = None
+            match1 = re.search(r'([\u4e00-\u9faf\u30a0-\u30ff]+(?:大学|大))\s*(?:が|も).*?(?:優勝を決めた|優勝した|王者となった|頂点に立った|頂点に輝いた|制した|優勝)', s)
+            match2 = re.search(r'(?:優勝は|優勝を決めたのは|王者となったのは|頂点に立ったのは|頂点に輝いたのは|制したのは).*?([\u4e00-\u9faf\u30a0-\u30ff]+(?:大学|大))', s)
+
+            if match1:
+                found_team_name = match1.group(1)
+            elif match2:
+                found_team_name = match2.group(1)
+
+
+            if not found_team_name:
+                warnings.append(f"優勝に関する断定記述がありますが、主語となる大学名が特定できませんでした。(文: '{s}')")
+                continue
+
+            clean_team = found_team_name.strip()
+            matched_team = None
+            for team in valid_teams:
+                short_team = team.replace('大学', '大')
+                stem_team = team[:-2] if team.endswith('大学') else team
+                if clean_team == team or clean_team == short_team or clean_team == stem_team:
+                    matched_team = team
+                    break
+
+            if not matched_team:
+                warnings.append(f"優勝校として特定された大学 '{clean_team}' がマスタに登録されていません。(文: '{s}')")
+                continue
+
+            realtime_teams = self.all_data.get('realtime_report', {}).get('teams', [])
+            team_data = next((t for t in realtime_teams if t['name'] == matched_team), None)
+
+            is_valid_champion = False
+            if team_data:
+                is_goal = (team_data.get('runner') == 'ゴール' or team_data.get('finishDay') is not None)
+                is_rank_1 = (team_data.get('overallRank') == 1)
+                if is_goal and is_rank_1:
+                    is_valid_champion = True
+
+            if not is_valid_champion:
+                warnings.append(f"総合1位ゴールしていないチーム '{matched_team}' が優勝したと記述されています。(文: '{s}')")
+
+
+        if warnings:
+            print("⚠️ 【検証警告】生成された記事に整合性の懸念があります:")
+            for w in warnings:
+                print(f"  - {w}")
+            return False
+
+        print("✅ 生成記事の簡易事実検証をパスしました。")
+        return True
+
+
+    def update_narrative_state(self, metrics, selected_themes):
+        """Pythonの決定的ロジックにより、レース状況と選定されたテーマに基づいて物語状態（state）を更新します。"""
+        race_day = metrics.get('race_day', 1)
+        state = self.narrative_state
+
+        if state.get('updated_day') == race_day:
+            state['ongoing_battles'] = [b for b in state.get('ongoing_battles', []) if b.get('started_day', 1) < race_day]
+            state['momentum'] = [m for m in state.get('momentum', []) if m.get('started_day', 1) < race_day]
+            state['runner_threads'] = [r for r in state.get('runner_threads', []) if r.get('started_day', 1) < race_day]
+            state['resolved_stories'] = [s for s in state.get('resolved_stories', []) if s.get('resolved_day', 1) < race_day]
+
+        state['updated_day'] = race_day
+
+        # 0. main_story の更新
+        if selected_themes:
+            primary_theme = selected_themes[0]
+            existing_main = state.get('main_story', {})
+
+            involved_teams = [t for t in metrics.get('rank_changes', {}).keys() if t in primary_theme['title'] or t in primary_theme['details']]
+
+            is_same = False
+            if existing_main and existing_main.get('type') == primary_theme['type']:
+                existing_teams = existing_main.get('teams', [])
+                if any(t in existing_teams for t in involved_teams):
+                    is_same = True
+
+            if is_same:
+                state['main_story'] = {
+                    "type": primary_theme['type'],
+                    "summary": primary_theme['title'],
+                    "started_day": existing_main.get('started_day', race_day),
+                    "last_updated_day": race_day,
+                    "teams": involved_teams
+                }
+            else:
+                state['main_story'] = {
+                    "type": primary_theme['type'],
+                    "summary": primary_theme['title'],
+                    "started_day": race_day,
+                    "last_updated_day": race_day,
+                    "teams": involved_teams
+                }
+
+        # 1. 首位争いの更新
+        lead_battle = metrics.get('lead_battle')
+        if lead_battle:
+            t1, t2 = lead_battle['team1'], lead_battle['team2']
+            gap = lead_battle['gap_current']
+
+            existing = None
+            for b in state.get('ongoing_battles', []):
+                if b.get('id') == "lead_battle":
+                    existing = b
+                    break
+
+            is_resolved = False
+            realtime_teams = self.all_data.get('realtime_report', {}).get('teams', [])
+            t1_data = next((t for t in realtime_teams if t['name'] == t1), None)
+            t2_data = next((t for t in realtime_teams if t['name'] == t2), None)
+            is_goal = (t1_data and t1_data.get('runner') == 'ゴール') or (t2_data and t2_data.get('runner') == 'ゴール')
+
+            if gap >= 5.0 or is_goal:
+                is_resolved = True
+
+            if is_resolved:
+                reason = "ゴール" if is_goal else "大差"
+                resolved_entry = {
+                    "summary": f"首位攻防決着：{t1}と{t2}の争いは差が {gap:.1f}km に拡大し決着",
+                    "resolved_day": race_day,
+                    "reason": reason
+                }
+                state.setdefault('resolved_stories', []).append(resolved_entry)
+                if existing in state.get('ongoing_battles', []):
+                    state['ongoing_battles'].remove(existing)
+            else:
+                if existing:
+                    existing_teams = existing.get('teams', [])
+                    if t1 in existing_teams and t2 in existing_teams:
+                        # 同一ペア
+                        existing['last_updated_day'] = race_day
+                        existing['previous_gap_km'] = gap
+                    else:
+                        # 異なるペアへの交代
+                        resolved_entry = {
+                            "summary": f"首位攻防交代：{', '.join(existing_teams)}の争いから{t1}と{t2}の争いへ移行 (前日差 {existing.get('previous_gap_km', 0.0):.1f}km)",
+                            "resolved_day": race_day,
+                            "reason": "首位交代"
+                        }
+                        state.setdefault('resolved_stories', []).append(resolved_entry)
+                        state['ongoing_battles'].remove(existing)
+
+                        battle_entry = {
+                            "id": "lead_battle",
+                            "kind": "lead",
+                            "teams": [t1, t2],
+                            "summary": f"{t1}と{t2}による首位争い",
+                            "started_day": race_day,
+                            "last_updated_day": race_day,
+                            "previous_gap_km": gap
+                        }
+                        state.setdefault('ongoing_battles', []).append(battle_entry)
+                else:
+                    battle_entry = {
+                        "id": "lead_battle",
+                        "kind": "lead",
+                        "teams": [t1, t2],
+                        "summary": f"{t1}と{t2}による首位争い",
+                        "started_day": race_day,
+                        "last_updated_day": race_day,
+                        "previous_gap_km": gap
+                    }
+                    state.setdefault('ongoing_battles', []).append(battle_entry)
+
+        # 2. 順位上昇（momentum）の更新・整理
+        rank_changes = metrics.get('rank_changes', {})
+        current_momentums = state.setdefault('momentum', [])
+        updated_momentums = []
+
+        # 既存 momentum のチェックと更新
+        for m in list(current_momentums):
+            t_name = m.get('team')
+            change = rank_changes.get(t_name)
+
+            if change and change['diff'] >= 3:
+                m['last_updated_day'] = race_day
+                m['previous_rank'] = change['prev']
+                m['current_rank'] = change['curr']
+                m['diff'] = change['diff']
+                m['summary'] = f"{change['prev']}位から{change['curr']}位へ急浮上"
+                updated_momentums.append(m)
+            else:
+                curr_rank = change['curr'] if change else m.get('current_rank')
+                resolved_entry = {
+                    "summary": f"勢い落ち着く：{t_name}の急浮上（本日{curr_rank}位）",
+                    "resolved_day": race_day,
+                    "reason": "勢い低下"
+                }
+                exists = any(
+                    res.get('summary') == resolved_entry['summary'] and res.get('resolved_day') == race_day
+                    for res in state.get('resolved_stories', [])
+                )
+                if not exists:
+                    state.setdefault('resolved_stories', []).append(resolved_entry)
+
+        # 新規 momentum の追加
+        for t_name, change in rank_changes.items():
+            if change['diff'] >= 3:
+                if not any(m.get('team') == t_name for m in updated_momentums):
+                    momentum_entry = {
+                        "team": t_name,
+                        "summary": f"{change['prev']}位から{change['curr']}位へ急浮上",
+                        "started_day": race_day,
+                        "last_updated_day": race_day,
+                        "previous_rank": change['prev'],
+                        "current_rank": change['curr'],
+                        "diff": change['diff']
+                    }
+                    updated_momentums.append(momentum_entry)
+
+        # 優先順にソート (last_updated_day 降順、続いて本日変動幅 diff 降順)
+        updated_momentums.sort(key=lambda x: (x.get('last_updated_day', 0), x.get('diff', 0)), reverse=True)
+        state['momentum'] = updated_momentums
+
+        # 3. 走者スレッドの更新
+        realtime_teams = self.all_data.get('realtime_report', {}).get('teams', [])
+        substitutions = self._load_recent_substitution_logs()
+        sub_runners_out = {s['runner_out'] for s in substitutions}
+
+        for thread in list(state.get('runner_threads', [])):
+            team_name = thread.get('team')
+            thread_runner = thread.get('runner')
+
+            team_state = next((t for t in realtime_teams if t.get('name') == team_name), None)
+
+            should_resolve = False
+            reason = "区間交代"
+            summary_desc = ""
+
+            if not team_state:
+                should_resolve = True
+                reason = "不明"
+                summary_desc = f"チーム離脱：{team_name}のデータが見つかりません"
+            elif team_state.get('runner') == 'ゴール' or team_state.get('finishDay') is not None:
+                should_resolve = True
+                reason = "ゴール"
+                summary_desc = f"フィニッシュ：{team_name}がゴールし、{thread_runner}君の走行が終了"
+            else:
+                curr_runner_raw = team_state.get('runner') or ''
+                curr_runner_clean = re.sub(r'^\d+', '', curr_runner_raw).strip()
+                if curr_runner_clean != thread_runner or thread_runner in sub_runners_out:
+                    should_resolve = True
+                    reason = "区間交代"
+                    summary_desc = f"選手交代：{team_name}の{thread_runner}君から新走者へタスキ"
+
+            if should_resolve:
+                resolved_entry = {
+                    "summary": summary_desc or f"走者交代：{team_name}の{thread_runner}君の走行終了",
+                    "resolved_day": race_day,
+                    "reason": reason
+                }
+                exists = any(
+                    res.get('summary') == resolved_entry['summary'] and res.get('resolved_day') == race_day
+                    for res in state.get('resolved_stories', [])
+                )
+                if not exists:
+                    state.setdefault('resolved_stories', []).append(resolved_entry)
+
+                if thread in state.get('runner_threads', []):
+                    state['runner_threads'].remove(thread)
+
+        today_stars = sorted(self._get_active_teams(), key=lambda t: t.get('todayDistance', 0.0), reverse=True)
+        if today_stars and today_stars[0].get('todayDistance', 0.0) > 0:
+            star = today_stars[0]
+            runner_name = star.get('runner')
+            if runner_name and runner_name != 'ゴール':
+                clean_runner = re.sub(r'^\d+', '', runner_name).strip()
+                existing_r = next((r for r in state.get('runner_threads', []) if r.get('runner') == clean_runner), None)
+                if not existing_r:
+                    thread_entry = {
+                        "runner": clean_runner,
+                        "team": star['name'],
+                        "summary": f"本日最速 {star.get('todayDistance', 0.0):.1f}km の快走",
+                        "started_day": race_day,
+                        "last_updated_day": race_day
+                    }
+                    state.setdefault('runner_threads', []).append(thread_entry)
+
+
+        # 4. 配列サイズ制限
+        state['ongoing_battles'] = state.get('ongoing_battles', [])[:3]
+        state['momentum'] = state.get('momentum', [])[:3]
+        state['runner_threads'] = state.get('runner_threads', [])[:3]
+        state['resolved_stories'] = state.get('resolved_stories', [])[-5:]
 
     def run(self):
         """Main execution logic."""
         print("日次振り返り解説の生成を開始します...")
         self.load_all_data()
+
+        # 数値計算を実行
+        metrics = self.calculate_race_metrics()
+
         system_prompt = self.build_system_prompt()
-        user_prompt = self.build_user_prompt()
+        user_prompt = self.build_user_prompt(metrics)
 
         print("------------------------------------")
         print("OpenAIへのsystem prompt:")
@@ -1001,6 +1649,15 @@ class DailySummaryGenerator:
 
         if self.dry_run:
             print("\n--dry-runモードのため、ファイルへの書き込みは行わずに終了します。")
+            # デバッグ用に選定されたテーマや継続物語を出力
+            selected_themes = self.select_today_themes(metrics)
+            print("\n[dry-run] 選定された今日のテーマ:")
+            for t in selected_themes:
+                print(f"  - {t['title']}: {t['details']}")
+            print("\n[dry-run] 読み込んだ継続物語の数:")
+            print(f"  - ongoing_battles: {len(self.narrative_state.get('ongoing_battles', []))}")
+            print(f"  - momentum: {len(self.narrative_state.get('momentum', []))}")
+            print(f"  - runner_threads: {len(self.narrative_state.get('runner_threads', []))}")
             return
 
         try:
@@ -1013,28 +1670,41 @@ class DailySummaryGenerator:
             print("記事をMarkdownでフォーマットしています...")
             article_text = self.format_article_with_markdown(raw_article_text)
             print("✅ OpenAIによる解説記事の生成に成功しました。")
+
+            # 生成された記事のバリデーションを実行
+            validation_success = self.validate_generated_article(article_text, metrics)
+
             prompt_payload = json.dumps(
                 {"system": system_prompt, "user": user_prompt},
                 ensure_ascii=False,
                 indent=2
             )
-            self._save_article_to_history(prompt_payload, raw_article_text)
+
+            # 検証が成功した場合にのみ、物語状態を更新して保存する
+            if validation_success:
+                print("物語状態を更新しています...")
+                selected_themes = self.select_today_themes(metrics)
+                self.update_narrative_state(metrics, selected_themes)
+                self.save_narrative_state()
+
+                self._save_article_to_history(prompt_payload, raw_article_text)
+
+                output_data = {
+                    "date": self.all_data.get('realtime_report', {}).get('updateTime', datetime.now().strftime('%Y/%m/%d %H:%M')).split(' ')[0],
+                    "article": article_text
+                }
+                try:
+                    DATA_DIR.mkdir(parents=True, exist_ok=True)
+                    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+                        json.dump(output_data, f, indent=2, ensure_ascii=False)
+                    print(f"✅ 日次振り返り解説を '{OUTPUT_FILE}' に保存しました。")
+                except IOError as e:
+                    print(f"エラー: ファイルへの書き込みに失敗しました: {e}")
+            else:
+                print("⚠️ バリデーション警告があるため、ファイル保存、履歴保存および物語状態の更新をすべてスキップします。")
         except Exception as e:
             print(f"❌ OpenAI API呼び出し中にエラーが発生しました: {e}")
-            article_text = "本日の解説記事は、システムの問題により生成できませんでした。ご了承ください。"
-
-        output_data = {
-            "date": self.all_data.get('realtime_report', {}).get('updateTime', datetime.now().strftime('%Y/%m/%d %H:%M')).split(' ')[0],
-            "article": article_text
-        }
-
-        try:
-            DATA_DIR.mkdir(parents=True, exist_ok=True)
-            with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-                json.dump(output_data, f, indent=2, ensure_ascii=False)
-            print(f"✅ 日次振り返り解説を '{OUTPUT_FILE}' に保存しました。")
-        except IOError as e:
-            print(f"エラー: ファイルへの書き込みに失敗しました: {e}")
+            print("⚠️ APIエラーのため、ファイル保存および物語状態の更新をスキップします。")
 
 def main():
     """Parses arguments and runs the generator."""
