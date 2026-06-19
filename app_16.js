@@ -856,6 +856,7 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
         if (!Number.isFinite(averageDistance)) continue;
 
         const teamDetails = teamsInfoMap.get(runnerData.teamId) || defaultTeamDetails;
+        if (teamDetails.is_shadow_confederation) continue; // 区間記録連合は除外
         let status = 'past';
         const realtimeTeam = realtimeData.teams.find(t => t.id === runnerData.teamId);
         if (realtimeTeam) {
@@ -993,7 +994,7 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
         legRankingStatus.style.display = 'none';
     }
 
-    const teamsInfoMap = new Map(realtimeData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name }]));
+    const teamsInfoMap = new Map(realtimeData.teams.map(t => [t.id, { name: t.name, short_name: t.short_name, is_shadow_confederation: t.is_shadow_confederation }]));
 
     // ekiden_data.json から最大区間数を取得
     const maxLegs = Array.isArray(ekidenData.leg_boundaries) ? ekidenData.leg_boundaries.length : 0;
@@ -1101,6 +1102,9 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
 
             for (const runnerName in individualData) {
                 const runnerData = individualData[runnerName];
+                const teamDetails = teamsInfoMap.get(runnerData.teamId) || { name: 'N/A', short_name: 'N/A' };
+                if (teamDetails.is_shadow_confederation) continue; // 区間記録連合は除外
+
                 const recordsForLeg = runnerData.records.filter(r => r.leg === finishedLeg);
 
                 if (recordsForLeg.length > 0) {
@@ -1110,7 +1114,7 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
                     legPerformances.push({
                         runnerName,
                         teamId: runnerData.teamId,
-                        teamDetails: teamsInfoMap.get(runnerData.teamId) || { name: 'N/A', short_name: 'N/A' },
+                        teamDetails: teamDetails,
                         averageDistance: averageDistance
                     });
                 }
