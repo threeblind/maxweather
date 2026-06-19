@@ -848,6 +848,8 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
 
     for (const runnerName in individualData) {
         const runnerData = individualData[runnerName];
+        if (runnerData.teamId === 99) continue; // 区間記録連合（シャドーチーム）は除外
+
         const legSummaries = runnerData.legSummaries || {};
         const summary = legSummaries[legKey];
         if (!summary || summary.days === 0) continue;
@@ -1102,6 +1104,8 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
 
             for (const runnerName in individualData) {
                 const runnerData = individualData[runnerName];
+                if (runnerData.teamId === 99) continue; // 区間記録連合（シャドーチーム）は除外
+
                 const teamDetails = teamsInfoMap.get(runnerData.teamId) || { name: 'N/A', short_name: 'N/A' };
                 if (teamDetails.is_shadow_confederation) continue; // 区間記録連合は除外
 
@@ -1229,7 +1233,9 @@ async function displayRankHistoryChart() {
         // Create a map of team IDs to colors
         const teamColorMap = new Map(ekidenData.teams.map(t => [t.id, t.color]));
 
-        const datasets = historyData.teams.map(team => {
+        const datasets = historyData.teams
+            .filter(team => team.id !== 99 && team.name !== '区間記録連合')
+            .map(team => {
             return {
                 label: team.name,
                 data: team.ranks,
@@ -1833,6 +1839,8 @@ const fetchEkidenData = async () => {
             const legEntryMap = new Map(); // leg -> [{ runnerName, teamId, teamDetails, averageDistance }]
 
             Object.entries(individualData).forEach(([runnerName, runner]) => {
+                if (runner.teamId === 99) return; // 区間記録連合（シャドーチーム）は除外
+
                 const legSummaries = runner.legSummaries || {};
                 Object.entries(legSummaries).forEach(([legKey, summary]) => {
                     if (!summary) return;
