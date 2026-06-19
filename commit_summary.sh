@@ -25,20 +25,22 @@ source venv/bin/activate || { echo "エラー: Python仮想環境(venv)の有効
 echo "generate_daily_summary_bymoment.py を実行中..."
 python scripts/generate_daily_summary.py
 
-# 3. daily_summary.json または article_history.json に変更があったか確認し、変更があればPush
+# 3. daily_summary.json, article_history.json, または race_narrative_state.json に変更があったか確認し、変更があればPush
 SUMMARY_FILE="data/daily_summary.json"
 HISTORY_FILE="data/article_history.json"
+STATE_FILE="data/race_narrative_state.json"
 
 # `git status --porcelain` を使って、対象ファイルに変更があるかを確認
-if [[ -n $(git status --porcelain "$SUMMARY_FILE" "$HISTORY_FILE") ]]; then
-    echo "$SUMMARY_FILE に変更を検出しました。GitHubにプッシュします。"
+if [[ -n $(git status --porcelain "$SUMMARY_FILE" "$HISTORY_FILE" "$STATE_FILE") ]]; then
+    echo "$SUMMARY_FILE または $STATE_FILE に変更を検出しました。GitHubにプッシュします。"
     
-    # サマリーファイルと履歴ファイルの両方をコミット対象にする
-    git add "$SUMMARY_FILE" "$HISTORY_FILE"
+    # 対象ファイルすべてをコミット対象にする
+    git add "$SUMMARY_FILE" "$HISTORY_FILE" "$STATE_FILE"
     
     COMMIT_MSG="Generate daily summary article [bot] $(date +'%Y-%m-%d')"
     echo "コミットを実行します: $COMMIT_MSG"
     git commit -m "$COMMIT_MSG"
+
 
     # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash)
     STASH_RESULT=$(git stash)

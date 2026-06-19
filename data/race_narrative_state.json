@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "updated_day": 2,
+  "main_story": {
+    "type": "large_rank_change",
+    "summary": "立命館大学が急浮上",
+    "started_day": 2,
+    "last_updated_day": 2,
+    "teams": [
+      "立命館大学"
+    ]
+  },
+  "ongoing_battles": [
+    {
+      "id": "lead_battle",
+      "kind": "lead",
+      "teams": [
+        "名古屋大学",
+        "立命館大学"
+      ],
+      "summary": "名古屋大学と立命館大学による首位争い",
+      "started_day": 2,
+      "last_updated_day": 2,
+      "previous_gap_km": 2.8000000000000043
+    }
+  ],
+  "momentum": [
+    {
+      "team": "立命館大学",
+      "summary": "10位から2位へ急浮上",
+      "started_day": 2,
+      "last_updated_day": 2,
+      "previous_rank": 10,
+      "current_rank": 2,
+      "diff": 8
+    },
+    {
+      "team": "三重大学",
+      "summary": "9位から3位へ急浮上",
+      "started_day": 2,
+      "last_updated_day": 2,
+      "previous_rank": 9,
+      "current_rank": 3,
+      "diff": 6
+    }
+  ],
+  "runner_threads": [
+    {
+      "runner": "美濃加茂",
+      "team": "名古屋大学",
+      "summary": "本日最速 33.8km の快走",
+      "started_day": 2,
+      "last_updated_day": 2
+    }
+  ],
+  "resolved_stories": []
+}
