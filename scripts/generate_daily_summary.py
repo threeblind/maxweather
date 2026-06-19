@@ -183,12 +183,12 @@ class DailySummaryGenerator:
 - 第８区: 106km / 841km
 - 第９区: 101km / 942km
 - 第10区: 113km / 1055km"""
-        
+
         formatted_legs = []
         for i, leg_info in enumerate(legs, 1):
             # leg_infoは "第１区（100km) 100km" のような形式
             formatted_legs.append(f"- 第{i}区: {leg_info}")
-        
+
         return '\n'.join(formatted_legs)
 
     def load_all_data(self):
@@ -427,16 +427,6 @@ class DailySummaryGenerator:
         return f"{team.get('name')}（{rank_str} / 累計{total:.1f}km / 本日{today:.1f}km / 走者:{runner}）"
 
     @staticmethod
-    def _describe_gap(gap):
-        if gap is None:
-            return "差不明"
-        if gap <= 1.0:
-            return f"{gap:.1f}km差のデッドヒート"
-        if gap >= 5.0:
-            return f"{gap:.1f}km差で独走態勢"
-        return f"{gap:.1f}km差"
-
-    @staticmethod
     def _rank_move_label(previous_rank, current_rank):
         if not previous_rank or not current_rank:
             return "前日比較なし"
@@ -491,55 +481,6 @@ class DailySummaryGenerator:
 
         return notes
 
-    def _build_story_angle(self):
-        teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
-        if not teams:
-            return []
-
-        notes = []
-        if len(teams) >= 2:
-            lead_gap = teams[0].get('totalDistance', 0.0) - teams[1].get('totalDistance', 0.0)
-            notes.append(
-                f"- 今日の軸: 走行中トップ争いは総合{teams[0].get('overallRank')}位{teams[0].get('name')}と"
-                f"総合{teams[1].get('overallRank')}位{teams[1].get('name')}の{self._describe_gap(lead_gap)}。"
-            )
-
-        upper_mid = [t for t in teams if t.get('overallRank') and 4 <= t['overallRank'] <= 8]
-        if len(upper_mid) >= 2:
-            spread = upper_mid[0].get('totalDistance', 0.0) - upper_mid[-1].get('totalDistance', 0.0)
-            notes.append(f"- 中位戦線: 4〜8位帯は最大{spread:.1f}km差の混戦。")
-
-        rank10 = next((t for t in teams if t.get('overallRank') == 10), None)
-        rank11 = next((t for t in teams if t.get('overallRank') == 11), None)
-        race_day = self.all_data.get('realtime_report', {}).get('raceDay')
-        try:
-            race_day_int = int(race_day)
-        except (TypeError, ValueError):
-            race_day_int = None
-        if rank10 and rank11:
-            seed_gap = rank10.get('totalDistance', 0.0) - rank11.get('totalDistance', 0.0)
-            if abs(seed_gap) <= 0.5 or (race_day_int is not None and race_day_int >= 3 and abs(seed_gap) <= 1.5):
-                notes.append(f"- シード争い: 10位{rank10.get('name')}と11位{rank11.get('name')}は{self._describe_gap(abs(seed_gap))}。")
-
-        risers = []
-        fallers = []
-        for team in teams:
-            previous_rank = team.get('previousRank')
-            current_rank = team.get('overallRank')
-            if not previous_rank or not current_rank:
-                continue
-            if current_rank < previous_rank:
-                risers.append(f"{team.get('name')}（{previous_rank}位→{current_rank}位）")
-            elif current_rank > previous_rank:
-                fallers.append(f"{team.get('name')}（{previous_rank}位→{current_rank}位）")
-
-        if risers:
-            notes.append("- 順位上昇校: " + "、".join(risers[:4]))
-        if fallers:
-            notes.append("- 順位後退校: " + "、".join(fallers[:4]))
-
-        return notes
-
     def _build_continuity_note(self):
         history = self._get_article_history(num_articles=1)
         if not history:
@@ -557,49 +498,8 @@ class DailySummaryGenerator:
 
         date_text = latest.get('date') or '前日'
         return [
-            f"- 前回記事（{date_text}）の主題: {article}",
-            "- 今日の記事では前日の焦点が継続しているのか、入れ替わったのかを自然に接続すること。",
             "- ただし前回記事の順位表現は正本ではない。総合順位・ゴール順・優勝表現は必ず本日の総合順位表とゴール済み順位を正とすること。"
         ]
-
-    def build_coverage_checklist(self):
-        teams = sorted(self._get_active_teams(), key=lambda t: t.get('overallRank') or 999)
-        if not teams:
-            return ["- 現在走行中の公式チームはありません。"]
-
-        lines = []
-
-        top_cluster = teams[:3]
-        if top_cluster:
-            lines.append("- 走行中上位: " + "、".join(self._format_team_snapshot(t) for t in top_cluster))
-
-        mid_pack = [t for t in teams if t.get('overallRank') and 4 <= t['overallRank'] <= 8]
-        if mid_pack:
-            lines.append("- 中位混戦ゾーン(4〜8位): " + "、".join(self._format_team_snapshot(t) for t in mid_pack))
-
-        race_day = self.all_data.get('realtime_report', {}).get('raceDay')
-        try:
-            race_day_int = int(race_day)
-        except (TypeError, ValueError):
-            race_day_int = None
-        rank10 = next((t for t in teams if t.get('overallRank') == 10), None)
-        rank11 = next((t for t in teams if t.get('overallRank') == 11), None)
-        if rank10 and rank11:
-            seed_gap = abs(rank10.get('totalDistance', 0.0) - rank11.get('totalDistance', 0.0))
-            if seed_gap <= 0.5 or (race_day_int is not None and race_day_int >= 3 and seed_gap <= 1.5):
-                seed_window = [t for t in teams if t.get('overallRank') and 9 <= t['overallRank'] <= 12]
-                if seed_window:
-                    lines.append("- シード権前後: " + "、".join(self._format_team_snapshot(t) for t in seed_window))
-
-        lower_surge_candidates = sorted(teams, key=lambda te: te.get('overallRank') or 999, reverse=True)
-        tail_fighters = [
-            t for t in lower_surge_candidates[:4]
-            if t.get('todayDistance', 0.0) >= 20.0 or (t.get('overallRank') or 0) >= 13
-        ]
-        if tail_fighters:
-            lines.append("- 下位でも目立ったチーム: " + "、".join(self._format_team_snapshot(t) for t in tail_fighters))
-
-        return lines
 
     def _load_recent_substitution_logs(self):
         log_file = LOGS_DIR / 'substitution_log.txt'
@@ -791,132 +691,297 @@ class DailySummaryGenerator:
         ])
 
     def select_today_themes(self, metrics):
-        """Python側で決定的に今日の焦点テーマ（2〜3件）を選定します。"""
-        themes = []
-        used_teams = set()
+        """Python側でレース状況から複数の『ゾーン候補』を構造化して生成します。
+        各候補は排他的ではなく、意味のある順位帯ごとに重複を許容して生成され、
+        AIが全体の状況を見て統合・採用を判断します。"""
+        zones = []
 
         realtime_data = self.all_data.get('realtime_report', {})
         teams_data = realtime_data.get('teams', [])
+
+        # 当日フィニッシュしたチームの情報収集
         goal_teams = [
             t for t in teams_data
             if t.get('runner') == 'ゴール'
             and not t.get('is_shadow_confederation')
             and t.get('finishDay') == metrics.get('race_day')
-
         ]
-
-        lead_battle = metrics.get('lead_battle')
-        is_lead_changed = False
-        day_idx = metrics.get('race_day', 1) - 1
-        prev_leader = None
-        if day_idx > 0:
-            for t_hist in self.all_data.get('rank_history', {}).get('teams', []):
-                if t_hist.get('ranks') and len(t_hist['ranks']) > day_idx and t_hist['ranks'][day_idx-1] == 1:
-                    prev_leader = t_hist['name']
-                    break
-
-        curr_leader = lead_battle['team1'] if lead_battle else None
-        if prev_leader and curr_leader and prev_leader != curr_leader and curr_leader != '区間記録連合':
-            is_lead_changed = True
-
-        # 1. 優勝 / ゴール / 首位逆転
         if goal_teams:
             names = [t['name'] for t in goal_teams]
-            # 総合1位以外は「ゴール」と表記し、「優勝/首位」とは書かない
             detail_parts = []
+            rank_changes = {}
+            today_distances = {}
             for t in goal_teams:
                 rank_str = f"総合{t.get('overallRank')}位"
                 detail_parts.append(f"{t['name']}が{rank_str}でフィニッシュ")
-            themes.append({
-                "type": "goal",
-                "title": f"フィニッシュ達成：{', '.join(names)}がゴール",
-                "details": f"{'、'.join(detail_parts)}。"
-            })
-            used_teams.update(names)
-        elif is_lead_changed:
-            themes.append({
-                "type": "lead_change",
-                "title": f"首位交代：{curr_leader}が首位奪還",
-                "details": f"前日首位の{prev_leader}に代わり、{curr_leader}が新たな首位に立ちました。"
-            })
-            used_teams.add(curr_leader)
-            if prev_leader:
-                used_teams.add(prev_leader)
+                prev = t.get('previousRank')
+                curr = t.get('overallRank')
+                if prev and curr:
+                    rank_changes[t['name']] = prev - curr
+                today_distances[t['name']] = t.get('todayDistance', 0.0)
 
-        # 2. 歴代区間記録更新
+            min_rank = min(t.get('overallRank', 999) for t in goal_teams)
+            max_rank = max(t.get('overallRank', 0) for t in goal_teams)
+
+            zones.append({
+                "zone": "ゴール・フィニッシュ",
+                "teams": names,
+                "rank_range": [min_rank, max_rank],
+                "facts": {
+                    t['name']: {
+                        "totalDistance": t.get('totalDistance', 0.0),
+                        "todayDistance": t.get('todayDistance', 0.0),
+                        "rank_change": rank_changes.get(t['name'], 0)
+                    } for t in goal_teams
+                },
+                "gaps": {},
+                "reason": f"{'、'.join(detail_parts)}。目標のフィニッシュテープを切り、全区間を完走しました。"
+            })
+
+        # 歴代記録更新のゾーン候補
         record_breaks = self._build_record_break_notes(metrics.get('race_day'))
         if record_breaks:
+            rb_teams = []
             for rb in record_breaks:
-                themes.append({
-                    "type": "record_broken",
-                    "title": "歴代区間記録の更新",
-                    "details": rb
+                for t in self._get_regular_teams():
+                    if t['name'] in rb and t['name'] not in rb_teams:
+                        rb_teams.append(t['name'])
+            zones.append({
+                "zone": "歴代記録更新",
+                "teams": rb_teams,
+                "rank_range": [],
+                "facts": {},
+                "gaps": {},
+                "reason": " / ".join(record_breaks)
+            })
+
+        # 走行中の公式チーム情報を取得
+        active_teams = self._get_active_teams()
+        active_teams_sorted = sorted(active_teams, key=lambda t: t.get('overallRank') or 999)
+
+        if not active_teams_sorted:
+            return zones
+
+        # 共通データ生成用ヘルパー
+        def build_facts_and_gaps(teams_list, zone_name):
+            facts = {}
+            for t in teams_list:
+                prev = t.get('previousRank')
+                curr = t.get('overallRank')
+                facts[t['name']] = {
+                    "overallRank": curr,
+                    "totalDistance": t.get('totalDistance', 0.0),
+                    "todayDistance": t.get('todayDistance', 0.0),
+                    "rank_change": (prev - curr) if (prev and curr) else 0
+                }
+
+            gaps = {}
+            # 首位との差
+            leader_team = active_teams_sorted[0]
+            gaps["gap_to_leader"] = {
+                t['name']: float(f"{leader_team.get('totalDistance', 0.0) - t.get('totalDistance', 0.0):.2f}")
+                for t in teams_list if t['name'] != leader_team['name']
+            }
+
+            # 帯内での最大差
+            distances = [t.get('totalDistance', 0.0) for t in teams_list]
+            if distances:
+                gaps["max_spread_km"] = float(f"{max(distances) - min(distances):.2f}")
+            else:
+                gaps["max_spread_km"] = 0.0
+
+            return facts, gaps
+
+        # --- A) 首位状況 (1位と2位) ---
+        lead_teams = [t for t in active_teams_sorted if t.get('overallRank') in [1, 2]]
+        if len(lead_teams) >= 2:
+            facts, gaps = build_facts_and_gaps(lead_teams, "首位状況")
+            gap_1to2 = lead_teams[0].get('totalDistance', 0.0) - lead_teams[1].get('totalDistance', 0.0)
+            gaps["gap_1st_to_2nd_km"] = float(f"{gap_1to2:.2f}")
+
+            # 前日のgapを取得して拡大・縮小トレンドを計算
+            day_idx = metrics.get('race_day', 1) - 1
+            gap_prev = None
+            t1_hist = next((t for t in self.all_data.get('rank_history', {}).get('teams', []) if t['name'] == lead_teams[0]['name']), None)
+            t2_hist = next((t for t in self.all_data.get('rank_history', {}).get('teams', []) if t['name'] == lead_teams[1]['name']), None)
+            if t1_hist and t2_hist and day_idx > 0:
+                if len(t1_hist.get('distances', [])) >= day_idx and len(t2_hist.get('distances', [])) >= day_idx:
+                    gap_prev = t1_hist['distances'][day_idx-1] - t2_hist['distances'][day_idx-1]
+
+            if gap_prev is not None:
+                diff_prev = gap_1to2 - gap_prev
+                gaps["gap_trend"] = "拡大" if diff_prev > 0 else "縮小"
+                gaps["gap_change_km"] = float(f"{abs(diff_prev):.2f}")
+                trend_text = f"（前日差 {gap_prev:.1f}km から首位差が {abs(diff_prev):.1f}km {gaps['gap_trend']}）"
+            else:
+                trend_text = ""
+
+            reason = f"1位{lead_teams[0]['name']}は累積距離{lead_teams[0]['totalDistance']:.1f}km、2位{lead_teams[1]['name']}は{lead_teams[1]['totalDistance']:.1f}km、差は{gap_1to2:.1f}km{trend_text}。"
+
+            zones.append({
+                "zone": "首位状況",
+                "teams": [t['name'] for t in lead_teams],
+                "rank_range": [1, 2],
+                "facts": facts,
+                "gaps": gaps,
+                "reason": reason
+            })
+
+        # --- B) 上位状況 (2位〜5位) ---
+        top_chase_teams = [t for t in active_teams_sorted if t.get('overallRank') and 2 <= t['overallRank'] <= 5]
+        if top_chase_teams:
+            facts, gaps = build_facts_and_gaps(top_chase_teams, "上位状況")
+            min_rank = min(t.get('overallRank') for t in top_chase_teams)
+            max_rank = max(t.get('overallRank') for t in top_chase_teams)
+            reason = f"総合{min_rank}位から{max_rank}位のチーム（{', '.join([t['name'] for t in top_chase_teams])}）の累積距離。集団内の最大差は{gaps['max_spread_km']:.1f}km。"
+            zones.append({
+                "zone": "上位状況",
+                "teams": [t['name'] for t in top_chase_teams],
+                "rank_range": [min_rank, max_rank],
+                "facts": facts,
+                "gaps": gaps,
+                "reason": reason
+            })
+
+        # --- C) 中位状況 (4位〜8位) ---
+        mid_battle_teams = [t for t in active_teams_sorted if t.get('overallRank') and 4 <= t['overallRank'] <= 8]
+        if mid_battle_teams:
+            facts, gaps = build_facts_and_gaps(mid_battle_teams, "中位状況")
+            min_rank = min(t.get('overallRank') for t in mid_battle_teams)
+            max_rank = max(t.get('overallRank') for t in mid_battle_teams)
+            reason = f"総合{min_rank}位〜{max_rank}位のチーム（{', '.join([t['name'] for t in mid_battle_teams])}）の累積距離。集団内の最大差は{gaps['max_spread_km']:.1f}km。"
+            zones.append({
+                "zone": "中位状況",
+                "teams": [t['name'] for t in mid_battle_teams],
+                "rank_range": [min_rank, max_rank],
+                "facts": facts,
+                "gaps": gaps,
+                "reason": reason
+            })
+
+        # --- D) シード境界状況 (9位〜12位) ---
+        seed_boundary_teams = [t for t in active_teams_sorted if t.get('overallRank') and 9 <= t['overallRank'] <= 12]
+        if seed_boundary_teams:
+            facts, gaps = build_facts_and_gaps(seed_boundary_teams, "シード境界状況")
+            min_rank = min(t.get('overallRank') for t in seed_boundary_teams)
+            max_rank = max(t.get('overallRank') for t in seed_boundary_teams)
+
+            # 10位と11位の距離差を明示
+            t10 = next((t for t in active_teams_sorted if t.get('overallRank') == 10), None)
+            t11 = next((t for t in active_teams_sorted if t.get('overallRank') == 11), None)
+            if t10 and t11:
+                gap_10_11 = t10.get('totalDistance', 0.0) - t11.get('totalDistance', 0.0)
+                gaps["gap_10th_to_11th_km"] = float(f"{gap_10_11:.2f}")
+
+                # 前日差を取得してトレンド計算
+                day_idx = metrics.get('race_day', 1) - 1
+                gap_prev_10_11 = None
+                t10_hist = next((t for t in self.all_data.get('rank_history', {}).get('teams', []) if t['name'] == t10['name']), None)
+                t11_hist = next((t for t in self.all_data.get('rank_history', {}).get('teams', []) if t['name'] == t11['name']), None)
+                if t10_hist and t11_hist and day_idx > 0:
+                    if len(t10_hist.get('distances', [])) >= day_idx and len(t11_hist.get('distances', [])) >= day_idx:
+                        gap_prev_10_11 = t10_hist['distances'][day_idx-1] - t11_hist['distances'][day_idx-1]
+
+                if gap_prev_10_11 is not None:
+                    diff_prev_10_11 = gap_10_11 - gap_prev_10_11
+                    gaps["gap_10th_to_11th_trend"] = "拡大" if diff_prev_10_11 > 0 else "縮小"
+                    gaps["gap_10th_to_11th_change_km"] = float(f"{abs(diff_prev_10_11):.2f}")
+                    trend_text = f"（前日差 {gap_prev_10_11:.1f}km から {abs(diff_prev_10_11):.1f}km {gaps['gap_10th_to_11th_trend']}）"
+                else:
+                    trend_text = ""
+                reason = f"10位{t10['name']}と11位{t11['name']}の累積距離の差は{gap_10_11:.1f}km{trend_text}。"
+            else:
+                reason = f"総合{min_rank}位から{max_rank}位のチーム累積距離。集団内の最大差は{gaps['max_spread_km']:.1f}km。"
+
+            zones.append({
+                "zone": "シード境界状況",
+                "teams": [t['name'] for t in seed_boundary_teams],
+                "rank_range": [min_rank, max_rank],
+                "facts": facts,
+                "gaps": gaps,
+                "reason": reason
+            })
+
+        # --- E) シード圏外 (13位以下から特筆校のみ) ---
+        lower_teams = [t for t in active_teams_sorted if t.get('overallRank') and t['overallRank'] >= 13]
+        if lower_teams:
+            # 全体の本日距離から閾値（上位20%の距離、または上位3位の距離）を算出
+            all_today_distances = sorted([t.get('todayDistance', 0.0) for t in active_teams], reverse=True)
+            dist_threshold = 999.0
+            if all_today_distances:
+                limit_idx = max(2, len(all_today_distances) // 5)
+                dist_threshold = all_today_distances[min(limit_idx, len(all_today_distances)-1)]
+
+            t10 = next((t for t in active_teams_sorted if t.get('overallRank') == 10), None)
+            day_idx = metrics.get('race_day', 1) - 1
+
+            notable_lower_teams = []
+            for t in lower_teams:
+                is_notable = False
+                reasons_notable = []
+
+                prev = t.get('previousRank')
+                curr = t.get('overallRank')
+                if prev and curr and prev - curr >= 3:
+                    is_notable = True
+                    reasons_notable.append(f"順位上昇（前日比+{prev - curr}）")
+
+                today_dist = t.get('todayDistance', 0.0)
+                if today_dist >= dist_threshold and today_dist > 0:
+                    is_notable = True
+                    reasons_notable.append(f"本日走行距離（{today_dist:.1f}km）")
+
+                if t10 and day_idx > 0:
+                    gap_curr = t.get('totalDistance', 0.0) - t10.get('totalDistance', 0.0)
+                    t_hist = next((h for h in self.all_data.get('rank_history', {}).get('teams', []) if h['name'] == t['name']), None)
+                    t10_hist = next((h for h in self.all_data.get('rank_history', {}).get('teams', []) if h['name'] == t10['name']), None)
+                    if t_hist and t10_hist:
+                        if len(t_hist.get('distances', [])) >= day_idx and len(t10_hist.get('distances', [])) >= day_idx:
+                            gap_prev = t_hist['distances'][day_idx-1] - t10_hist['distances'][day_idx-1]
+                            if gap_curr > gap_prev:
+                                is_notable = True
+                                reasons_notable.append(f"シード差縮小（本日{abs(gap_curr):.1f}km差、{gap_curr - gap_prev:.1f}km縮小）")
+
+                if is_notable:
+                    notable_lower_teams.append((t, reasons_notable))
+
+            if notable_lower_teams:
+                facts = {}
+                for t, _ in notable_lower_teams:
+                    prev = t.get('previousRank')
+                    curr = t.get('overallRank')
+                    facts[t['name']] = {
+                        "overallRank": curr,
+                        "totalDistance": t.get('totalDistance', 0.0),
+                        "todayDistance": t.get('todayDistance', 0.0),
+                        "rank_change": (prev - curr) if (prev and curr) else 0
+                    }
+
+                gaps = {}
+                leader_team = active_teams_sorted[0]
+                gaps["gap_to_leader"] = {
+                    t['name']: float(f"{leader_team.get('totalDistance', 0.0) - t.get('totalDistance', 0.0):.2f}")
+                    for t, _ in notable_lower_teams
+                }
+                if t10:
+                    gaps["gap_to_10th"] = {
+                        t['name']: float(f"{t10.get('totalDistance', 0.0) - t.get('totalDistance', 0.0):.2f}")
+                        for t, _ in notable_lower_teams
+                    }
+
+                reason_parts = [f"{t['name']}の{'/'.join(reasons)}" for t, reasons in notable_lower_teams]
+                reason = f"シード圏外（13位以下）における特筆値を持つチーム情報: {', '.join(reason_parts)}。"
+
+                zones.append({
+                    "zone": "シード圏外状況",
+                    "teams": [t['name'] for t, _ in notable_lower_teams],
+                    "rank_range": [min(t.get('overallRank') for t, _ in notable_lower_teams), max(t.get('overallRank') for t, _ in notable_lower_teams)],
+                    "facts": facts,
+                    "gaps": gaps,
+                    "reason": reason
                 })
 
-        # 3. 首位差の顕著な縮小
-        if len(themes) < 3 and lead_battle:
-            gap_curr = lead_battle['gap_current']
-            gap_prev = lead_battle['gap_prev']
-            if gap_prev is not None and gap_curr < gap_prev:
-                closed = gap_prev - gap_curr
-                if closed >= 0.5 or gap_curr <= 1.0:
-                    t1, t2 = lead_battle['team1'], lead_battle['team2']
-                    if t1 not in used_teams or t2 not in used_teams:
-                        themes.append({
-                            "type": "lead_gap_closed",
-                            "title": f"首位争いの激化：{t2}が{t1}を急追",
-                            "details": f"首位{t1}と2位{t2}の差が、前日の{gap_prev:.1f}kmから{gap_curr:.1f}km（{closed:.1f}km縮小）に接近。"
-                        })
-                        used_teams.add(t1)
-                        used_teams.add(t2)
-
-        # 4. 大幅順位変動（3ランク以上上昇）
-        if len(themes) < 3:
-            rank_changes = metrics.get('rank_changes', {})
-            for t_name, change in sorted(rank_changes.items(), key=lambda x: x[1]['diff'], reverse=True):
-                if change['diff'] >= 3:
-                    if t_name not in used_teams:
-                        themes.append({
-                            "type": "large_rank_change",
-                            "title": f"{t_name}が急浮上",
-                            "details": f"前日{change['prev']}位から本日{change['curr']}位へ大幅ランクアップ（+{change['diff']}）。"
-                        })
-                        used_teams.add(t_name)
-                        if len(themes) >= 3:
-                            break
-
-        # 5. シード権争い（1.5km以内の接戦）
-        if len(themes) < 3:
-            seed_battle = metrics.get('seed_battle')
-            if seed_battle:
-                gap_curr = seed_battle['gap_current']
-                if gap_curr <= 1.5:
-                    t10, t11 = seed_battle['team10'], seed_battle['team11']
-                    if t10 not in used_teams or t11 not in used_teams:
-                        themes.append({
-                            "type": "seed_battle",
-                            "title": "シード権攻防戦",
-                            "details": f"10位{t10}と11位{t11}の差はわずか{gap_curr:.1f}km。"
-                        })
-                        used_teams.add(t10)
-                        used_teams.add(t11)
-
-        # 6. 当日好走（本日距離1位）
-        if len(themes) < 3:
-            active_teams = self._get_active_teams()
-            if active_teams:
-                today_stars = sorted(active_teams, key=lambda t: t.get('todayDistance', 0.0), reverse=True)
-                if today_stars and today_stars[0].get('todayDistance', 0.0) > 0:
-                    star = today_stars[0]
-                    if star['name'] not in used_teams:
-                        themes.append({
-                            "type": "today_fastest",
-                            "title": f"{star['name']}が本日最速の走り",
-                            "details": f"本日距離{star.get('todayDistance', 0.0):.1f}km（走者: {star.get('runner')}）を記録し、チームを牽引。"
-                        })
-                        used_teams.add(star['name'])
-
-        return themes[:3]
+        return zones
 
     def _get_relevant_player_story_notes(self):
         context_root = self.all_data.get('player_story_context') or {}
@@ -978,7 +1043,10 @@ class DailySummaryGenerator:
 
         related_teams = []
         for theme in selected_themes:
-            details = theme.get('details', '')
+            details = theme.get('details', '') or theme.get('reason', '')
+            for t_name in theme.get('teams', []):
+                if t_name not in related_teams:
+                    related_teams.append(t_name)
             for t_name in team_map.keys():
                 if t_name in details and t_name not in related_teams:
                     related_teams.append(t_name)
@@ -1103,9 +1171,44 @@ class DailySummaryGenerator:
         start_date = details.get('startDateLabel') or details.get('startDate') or metadata.get('startDate')
         course_description = details.get('course')
 
-        # 今日のテーマ選定
-        selected_themes = self.select_today_themes(metrics)
-        themes_text = "\n".join([f"- **{t['title']}**: {t['details']}" for t in selected_themes])
+        # 今日のテーマ候補ゾーン
+        selected_zones = self.select_today_themes(metrics)
+        zones_lines = []
+        for i, zone in enumerate(selected_zones, 1):
+            teams_str = ", ".join(zone["teams"])
+            rank_range_str = f"{zone['rank_range'][0]}〜{zone['rank_range'][1]}位" if zone["rank_range"] else "なし"
+
+            # facts から各チームの情報を構築
+            facts_lines = []
+            for team, f in zone.get("facts", {}).items():
+                change = f.get("rank_change", 0)
+                change_str = f"{'+' if change > 0 else ''}{change}" if change != 0 else "維持"
+                facts_lines.append(
+                    f"{team}(順位:{f.get('overallRank', '不明')}位 / 累計:{f.get('totalDistance', 0.0):.1f}km / 本日:{f.get('todayDistance', 0.0):.1f}km / 変動:{change_str})"
+                )
+            facts_str = ", ".join(facts_lines)
+
+            # gaps から情報を構築
+            gaps_list = []
+            gaps_dict = zone.get("gaps", {})
+            if "max_spread_km" in gaps_dict:
+                gaps_list.append(f"集団内最大差: {gaps_dict['max_spread_km']:.1f}km")
+            if "gap_1st_to_2nd_km" in gaps_dict:
+                gaps_list.append(f"1位→2位差: {gaps_dict['gap_1st_to_2nd_km']:.1f}km")
+            if "gap_10th_to_11th_km" in gaps_dict:
+                gaps_list.append(f"10位→11位差: {gaps_dict['gap_10th_to_11th_km']:.1f}km")
+            gaps_str = " / ".join(gaps_list) if gaps_list else "なし"
+
+            zone_text = (
+                f"{i}. 【{zone['zone']}】\n"
+                f"   - 対象大学: {teams_str}\n"
+                f"   - 順位範囲: {rank_range_str}\n"
+                f"   - チーム詳細: {facts_str if facts_str else 'なし'}\n"
+                f"   - 距離差指標: {gaps_str}\n"
+                f"   - 注目理由: {zone['reason']}"
+            )
+            zones_lines.append(zone_text)
+        themes_text = "\n".join(zones_lines)
 
         prompt_parts = [
             "# 大会コンテキスト",
@@ -1116,14 +1219,14 @@ class DailySummaryGenerator:
             "- 走行距離と順位のルール説明は不要。",
             "",
             "# 記事の内容構成・ルール",
-            "- 選定された「今日の選定テーマ」に沿って、動きが大きい話題に集中して書くこと。",
+            "- 提示された「今日のテーマ候補ゾーン」から、レース全体の構造を見て採用・統合・小見出し数を判断して書くこと。",
             "- 記事全体を現在走行中のチーム・走者の動きに集中させ、既にゴールしたチームの回顧は避けること。ただし当日フィニッシュは新規性として扱ってよい。",
             "- 当日フィニッシュしたチームは、必ず総合順位を確認してから表現すること。総合2位以下なら『2位でフィニッシュ』のように順位を明記し、『先頭』『首位』『優勝』とは書かないこと。",
             "- 走行中チームの首位・シードライン・追い上げの構図は具体的な距離差や区間情報とともに描写すること。",
             "- 大学名、選手名は太字で扱うこと。選手名には必ず「君」付けすること（例:**上武大学**の**佐野君**）。",
             "- 選手名の先頭に数字がある場合（例: 1甲佐）、出力時は数字を削除して名前のみ（甲佐君）にすること。",
             "",
-            "# 今日の選定テーマ",
+            "# 今日のテーマ候補ゾーン",
             themes_text or "- 特になし",
             "",
             "# 本日のレース状況",
@@ -1152,7 +1255,8 @@ class DailySummaryGenerator:
 
         if state.get('ongoing_battles'):
             for b in state['ongoing_battles']:
-                narrative_notes.append(f"- 継続中の攻防: {b.get('summary')} (開始: {b.get('started_day')}日目、前日の差: {b.get('previous_gap_km', 0.0):.1f}km ※前回値として参照)")
+                gap_val = b.get('last_observed_gap_km') or b.get('previous_gap_km', 0.0)
+                narrative_notes.append(f"- 継続中の攻防: {b.get('summary')} (開始: {b.get('started_day')}日目、前回観測時点の差: {gap_val:.1f}km ※前回値として参照)")
 
         if state.get('momentum'):
             for mo in state['momentum']:
@@ -1187,7 +1291,7 @@ class DailySummaryGenerator:
             prompt_parts.append("\n# 昨晩の監督コメント")
             prompt_parts.extend(manager_comments)
 
-        team_story_notes = self._get_light_team_story_notes(selected_themes)
+        team_story_notes = self._get_light_team_story_notes(selected_zones)
         if team_story_notes:
             prompt_parts.append("\n# 注目チームの対決文脈")
             prompt_parts.extend(team_story_notes)
@@ -1205,12 +1309,30 @@ class DailySummaryGenerator:
         prompt_parts.append(
             "\n---\n"
             "# 出力フォーマットと文体\n"
-            "- 文字数は450〜650字程度。\n"
+            "- 全体の文字数は1400〜2600字程度（小見出し数に応じて可変）。\n"
             "- 1行目はタイトル（『# 』を使用）。\n"
-            "- 2行目以降は、レース全体を象徴するメイン見出し（『### 』）を1つ、その下に各トピックの小見出し（『#### 』）を2〜3つ書くこと（箇条書きは多用しない）。\n"
-            "- 最後の小見出しは必ず『#### 今日の総括』とし、一日の軌跡と明日への期待で締めること。\n"
+            "- 2行目以降は、レース全体を象徴するメイン見出し（『### 』）を1つ、その下に各トピックの小見出し（『#### 』）を2〜4つ書くこと（箇条書きは多用しない）。\n"
+            "- 小見出しの数は2〜4件で可変とする（大きな争点が少ない日は2件、複数の独立した争点がある日は3〜4件）。件数を満たすための水増しは禁止する。\n"
+            "- テーマ候補ゾーンの中から、どのゾーンを採用・統合して小見出しを作るかは、レース全体の構造を見て判断すること。\n"
+            "- 構成判断および記述ルール：\n"
+            "  - 順位帯を機械的に網羅しないこと。\n"
+            "  - 隣接順位のチームは「争い」として統合し、同一の上位集団を2〜3つの小見出しに分割しないこと（近接した上位校を別々の小見出しに分けない）。\n"
+            "  - 固定距離だけで評価語を決めず、レース進行と各種変化を総合判断すること。現在の累積距離差、前日終値との差および変化、前回観測時点との差および変化、当日走行距離、順位変動、大会日数、現在区間などを総合して、レース状況（「独走」「接戦」「追走」など）を相対的に判断すること。同じチームや争いを重複して小見出しにしないこと。\n"
+            "  - 首位が独走状態の場合、首位への言及は簡潔に留め、後方の追走集団の接戦を主要テーマ（見出し本文）にすること。\n"
+            "  - 大幅順位上昇や本日最長距離は、原則として所属するゾーンのテーマを補強する材料として記述すること。\n"
+            "  - レース全体に意味のある動きがあれば、中位、シード境界、圏外のゾーンにも視野を広げること。\n"
+            "  - 提供された事実のないドラマや因果関係は作らないこと。\n"
+            "- 各トピックの見出しタイトルは簡潔に保ち、長文化しないこと。\n"
+            "- 各トピック本文の文字数は400〜500字程度を目安とすること。\n"
+            "- 各トピック本文は以下の構成で詳細に記述すること：\n"
+            "  1. 冒頭に短い実況調の一文（『追いつかせない！』のような表現）を1文だけ置く\n"
+            "  2. 現在の具体的な順位・距離・首位差などの数値を記述する\n"
+            "  3. 前日からの順位変動や、前日から継続している物語の展開を記述する\n"
+            "  4. 選手・チーム・区間背景のうち、提供された関連する補助情報を織り込んで解説を深く詳細に記述すること\n"
+            "- 同じ順位や距離の数値を別の段落や文章で重複して繰り返すことで字数を水増ししないこと。\n"
+            "- 提供されたデータやコンテキストにない、選手の心理状態、天候、観客の反応、将来のレース結果などを想像で創作しないこと。\n"
+            "- 最後の小見出しは必ず『#### 今日の総括・明日への展望』とし、一日の軌跡、当日の全体構図、継続中の争点、翌日の注目点までを約600字程度を目安に記述すること（本文の単なる言い換えにしないこと）。\n"
             "- 各見出しは、何が起きたかが一読で分かり、かつドラマチックな表現を含めること。\n"
-            "- 各トピックは『追いつかせない！』のような短い実況文を1文だけ置き、続けて数値に基づく解説を書くこと。\n"
             "解説記事:"
         )
         return "\n".join(prompt_parts)
@@ -1412,26 +1534,29 @@ class DailySummaryGenerator:
             primary_theme = selected_themes[0]
             existing_main = state.get('main_story', {})
 
-            involved_teams = [t for t in metrics.get('rank_changes', {}).keys() if t in primary_theme['title'] or t in primary_theme['details']]
+            p_type = primary_theme.get('type') or primary_theme.get('zone')
+            p_title = primary_theme.get('title') or primary_theme.get('zone')
+            p_details = primary_theme.get('details') or primary_theme.get('reason', '')
+            involved_teams = primary_theme.get('teams') or [t for t in metrics.get('rank_changes', {}).keys() if t in p_title or t in p_details]
 
             is_same = False
-            if existing_main and existing_main.get('type') == primary_theme['type']:
+            if existing_main and existing_main.get('type') == p_type:
                 existing_teams = existing_main.get('teams', [])
                 if any(t in existing_teams for t in involved_teams):
                     is_same = True
 
             if is_same:
                 state['main_story'] = {
-                    "type": primary_theme['type'],
-                    "summary": primary_theme['title'],
+                    "type": p_type,
+                    "summary": p_title,
                     "started_day": existing_main.get('started_day', race_day),
                     "last_updated_day": race_day,
                     "teams": involved_teams
                 }
             else:
                 state['main_story'] = {
-                    "type": primary_theme['type'],
-                    "summary": primary_theme['title'],
+                    "type": p_type,
+                    "summary": p_title,
                     "started_day": race_day,
                     "last_updated_day": race_day,
                     "teams": involved_teams
@@ -1455,15 +1580,13 @@ class DailySummaryGenerator:
             t2_data = next((t for t in realtime_teams if t['name'] == t2), None)
             is_goal = (t1_data and t1_data.get('runner') == 'ゴール') or (t2_data and t2_data.get('runner') == 'ゴール')
 
-            if gap >= 5.0 or is_goal:
-                is_resolved = True
+            is_resolved = is_goal
 
             if is_resolved:
-                reason = "ゴール" if is_goal else "大差"
                 resolved_entry = {
-                    "summary": f"首位攻防決着：{t1}と{t2}の争いは差が {gap:.1f}km に拡大し決着",
+                    "summary": f"首位攻防決着：{t1}と{t2}の争いはゴールに到達したため決着 (最終観測差: {gap:.1f}km)",
                     "resolved_day": race_day,
-                    "reason": reason
+                    "reason": "ゴール"
                 }
                 state.setdefault('resolved_stories', []).append(resolved_entry)
                 if existing in state.get('ongoing_battles', []):
@@ -1474,11 +1597,13 @@ class DailySummaryGenerator:
                     if t1 in existing_teams and t2 in existing_teams:
                         # 同一ペア
                         existing['last_updated_day'] = race_day
+                        existing['last_observed_gap_km'] = gap
                         existing['previous_gap_km'] = gap
                     else:
                         # 異なるペアへの交代
+                        prev_gap_val = existing.get('last_observed_gap_km') or existing.get('previous_gap_km', 0.0)
                         resolved_entry = {
-                            "summary": f"首位攻防交代：{', '.join(existing_teams)}の争いから{t1}と{t2}の争いへ移行 (前日差 {existing.get('previous_gap_km', 0.0):.1f}km)",
+                            "summary": f"首位攻防交代：{', '.join(existing_teams)}の争いから{t1}と{t2}の争いへ移行 (前回観測時の差 {prev_gap_val:.1f}km)",
                             "resolved_day": race_day,
                             "reason": "首位交代"
                         }
@@ -1492,6 +1617,7 @@ class DailySummaryGenerator:
                             "summary": f"{t1}と{t2}による首位争い",
                             "started_day": race_day,
                             "last_updated_day": race_day,
+                            "last_observed_gap_km": gap,
                             "previous_gap_km": gap
                         }
                         state.setdefault('ongoing_battles', []).append(battle_entry)
@@ -1503,6 +1629,7 @@ class DailySummaryGenerator:
                         "summary": f"{t1}と{t2}による首位争い",
                         "started_day": race_day,
                         "last_updated_day": race_day,
+                        "last_observed_gap_km": gap,
                         "previous_gap_km": gap
                     }
                     state.setdefault('ongoing_battles', []).append(battle_entry)
@@ -1650,10 +1777,11 @@ class DailySummaryGenerator:
         if self.dry_run:
             print("\n--dry-runモードのため、ファイルへの書き込みは行わずに終了します。")
             # デバッグ用に選定されたテーマや継続物語を出力
-            selected_themes = self.select_today_themes(metrics)
-            print("\n[dry-run] 選定された今日のテーマ:")
-            for t in selected_themes:
-                print(f"  - {t['title']}: {t['details']}")
+            selected_zones = self.select_today_themes(metrics)
+            print("\n[dry-run] 生成された今日のテーマ候補ゾーン:")
+            for t in selected_zones:
+                spread = t.get('gaps', {}).get('max_spread_km', 0.0)
+                print(f"  - 【{t['zone']}】対象チーム: {', '.join(t['teams'])} (最大差: {spread:.1f}km) - 理由: {t['reason']}")
             print("\n[dry-run] 読み込んだ継続物語の数:")
             print(f"  - ongoing_battles: {len(self.narrative_state.get('ongoing_battles', []))}")
             print(f"  - momentum: {len(self.narrative_state.get('momentum', []))}")
