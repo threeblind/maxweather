@@ -1105,11 +1105,12 @@
         }
 
         .map-container {
-            margin-top: 40px;
+            margin-top: 0;
             margin-bottom: 40px;
         }
 
         .map-container h2 {
+            margin-top: 0;
             margin-bottom: 15px;
         }
 
@@ -2663,7 +2664,9 @@
         </div>
 
         <div id="section-leg-ranking" class="leg-ranking-container">
-            <h2 id="legRankingTitle">🏃 個人記録</h2>
+            <div class="section-header">
+                <h2 id="legRankingTitle">🏃 個人記録</h2>
+            </div>
             <div id="leg-tabs-container" class="leg-tabs">
             </div>
             <table id="legRankingTable">
@@ -2678,7 +2681,9 @@
         </div>
 
         <section id="section-digest" class="ekiden-section-wrapper">
-            <h2>🎬 レースダイジェスト</h2>
+            <div class="section-header">
+                <h2>🎬 レースダイジェスト</h2>
+            </div>
 
             <!-- AIによる総括記事がここに挿入される -->
             <div id="daily-summary-container"></div>
@@ -2695,7 +2700,9 @@
 
         <!-- ========== 学内ランキング ========== -->
         <section id="section-intramural-ranking" class="content-section ekiden-section-wrapper">
-            <h2><i class="fas fa-university"></i> 🏫 学内ランキング</h2>
+            <div class="section-header">
+                <h2><i class="fas fa-university"></i> 🏫 学内ランキング</h2>
+            </div>
             <div class="team-nav-container">
                 <div id="intramural-team-nav" class="team-nav-pc team-logo-btn">
                     <!-- PC用ボタンがここに挿入される -->
@@ -2727,7 +2734,9 @@
         </section>
 
         <div id="section-leg-prize" style="margin-top: 40px;">
-            <h2>🚩 区間記録</h2>
+            <div class="section-header">
+                <h2>🚩 区間記録</h2>
+            </div>
             <div id="legPrizeWinner">
                 <!-- 区間賞は app.js によって動的に生成されます -->
             </div>
@@ -2735,7 +2744,9 @@
 
         <!-- ========== 出場校＆選手一覧 ========== -->
         <section id="section-team-directory" class="ekiden-section-wrapper">
-            <h2>� エントリーリスト</h2>
+            <div class="section-header">
+                <h2>🏫 エントリーリスト</h2>
+            </div>
             <p class="favorite-hint">☆を押して注目チームに登録できます。最大3校まで。</p>
             <div class="team-nav-container">
                 <div id="team-directory-nav" class="team-nav-pc team-logo-btn">
@@ -2823,8 +2834,6 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <footer class="site-footer">
-        <p>このサイトは個人の趣味で開発・運営されています。</p>
-        <p>もしよろしければ、開発の励みとしてご支援をいただけると大変嬉しいです。</p>
         <p><a href="#" id="show-ios-install-guide">iPhoneでアプリとして使うには？</a></p>
     </footer>
 
