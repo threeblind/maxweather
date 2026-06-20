@@ -2224,6 +2224,29 @@
             gap: 0.2rem;
         }
 
+        .rank-timeline-subtitle {
+            margin: 0.2rem 0 0;
+            color: var(--text-muted-color);
+            font-size: 0.84rem;
+        }
+
+        .favorite-hint {
+            margin: 0.25rem 0 0.5rem;
+            color: var(--text-muted-color);
+            font-size: 0.9rem;
+        }
+
+        .favorite-counter {
+            margin: 0 0 0.75rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .favorite-counter--empty {
+            color: var(--text-muted-color);
+            font-weight: 500;
+        }
+
         .rank-timeline-team {
             background: none;
             border: none;
@@ -2265,6 +2288,71 @@
 
         .rank-timeline-toggle:hover {
             background-color: var(--border-color);
+        }
+
+        .fav-btn {
+            appearance: none;
+            border: 1px solid var(--border-color);
+            background: var(--surface-color);
+            color: var(--text-muted-color);
+            width: 2.2rem;
+            height: 2.2rem;
+            border-radius: 999px;
+            font-size: 1rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .fav-btn:hover {
+            transform: translateY(-1px);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .fav-btn.is-favorite {
+            background: rgba(255, 193, 7, 0.18);
+            border-color: #d4af37;
+            color: #d4af37;
+        }
+
+        .fav-btn.is-full:not(.is-favorite) {
+            opacity: 0.45;
+        }
+
+        .fav-btn--shake {
+            animation: favShake 0.4s ease;
+        }
+
+        .fav-btn--in-title {
+            margin-left: 0.5rem;
+        }
+
+        .fav-col {
+            width: 3rem;
+        }
+
+        #ekidenRankingBody tr.is-favorite td {
+            background: rgba(255, 193, 7, 0.08);
+        }
+
+        #ekidenRankingBody tr.is-favorite td:first-child {
+            box-shadow: inset 4px 0 0 #d4af37;
+        }
+
+        .runner-icon--favorite {
+            filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.45));
+        }
+
+        .fav-marker {
+            box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.28);
+        }
+
+        @keyframes favShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            50% { transform: translateX(2px); }
+            75% { transform: translateX(-1px); }
         }
 
         /* 種別ごとのテーマ装飾 */
@@ -2414,6 +2502,8 @@
                 <button type="button" class="rank-timeline-filter" data-filter="rank" aria-pressed="false">順位変動</button>
                 <button type="button" class="rank-timeline-filter" data-filter="record"
                     aria-pressed="false">記録更新</button>
+                <button type="button" class="rank-timeline-filter" data-filter="favorites" aria-pressed="false"
+                    id="rank-timeline-filter-favorites" hidden>★ 注目</button>
             </div>
 
             <p id="rank-timeline-status" class="status-message" aria-live="polite">タイムラインを読み込んでいます…</p>
@@ -2561,6 +2651,8 @@
         <!-- ========== 出場校＆選手一覧 ========== -->
         <section id="section-team-directory" class="ekiden-section-wrapper">
             <h2>� エントリーリスト</h2>
+            <p class="favorite-hint">☆を押して注目チームに登録できます。最大3校まで。</p>
+            <p id="favorite-team-counter" class="favorite-counter favorite-counter--empty">注目チームはありません</p>
             <div class="team-nav-container">
                 <div id="team-directory-nav" class="team-nav-pc team-logo-btn">
                     <!-- PC用ボタンがここに挿入される -->

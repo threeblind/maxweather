@@ -20,6 +20,11 @@ let rankTimelineFilter = 'all';
 let isRankTimelineExpanded = false;
 const SHADOW_TEAM_ID = 99; // マジックナンバー99を排除するための定数
 
+// --- 注目チーム用状態変数 ---
+let favoriteTeamIds = new Set();          // 注目中の team.id セット
+const FAVORITE_TEAMS_KEY = 'favoriteTeams';
+const FAVORITE_MAX = 3;
+
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
 let EKIDEN_START_DATE = '2026-03-08'; // outline.json で上書き
@@ -646,6 +651,13 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
             teamInitial = runner.team_short_name || '??';
         }
 
+        // 注目チームかどうかを team_name から ekidenDataCache で teamId を解決して判定
+        const teamConfig = ekidenDataCache && Array.isArray(ekidenDataCache.teams)
+            ? ekidenDataCache.teams.find(t => t.name === runner.team_name)
+            : null;
+        const teamIdForFav = teamConfig ? teamConfig.id : null;
+        const isTeamFavorite = teamIdForFav != null && isFavoriteTeam(teamIdForFav);
+
         const isGoalReached = !runner.is_shadow_confederation && runner.total_distance_km >= (finalGoalDistance - goalTolerance);
         const markerLatLng = (isGoalReached && goalLatLng)
             ? goalLatLng
@@ -656,8 +668,20 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
             teamDisplayLatLngMap.set(runner.team_name, markerLatLng);
         }
 
-        const icon = isGoalReached ? createGoalIcon(color) : createRunnerIcon(teamInitial, color);
-        const marker = L.marker(markerLatLng, { icon: icon });
+        let icon;
+        if (isGoalReached) {
+            icon = createGoalIcon(color);
+        } else if (isTeamFavorite && !runner.is_shadow_confederation) {
+            icon = createFavoriteMarkerIcon(teamInitial, color);
+        } else {
+            icon = createRunnerIcon(teamInitial, color);
+        }
+
+        const markerOptions = { icon };
+        if (isTeamFavorite && !runner.is_shadow_confederation) {
+            markerOptions.zIndexOffset = 500; // 注目チームは前面に
+        }
+        const marker = L.marker(markerLatLng, markerOptions);
 
         let popupContent;
         if (runner.is_shadow_confederation) {
@@ -795,6 +819,7 @@ const createEkidenHeader = () => {
             <th class="hide-on-mobile">トップ差</th>
             <th class="hide-on-mobile">順位変動<br>(前日)</th>
             <th class="hide-on-mobile">次走者</th>
+            <th class="fav-col" title="注目チーム登録">★</th>
         </tr>
     `;
 };
@@ -1272,19 +1297,25 @@ async function displayRankHistoryChart() {
         // Create a map of team IDs to colors
         const teamColorMap = new Map(ekidenData.teams.map(t => [t.id, t.color]));
 
+        const hasFavorites = favoriteTeamIds.size > 0;
         const datasets = historyData.teams
             .filter(team => team.id !== 99 && team.name !== '区間記録連合')
             .map(team => {
+            const color = teamColorMap.get(team.id) || '#cccccc';
+            const isFav = isFavoriteTeam(team.id);
+            // 注目チームがあれば、非注目を薄く表示
+            const effectiveColor = hasFavorites && !isFav ? color + '33' : color;
             return {
                 label: team.name,
                 data: team.ranks,
-                borderColor: teamColorMap.get(team.id) || '#cccccc',
-                backgroundColor: (teamColorMap.get(team.id) || '#cccccc') + '33', // Add transparency
+                borderColor: effectiveColor,
+                backgroundColor: color + '33',
                 fill: false,
                 tension: 0.1,
-                borderWidth: 2,
-                pointRadius: 3,
-                pointHoverRadius: 6
+                borderWidth: isFav ? 4 : (hasFavorites ? 1 : 2),
+                pointRadius: isFav ? 5 : (hasFavorites ? 2 : 3),
+                pointHoverRadius: isFav ? 8 : 6,
+                order: isFav ? 0 : 1 // 注目チームを前面に描画
             };
         });
 
@@ -1609,6 +1640,8 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
 
         const row = document.createElement('tr');
         row.id = `team-rank-row-${team.overallRank}`; // Add a unique ID for each row
+        row.dataset.teamId = team.id; // 注目チーム機能で使用
+        if (isFavoriteTeam(team.id)) row.classList.add('is-favorite');
 
         const isFinishedPreviously = team.finishDay && team.finishDay < currentRaceDay;
         let finishIcon = '';
@@ -1721,9 +1754,16 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         }
         row.appendChild(nextRunnerCell);
 
+        // 注目ボタンセル（大学名セルに統合せず独立列として追加）
+        const favCell = document.createElement('td');
+        favCell.className = 'fav-col';
+        favCell.appendChild(createFavoriteButton(team.id));
+        row.appendChild(favCell);
+
         fragment.appendChild(row);
     });
     rankingBody.appendChild(fragment);
+    applyFavoriteHighlights();
 };
 
 /**
@@ -3249,6 +3289,14 @@ function displayTeamDetails(teamId) {
             ${substitutesHtml}
         </div>
     `;
+
+    // 注目ボタンをタイトルバー右端に追加（innerHTML に直接埋め込まずDOMで挿入）
+    const titleEl = contentContainer.querySelector('.team-details-title');
+    if (titleEl) {
+        const favBtn = createFavoriteButton(teamId);
+        favBtn.classList.add('fav-btn--in-title');
+        titleEl.appendChild(favBtn);
+    }
 }
 // --- 初期化処理 ---
 
@@ -3323,6 +3371,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     await initializeMap();
     // 2. 最も重要な速報データを取得して表示
     await fetchEkidenData();
+
+    // 注目チームの状態を localStorage から復元
+    loadFavoriteTeams();
+    updateFavoriteCounter();
+    applyFavoriteHighlights();
 
     // 3. 順位変動タイムラインの初期化とデータロード
     initRankTimeline();
@@ -3834,15 +3887,194 @@ function clearBadge() {
 }
 
 
+// ============================================================
+// 注目チーム機能
+// ============================================================
 
-// HTML側に<base>タグを追加する必要があります。
-// index_16.html の <head> 内に以下を追加してください：
-/*
-<script>
-    document.write(`<base href="${location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1)}" />`);
-</script>
-*/
+/**
+ * localStorage から注目チームを読み込み、favoriteTeamIds に反映します。
+ */
+function loadFavoriteTeams() {
+    try {
+        const raw = localStorage.getItem(FAVORITE_TEAMS_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        favoriteTeamIds = new Set(Array.isArray(arr) ? arr.map(Number).filter(Number.isFinite) : []);
+    } catch (e) {
+        favoriteTeamIds = new Set();
+    }
+}
 
+/**
+ * favoriteTeamIds を localStorage に保存します。
+ */
+function saveFavoriteTeams() {
+    try {
+        localStorage.setItem(FAVORITE_TEAMS_KEY, JSON.stringify([...favoriteTeamIds]));
+    } catch (e) {
+        console.warn('favoriteTeams save failed:', e);
+    }
+}
+
+/**
+ * 指定 teamId の注目状態をトグルします。
+ * @param {number} teamId
+ * @returns {'added'|'removed'|'full'} 操作結果
+ */
+function toggleFavoriteTeam(teamId) {
+    const id = Number(teamId);
+    if (favoriteTeamIds.has(id)) {
+        favoriteTeamIds.delete(id);
+        saveFavoriteTeams();
+        return 'removed';
+    }
+    if (favoriteTeamIds.size >= FAVORITE_MAX) {
+        return 'full';
+    }
+    favoriteTeamIds.add(id);
+    saveFavoriteTeams();
+    return 'added';
+}
+
+/**
+ * 指定 teamId が注目中かどうかを返します。
+ */
+function isFavoriteTeam(teamId) {
+    return favoriteTeamIds.has(Number(teamId));
+}
+
+/**
+ * 注目ボタン DOM を生成して返します。
+ * @param {number} teamId
+ * @returns {HTMLButtonElement}
+ */
+function createFavoriteButton(teamId) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'fav-btn';
+    btn.dataset.teamId = teamId;
+    btn.setAttribute('aria-label', isFavoriteTeam(teamId) ? '注目解除' : '注目登録');
+
+    const updateBtnState = () => {
+        const isFav = isFavoriteTeam(teamId);
+        const isFull = !isFav && favoriteTeamIds.size >= FAVORITE_MAX;
+        btn.textContent = isFav ? '★' : '☆';
+        btn.classList.toggle('is-favorite', isFav);
+        btn.classList.toggle('is-full', isFull);
+        btn.title = isFav ? '注目解除' : (isFull ? `すでに${FAVORITE_MAX}校登録中` : '注目登録');
+        btn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+    };
+    updateBtnState();
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const result = toggleFavoriteTeam(teamId);
+        if (result === 'full') {
+            // 軽くシェイクして上限を伝える
+            btn.classList.add('fav-btn--shake');
+            setTimeout(() => btn.classList.remove('fav-btn--shake'), 400);
+            return;
+        }
+        // 全ての注目ボタンの状態を更新
+        applyFavoriteHighlights();
+    });
+
+    return btn;
+}
+
+/**
+ * 注目チームのマーカーアイコン（輪郭リング付き）を生成します。
+ * @param {string} teamInitial
+ * @param {string} color
+ * @returns {L.DivIcon}
+ */
+function createFavoriteMarkerIcon(teamInitial, color) {
+    const iconHtml = `
+        <div class="runner-marker fav-marker" style="background-color: ${color}; border-color: ${color};">
+            <span class="rank-number">${teamInitial}</span>
+        </div>
+    `;
+    return L.divIcon({
+        html: iconHtml,
+        className: 'runner-icon runner-icon--favorite',
+        iconSize: [38, 52],
+        iconAnchor: [19, 52],
+        popupAnchor: [0, -54]
+    });
+}
+
+/**
+ * 注目チームカウンターバッジ（「注目 N/3」）を更新します。
+ */
+function updateFavoriteCounter() {
+    const el = document.getElementById('favorite-team-counter');
+    if (!el) return;
+    const count = favoriteTeamIds.size;
+    if (count === 0) {
+        el.textContent = '注目チームはありません';
+        el.className = 'favorite-counter favorite-counter--empty';
+    } else {
+        el.textContent = `★ 注目チーム ${count}/${FAVORITE_MAX}`;
+        el.className = 'favorite-counter';
+    }
+}
+
+/**
+ * 注目状態を全 UI（ボタン・順位表行・タイムライン・カウンター）に反映します。
+ * マーカーは updateRunnerMarkers() を呼んで再描画します。
+ */
+function applyFavoriteHighlights() {
+    // 1. 全ての注目ボタンの表示を更新
+    document.querySelectorAll('.fav-btn').forEach(btn => {
+        const id = Number(btn.dataset.teamId);
+        const isFav = isFavoriteTeam(id);
+        const isFull = !isFav && favoriteTeamIds.size >= FAVORITE_MAX;
+        btn.textContent = isFav ? '★' : '☆';
+        btn.classList.toggle('is-favorite', isFav);
+        btn.classList.toggle('is-full', isFull);
+        btn.title = isFav ? '注目解除' : (isFull ? `すでに${FAVORITE_MAX}校登録中` : '注目登録');
+        btn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+        btn.setAttribute('aria-label', isFav ? '注目解除' : '注目登録');
+    });
+
+    // 2. 順位表の行ハイライトを更新
+    document.querySelectorAll('#ekidenRankingBody tr[data-team-id]').forEach(row => {
+        const id = Number(row.dataset.teamId);
+        row.classList.toggle('is-favorite', isFavoriteTeam(id));
+    });
+
+    // 3. タイムラインを再描画（注目フィルター反映 + ボタン表示更新）
+    updateFavoriteFilterButton();
+    renderRankTimeline();
+
+    // 4. カウンター更新
+    updateFavoriteCounter();
+
+    // 5. マーカー再描画（lastRealtimeData があれば）
+    if (typeof runnerMarkersLayer !== 'undefined' && runnerMarkersLayer && ekidenDataCache) {
+        // runner_locations は別変数で保持していないので、キャッシュから再取得
+        fetch(`data/runner_locations.json?_=${Date.now()}`, { cache: 'no-store' })
+            .then(r => r.ok ? r.json() : null)
+            .then(locs => { if (locs) updateRunnerMarkers(locs, ekidenDataCache); })
+            .catch(() => {});
+    }
+}
+
+/**
+ * タイムラインの「注目」フィルターボタンの表示/非表示を制御します。
+ */
+function updateFavoriteFilterButton() {
+    const btn = document.getElementById('rank-timeline-filter-favorites');
+    if (!btn) return;
+    btn.hidden = favoriteTeamIds.size === 0;
+    // 注目が0になったのに注目フィルター中なら全件に戻す
+    if (favoriteTeamIds.size === 0 && rankTimelineFilter === 'favorites') {
+        rankTimelineFilter = 'all';
+        document.querySelectorAll('.rank-timeline-filter').forEach(b => {
+            b.classList.toggle('active', b.dataset.filter === 'all');
+            b.setAttribute('aria-pressed', b.dataset.filter === 'all' ? 'true' : 'false');
+        });
+    }
+}
 
 /**
  * タイムライン用のタイムスタンプを解釈します。
@@ -4182,6 +4414,9 @@ function renderRankTimeline() {
         if (rankTimelineFilter === 'record') {
             return event.type === 'daily_record';
         }
+        if (rankTimelineFilter === 'favorites') {
+            return isFavoriteTeam(event.teamId);
+        }
         return false;
     });
 
@@ -4473,7 +4708,7 @@ function initRankTimeline() {
         });
     }
 
-    // フィルターボタンのクリックハンドラ
+    // フィルターボタンのクリックハンドラ（注目フィルターも同じハンドラで処理）
     const filterButtons = document.querySelectorAll('.rank-timeline-filter');
     filterButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -4488,6 +4723,9 @@ function initRankTimeline() {
             renderRankTimeline();
         });
     });
+
+    // 注目フィルターボタンの初期表示状態を設定
+    updateFavoriteFilterButton();
 
     // ウィンドウリサイズ時の対応 (閉じている時のみ件数調整)
     let resizeTimeout;
