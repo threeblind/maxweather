@@ -2122,6 +2122,7 @@
         .rank-timeline-section {
             margin-top: 1.5rem;
         }
+
         .rank-timeline-header {
             display: flex;
             align-items: baseline;
@@ -2132,14 +2133,17 @@
             padding-bottom: 0.5rem;
             margin-bottom: 1rem;
         }
+
         .rank-timeline-header h2 {
             margin: 0;
         }
+
         .rank-timeline-header .update-time {
             font-size: 0.85rem;
             color: var(--text-muted-color);
             margin: 0;
         }
+
         .rank-timeline-filters {
             display: flex;
             gap: 0.5rem;
@@ -2147,6 +2151,7 @@
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
+
         .rank-timeline-filter {
             background-color: var(--card-bg-color, #ffffff);
             color: var(--text-color);
@@ -2159,14 +2164,17 @@
             white-space: nowrap;
             transition: background-color 0.2s, color 0.2s, border-color 0.2s;
         }
+
         .rank-timeline-filter:hover {
             background-color: var(--border-color);
         }
+
         .rank-timeline-filter.active {
             background-color: var(--primary-color);
             color: #ffffff;
             border-color: var(--primary-color);
         }
+
         .status-message {
             font-size: 0.9rem;
             color: var(--text-muted-color);
@@ -2174,11 +2182,13 @@
             padding: 1.5rem 0;
             margin: 0;
         }
+
         .rank-timeline-list {
             list-style: none;
             padding: 0;
             margin: 0;
         }
+
         .rank-timeline-item {
             display: grid;
             grid-template-columns: 3.5rem 1.75rem minmax(0, 1fr);
@@ -2187,28 +2197,33 @@
             border-bottom: 1px solid var(--border-color);
             align-items: start;
         }
+
         @media (max-width: 768px) {
             .rank-timeline-item {
                 grid-template-columns: 3rem 1.25rem minmax(0, 1fr);
                 gap: 0.5rem;
             }
         }
+
         .rank-timeline-time {
             font-size: 0.85rem;
             color: var(--text-muted-color);
             font-family: monospace;
             padding-top: 0.1rem;
         }
+
         .rank-timeline-icon {
             font-size: 1.1rem;
             text-align: center;
             line-height: 1.2;
         }
+
         .rank-timeline-content {
             display: flex;
             flex-direction: column;
             gap: 0.2rem;
         }
+
         .rank-timeline-team {
             background: none;
             border: none;
@@ -2222,14 +2237,17 @@
             cursor: pointer;
             width: fit-content;
         }
+
         .rank-timeline-team:hover {
             text-decoration: underline;
         }
+
         .rank-timeline-detail {
             font-size: 0.85rem;
             color: var(--text-muted-color);
             margin: 0;
         }
+
         .rank-timeline-toggle {
             display: block;
             width: 100%;
@@ -2244,49 +2262,65 @@
             margin-top: 1rem;
             transition: background-color 0.2s;
         }
+
         .rank-timeline-toggle:hover {
             background-color: var(--border-color);
         }
 
         /* 種別ごとのテーマ装飾 */
         .rank-timeline-item--leader .rank-timeline-icon {
-            color: #d4af37; /* ゴールド */
+            color: #d4af37;
+            /* ゴールド */
         }
+
         .rank-timeline-item--up .rank-timeline-icon {
-            color: #e53935; /* 赤系（上昇） */
+            color: #e53935;
+            /* 赤系（上昇） */
         }
+
         .rank-timeline-item--down .rank-timeline-icon {
-            color: #1e88e5; /* 青系（下降） */
+            color: #1e88e5;
+            /* 青系（下降） */
         }
+
         .rank-timeline-item--record .rank-timeline-icon {
-            color: #fb8c00; /* オレンジ系（記録更新） */
+            color: #fb8c00;
+            /* オレンジ系（記録更新） */
         }
+
         .rank-timeline-item--historical-record {
             background: linear-gradient(90deg, rgba(253, 244, 215, 0.4) 0%, rgba(255, 255, 255, 0) 100%);
             border-left: 4px solid #d4af37;
             padding-left: 0.5rem;
             animation: timelinePulse 2s infinite alternate;
         }
+
         @media (prefers-color-scheme: dark) {
             .rank-timeline-item--historical-record {
                 background: linear-gradient(90deg, rgba(212, 175, 55, 0.15) 0%, rgba(0, 0, 0, 0) 100%);
             }
         }
+
         .rank-timeline-item--historical-record .rank-timeline-icon {
-            color: #d4af37; /* ゴールド */
+            color: #d4af37;
+            /* ゴールド */
             text-shadow: 0 0 4px rgba(212, 175, 55, 0.5);
         }
+
         @keyframes timelinePulse {
             0% {
                 box-shadow: inset 2px 0 0 rgba(212, 175, 55, 0.2);
             }
+
             100% {
                 box-shadow: inset 2px 0 12px rgba(212, 175, 55, 0.4);
             }
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .rank-timeline-filter, .rank-timeline-toggle {
+
+            .rank-timeline-filter,
+            .rank-timeline-toggle {
                 transition: none;
             }
         }
@@ -2333,7 +2367,7 @@
         <nav class="page-nav">
             <ul id="main-nav-list">
                 <li><a href="#section-course-map">速報マップ</a></li>
-                <li><a href="#section-rank-timeline">順位変動</a></li>
+                <li><a href="#section-rank-timeline">タイムライン</a></li>
                 <li><a href="#section-overall-ranking">総合順位</a></li>
                 <li><a href="#section-leg-rank-history">推移</a></li>
                 <li><a href="#section-leg-ranking">個人記録</a></li>
@@ -2365,23 +2399,27 @@
             <div id="map"></div>
         </div>
 
-        <section id="section-rank-timeline" class="ekiden-section-wrapper rank-timeline-section" aria-labelledby="rank-timeline-title">
+        <section id="section-rank-timeline" class="ekiden-section-wrapper rank-timeline-section"
+            aria-labelledby="rank-timeline-title">
             <div class="section-header rank-timeline-header">
                 <div>
-                    <h2 id="rank-timeline-title">順位変動タイムライン</h2>
+                    <h2 id="rank-timeline-title">タイムライン</h2>
                     <p id="rank-timeline-update-time" class="update-time" aria-live="polite"></p>
                 </div>
             </div>
 
             <div class="rank-timeline-filters" role="group" aria-label="タイムラインの表示種別">
-                <button type="button" class="rank-timeline-filter active" data-filter="all" aria-pressed="true">すべて</button>
+                <button type="button" class="rank-timeline-filter active" data-filter="all"
+                    aria-pressed="true">すべて</button>
                 <button type="button" class="rank-timeline-filter" data-filter="rank" aria-pressed="false">順位変動</button>
-                <button type="button" class="rank-timeline-filter" data-filter="record" aria-pressed="false">記録更新</button>
+                <button type="button" class="rank-timeline-filter" data-filter="record"
+                    aria-pressed="false">記録更新</button>
             </div>
 
             <p id="rank-timeline-status" class="status-message" aria-live="polite">タイムラインを読み込んでいます…</p>
             <ol id="rank-timeline-list" class="rank-timeline-list" aria-live="polite"></ol>
-            <button type="button" id="rank-timeline-toggle" class="rank-timeline-toggle" aria-expanded="false" hidden></button>
+            <button type="button" id="rank-timeline-toggle" class="rank-timeline-toggle" aria-expanded="false"
+                hidden></button>
         </section>
 
         <div id="section-overall-ranking" class="ekiden-section-wrapper">
@@ -2405,7 +2443,8 @@
         </div>
 
         <!-- 差し入れ導線カード -->
-        <a href="https://www.amazon.co.jp/hz/wishlist/ls/MVA4E86III4C/ref=nav_wishlist_lists_2" target="_blank" rel="noopener noreferrer" class="support-card-link">
+        <a href="https://www.amazon.co.jp/hz/wishlist/ls/MVA4E86III4C/ref=nav_wishlist_lists_2" target="_blank"
+            rel="noopener noreferrer" class="support-card-link">
             <div class="support-card">
                 <h3 class="support-card-title">🎁 差し入れ</h3>
                 <div class="support-card-subtitle">Amazon ほしい物リスト</div>
