@@ -663,6 +663,10 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
             })
             : false;
 
+        if (runner.is_shadow_confederation && !shadowLegRecordIsActive) {
+            return;
+        }
+
         // マーカーに表示する文字を決定
         // is_shadow_confederation フラグが true の場合（区間記録連合）は「最高」と表示
         let teamInitial;
