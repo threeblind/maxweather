@@ -819,7 +819,6 @@ const createEkidenHeader = () => {
             <th class="hide-on-mobile">トップ差</th>
             <th class="hide-on-mobile">順位変動<br>(前日)</th>
             <th class="hide-on-mobile">次走者</th>
-            <th class="fav-col" title="注目チーム登録">★</th>
         </tr>
     `;
 };
@@ -1697,7 +1696,14 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         // 大学名セルは、フルネームと短縮名を切り替えるために特別なHTML構造を持つ
         const teamNameCell = document.createElement('td');
         teamNameCell.className = 'team-name';
-        teamNameCell.innerHTML = `${finishIcon}<span class="full-name">${team.name}</span><span class="short-name">${team.short_name}</span>`;
+        const starPrefix = document.createElement('span');
+        starPrefix.className = 'team-name-favorite-prefix';
+        const starButton = createFavoriteButton(team.id);
+        starButton.classList.add('fav-btn--inline');
+        starButton.textContent = isFavoriteTeam(team.id) ? '★' : '☆';
+        starPrefix.appendChild(starButton);
+        teamNameCell.appendChild(starPrefix);
+        teamNameCell.insertAdjacentHTML('beforeend', `${finishIcon}<span class="full-name">${team.name}</span><span class="short-name">${team.short_name}</span>`);
         teamNameCell.title = 'クリックで注目チームに登録/解除';
         teamNameCell.addEventListener('click', () => {
             const result = toggleFavoriteTeam(team.id);
@@ -1761,12 +1767,6 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
             }
         }
         row.appendChild(nextRunnerCell);
-
-        // 注目ボタンセル（大学名セルに統合せず独立列として追加）
-        const favCell = document.createElement('td');
-        favCell.className = 'fav-col';
-        favCell.appendChild(createFavoriteButton(team.id));
-        row.appendChild(favCell);
 
         fragment.appendChild(row);
     });
@@ -3282,9 +3282,7 @@ function displayTeamDetails(teamId) {
     contentContainer.innerHTML = `
         <div class="team-details-container">
             <div class="team-details-description-wrapper">
-                <div class="team-details-title" style="background-color: ${teamColor}; color: ${textColor};">
-                    ${teamConfig.name} <span>${teamConfig.manager || ''}</span>
-                </div>
+                <div class="team-details-title" style="background-color: ${teamColor}; color: ${textColor};"></div>
                 <div class="team-details-text" style="background-color: ${descriptionBgColor};">${teamConfig.description || 'チーム紹介はありません。'}</div>
             </div>
             
@@ -3301,9 +3299,15 @@ function displayTeamDetails(teamId) {
     // 注目ボタンをタイトルバー右端に追加（innerHTML に直接埋め込まずDOMで挿入）
     const titleEl = contentContainer.querySelector('.team-details-title');
     if (titleEl) {
+        titleEl.textContent = '';
         const favBtn = createFavoriteButton(teamId);
         favBtn.classList.add('fav-btn--in-title');
+        favBtn.classList.add('fav-btn--inline');
         titleEl.appendChild(favBtn);
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'team-details-title-text';
+        nameSpan.textContent = `${teamConfig.name} ${teamConfig.manager || ''}`.trim();
+        titleEl.appendChild(nameSpan);
     }
 }
 // --- 初期化処理 ---

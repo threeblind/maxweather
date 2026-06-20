@@ -1739,12 +1739,15 @@
             padding: 1rem 1.5rem;
             font-size: 1.5rem;
             font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
         }
 
-        .team-details-title span {
+        .team-details-title-text {
             font-size: 0.8rem;
             font-weight: 500;
-            margin-left: 1rem;
             opacity: 0.9;
         }
 
@@ -2292,31 +2295,29 @@
 
         .fav-btn {
             appearance: none;
-            border: 1px solid var(--border-color);
-            background: rgba(255, 255, 255, 0.72);
+            border: 0;
+            background: transparent;
             color: #6b7280;
-            width: 2rem;
-            height: 2rem;
-            border-radius: 999px;
-            font-size: 1rem;
+            width: auto;
+            height: auto;
+            border-radius: 0;
+            font-size: 1.05rem;
             line-height: 1;
             cursor: pointer;
             font-weight: 800;
-            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 2px rgba(255, 255, 255, 0.7);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-            transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.95), 0 0 2px rgba(255, 255, 255, 0.8), 0 0 4px rgba(255, 255, 255, 0.6);
+            box-shadow: none;
+            padding: 0;
+            margin: 0 0.2rem 0 0;
+            transition: transform 0.15s ease, color 0.15s ease;
         }
 
         .fav-btn:hover {
             transform: translateY(-1px);
-            border-color: var(--primary-color);
             color: var(--primary-color);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
         }
 
         .fav-btn.is-favorite {
-            background: rgba(255, 193, 7, 0.18);
-            border-color: #d4af37;
             color: #d4af37;
         }
 
@@ -2332,12 +2333,14 @@
             margin-left: 0.5rem;
         }
 
-        .fav-btn--legend {
-            background: rgba(255, 255, 255, 0.92);
+        .fav-btn--inline {
+            display: inline-block;
+            vertical-align: baseline;
+            margin-right: 0.25rem;
         }
 
-        .fav-col {
-            width: 3rem;
+        .fav-btn--legend {
+            background: transparent;
         }
 
         #ekidenRankingBody tr.is-favorite td {
@@ -2350,6 +2353,9 @@
 
         #ekidenRankingBody td.team-name {
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
         }
 
         #ekidenRankingBody td.team-name:hover .full-name,
