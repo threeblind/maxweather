@@ -2298,6 +2298,7 @@
             border: 0;
             background: transparent;
             color: #6b7280;
+            text-decoration: none;
             width: auto;
             height: auto;
             border-radius: 0;
@@ -2314,11 +2315,18 @@
 
         .fav-btn:hover {
             transform: translateY(-1px);
-            color: var(--primary-color);
+            color: #6b7280;
+            text-decoration: none;
         }
 
         .fav-btn.is-favorite {
             color: #d4af37;
+        }
+
+        .fav-btn:focus,
+        .fav-btn:focus-visible {
+            outline: none;
+            box-shadow: none;
         }
 
         .fav-btn.is-full:not(.is-favorite) {
@@ -2543,6 +2551,7 @@
                     <button id="toggle-ranking-view-btn" class="header-button">詳細表示 (フルビュー)</button>
                 </div>
             </div>
+            <p class="favorite-hint">☆を押して注目チームに登録できます。最大3校まで。</p>
             <p id="ekidenRankingUpdateTime" class="ranking-update-time"></p>
             <div class="ekiden-ranking-container">
                 <table id="ekidenRankingTable">
@@ -2675,7 +2684,6 @@
         <section id="section-team-directory" class="ekiden-section-wrapper">
             <h2>� エントリーリスト</h2>
             <p class="favorite-hint">☆を押して注目チームに登録できます。最大3校まで。</p>
-            <p id="favorite-team-counter" class="favorite-counter favorite-counter--empty">注目チームはありません</p>
             <div class="team-nav-container">
                 <div id="team-directory-nav" class="team-nav-pc team-logo-btn">
                     <!-- PC用ボタンがここに挿入される -->
