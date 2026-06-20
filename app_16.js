@@ -22,7 +22,9 @@ const SHADOW_TEAM_ID = 99; // マジックナンバー99を排除するための
 
 // --- 注目チーム用状態変数 ---
 let favoriteTeamIds = new Set();          // 注目中の team.id セット
+let favoriteTeamNotificationState = { lastRanksByTeamId: {} };
 const FAVORITE_TEAMS_KEY = 'favoriteTeams';
+const FAVORITE_TEAMS_NOTIFICATION_KEY = 'favoriteTeamsNotificationState';
 const FAVORITE_MAX = 3;
 
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
@@ -1835,6 +1837,7 @@ async function refreshRealtimeData() {
         // Update the two required sections
         updateEkidenRankingTable(realtimeData, ekidenDataCache);
         updateRunnerMarkers(runnerLocations, ekidenDataCache);
+        checkFavoriteTeamRankNotifications(realtimeData).catch(err => console.error('Failed to check favorite notifications', err));
 
         // タイムラインを更新
         loadRankTimeline({ force: true }).catch(err => console.error('Failed to load timeline on refresh', err));
@@ -3386,8 +3389,12 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // 注目チームの状態を localStorage から復元
     loadFavoriteTeams();
+    loadFavoriteTeamNotificationState();
     updateFavoriteCounter();
     applyFavoriteHighlights();
+    if (lastRealtimeData) {
+        syncFavoriteTeamNotificationBaseline(lastRealtimeData);
+    }
 
     // 3. 順位変動タイムラインの初期化とデータロード
     initRankTimeline();
@@ -3917,6 +3924,34 @@ function loadFavoriteTeams() {
 }
 
 /**
+ * localStorage から注目チーム通知の状態を読み込みます。
+ */
+function loadFavoriteTeamNotificationState() {
+    try {
+        const raw = localStorage.getItem(FAVORITE_TEAMS_NOTIFICATION_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        favoriteTeamNotificationState = {
+            lastRanksByTeamId: parsed && typeof parsed.lastRanksByTeamId === 'object' && parsed.lastRanksByTeamId !== null
+                ? parsed.lastRanksByTeamId
+                : {}
+        };
+    } catch (e) {
+        favoriteTeamNotificationState = { lastRanksByTeamId: {} };
+    }
+}
+
+/**
+ * 注目チーム通知の状態を localStorage に保存します。
+ */
+function saveFavoriteTeamNotificationState() {
+    try {
+        localStorage.setItem(FAVORITE_TEAMS_NOTIFICATION_KEY, JSON.stringify(favoriteTeamNotificationState));
+    } catch (e) {
+        console.warn('favoriteTeamsNotificationState save failed:', e);
+    }
+}
+
+/**
  * favoriteTeamIds を localStorage に保存します。
  */
 function saveFavoriteTeams() {
@@ -4020,13 +4055,99 @@ function createFavoriteMarkerIcon(teamInitial, color) {
 function updateFavoriteCounter() {
     const el = document.getElementById('favorite-team-counter');
     if (!el) return;
-    const count = favoriteTeamIds.size;
-    if (count === 0) {
-        el.textContent = '注目チームはありません';
-        el.className = 'favorite-counter favorite-counter--empty';
-    } else {
-        el.textContent = `★ 注目チーム ${count}/${FAVORITE_MAX}`;
-        el.className = 'favorite-counter';
+    el.remove();
+}
+
+/**
+ * 注目チームの順位変動を通知対象として比較し、必要なら通知します。
+ * 初回は基準値のみ保存して通知しません。
+ * @param {object} realtimeData
+ */
+async function checkFavoriteTeamRankNotifications(realtimeData) {
+    if (!realtimeData || !Array.isArray(realtimeData.teams) || favoriteTeamIds.size === 0) {
+        return;
+    }
+
+    const currentRanksByTeamId = {};
+    const changes = [];
+    realtimeData.teams.forEach(team => {
+        if (!isFavoriteTeam(team.id) || team.overallRank == null) return;
+        const currentRank = Number(team.overallRank);
+        if (!Number.isFinite(currentRank)) return;
+        currentRanksByTeamId[String(team.id)] = currentRank;
+        const previousRank = Number(favoriteTeamNotificationState.lastRanksByTeamId?.[team.id]);
+        if (Number.isFinite(previousRank) && previousRank !== currentRank) {
+            changes.push({
+                teamName: team.name,
+                previousRank,
+                currentRank
+            });
+        }
+    });
+
+    favoriteTeamNotificationState.lastRanksByTeamId = currentRanksByTeamId;
+    saveFavoriteTeamNotificationState();
+
+    if (changes.length === 0) {
+        return;
+    }
+
+    const title = '【注目チーム順位変動】';
+    const body = changes.map(change => {
+        const arrow = change.currentRank < change.previousRank ? '▲' : '▼';
+        return `${change.teamName} ${change.previousRank}位${arrow}${change.currentRank}位`;
+    }).join(' / ');
+
+    await showLocalNotification(title, body);
+}
+
+/**
+ * 現在の順位を通知基準として保存します。初回起動時の誤通知を防ぎます。
+ * @param {object} realtimeData
+ */
+function syncFavoriteTeamNotificationBaseline(realtimeData) {
+    if (!realtimeData || !Array.isArray(realtimeData.teams) || favoriteTeamIds.size === 0) {
+        favoriteTeamNotificationState.lastRanksByTeamId = {};
+        saveFavoriteTeamNotificationState();
+        return;
+    }
+
+    const snapshot = {};
+    realtimeData.teams.forEach(team => {
+        if (!isFavoriteTeam(team.id) || team.overallRank == null) return;
+        const currentRank = Number(team.overallRank);
+        if (Number.isFinite(currentRank)) {
+            snapshot[String(team.id)] = currentRank;
+        }
+    });
+    favoriteTeamNotificationState.lastRanksByTeamId = snapshot;
+    saveFavoriteTeamNotificationState();
+}
+
+/**
+ * サービスワーカー経由でローカル通知を表示します。
+ * @param {string} title
+ * @param {string} body
+ */
+async function showLocalNotification(title, body) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const options = {
+        body,
+        icon: 'images/icon-192x192.png',
+        badge: 'images/icon-192x192.png'
+    };
+
+    try {
+        if ('serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.ready;
+            if (registration && registration.showNotification) {
+                await registration.showNotification(title, options);
+                return;
+            }
+        }
+        new Notification(title, options);
+    } catch (e) {
+        console.error('Failed to show favorite team notification:', e);
     }
 }
 
