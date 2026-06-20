@@ -2328,8 +2328,9 @@
             appearance: none;
             -webkit-appearance: none;
             -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
             border: 0;
-            background: transparent;
+            background: transparent !important;
             color: #6b7280;
             text-decoration: none;
             width: auto;
@@ -2346,7 +2347,11 @@
             transition: transform 0.15s ease, color 0.15s ease;
         }
 
-        .fav-btn:hover {
+        .fav-btn:hover,
+        .fav-btn:active,
+        .fav-btn:focus,
+        .fav-btn:focus-visible {
+            background: transparent !important;
             transform: translateY(-1px);
             color: #6b7280;
             text-decoration: none;
@@ -2388,7 +2393,11 @@
         }
 
         #ekidenRankingBody tr.is-favorite td {
-            background: rgba(255, 193, 7, 0.08);
+            background-color: rgba(255, 193, 7, 0.08) !important;
+        }
+
+        #ekidenRankingBody tr.is-favorite td.team-name {
+            background-color: rgba(255, 193, 7, 0.08) !important;
         }
 
         #ekidenRankingBody tr.is-favorite td:first-child {
