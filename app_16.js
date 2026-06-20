@@ -20,6 +20,11 @@ let rankTimelineFilter = 'all';
 let isRankTimelineExpanded = false;
 const SHADOW_TEAM_ID = 99; // マジックナンバー99を排除するための定数
 let lastForegroundRefreshAt = 0;
+let pullToRefreshState = {
+    startY: 0,
+    pulling: false,
+    triggered: false
+};
 
 // --- 注目チーム用状態変数 ---
 let favoriteTeamIds = new Set();          // 注目中の team.id セット
@@ -3413,6 +3418,16 @@ document.addEventListener('DOMContentLoaded', async function () {
         refreshOnForeground();
     });
 
+    updateMapRefreshButtonVisibility();
+    const mapRefreshBtn = document.getElementById('map-refresh-btn');
+    if (mapRefreshBtn) {
+        mapRefreshBtn.addEventListener('click', () => {
+            refreshOnForeground();
+        });
+    }
+
+    setupPullToRefresh();
+
     // 3. 順位変動タイムラインの初期化とデータロード
     initRankTimeline();
     loadRankTimeline().catch(err => console.error('Failed to load timeline on startup', err));
@@ -3939,6 +3954,54 @@ async function refreshOnForeground() {
     } catch (error) {
         console.error('Foreground refresh failed:', error);
     }
+}
+
+/**
+ * 速報マップの更新ボタンの表示状態を切り替えます。
+ */
+function updateMapRefreshButtonVisibility() {
+    const btn = document.getElementById('map-refresh-btn');
+    if (!btn) return;
+    const isPwa = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+    btn.classList.toggle('is-pwa', !!isPwa);
+}
+
+/**
+ * 画面先頭での下引っ張り更新を有効化します。
+ */
+function setupPullToRefresh() {
+    const THRESHOLD = 70;
+
+    window.addEventListener('touchstart', (event) => {
+        if (window.scrollY > 0 || !event.touches || event.touches.length !== 1) {
+            pullToRefreshState.pulling = false;
+            return;
+        }
+
+        pullToRefreshState.startY = event.touches[0].clientY;
+        pullToRefreshState.pulling = true;
+        pullToRefreshState.triggered = false;
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (event) => {
+        if (!pullToRefreshState.pulling || window.scrollY > 0 || !event.touches || event.touches.length !== 1) {
+            return;
+        }
+
+        const deltaY = event.touches[0].clientY - pullToRefreshState.startY;
+        if (deltaY > THRESHOLD && !pullToRefreshState.triggered) {
+            pullToRefreshState.triggered = true;
+            refreshOnForeground();
+        }
+    }, { passive: true });
+
+    const resetPullState = () => {
+        pullToRefreshState.pulling = false;
+        pullToRefreshState.triggered = false;
+    };
+
+    window.addEventListener('touchend', resetPullState, { passive: true });
+    window.addEventListener('touchcancel', resetPullState, { passive: true });
 }
 
 

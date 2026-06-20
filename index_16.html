@@ -1112,6 +1112,36 @@
             margin-bottom: 15px;
         }
 
+        .map-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .map-refresh-btn {
+            display: none;
+            padding: 0.45rem 0.75rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border: 1px solid var(--border-color);
+            background: var(--surface-color);
+            color: var(--primary-color);
+            border-radius: 999px;
+            cursor: pointer;
+        }
+
+        .map-refresh-btn:hover {
+            background: var(--border-color);
+        }
+
+        .map-refresh-btn.is-pwa {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
         #map {
             height: 480px;
             width: 100%;
@@ -2508,7 +2538,10 @@
         </div>
 
         <div id="section-course-map" class="map-container">
-            <h2>🗺️ 速報マップ</h2>
+            <div class="map-title-row">
+                <h2>🗺️ 速報マップ</h2>
+                <button type="button" id="map-refresh-btn" class="map-refresh-btn">🔄 更新</button>
+            </div>
             <div class="map-controls">
                 <label for="team-tracker-select">追跡モード:</label>
                 <select id="team-tracker-select">
