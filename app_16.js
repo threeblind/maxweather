@@ -3812,13 +3812,36 @@ function clearBadge() {
 
 
 /**
- * タイムライン用のタイムスタンプを解釈し、日本時間に変換します。
+ * タイムライン用のタイムスタンプを解釈します。
+ * ログのタイムスタンプはタイムゾーンなしのJST（日本時間）として記録されているため、
+ * +09:00 を付加してUTCへ正しく変換します。
  * @param {string} value - タイムスタンプ文字列
  * @returns {Date} 解釈されたDateオブジェクト
  */
 function parseRealtimeLogTimestamp(value) {
-    const normalized = /(?:Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}Z`;
+    // タイムゾーン指定がない場合は JST（+09:00）として扱う
+    const normalized = /(?:Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}+09:00`;
     return new Date(normalized);
+}
+
+/**
+ * タイムライン用の選手ラベルを「大学名 N区 選手名」形式で生成します。
+ * @param {string} rawRunnerName - ログの runner_name（例: "1甲佐"）
+ * @param {string} teamName - 大学名（例: "熊本学園大学"）
+ * @returns {string} 表示用ラベル（例: "熊本学園大学 1区 甲佐"）
+ */
+function buildRankTimelineRunnerLabel(rawRunnerName, teamName) {
+    if (!rawRunnerName) return teamName || '';
+    // 先頭の数字を区間番号として取り出す
+    const match = rawRunnerName.match(/^(\d+)(.+)$/);
+    if (!match) {
+        // 数字接頭辞なし → そのまま選手名のみ
+        return rawRunnerName;
+    }
+    const legNum = match[1];
+    const runnerOnly = match[2].trim();
+    const teamPart = teamName ? `${teamName} ` : '';
+    return `${teamPart}${legNum}区 ${runnerOnly}`;
 }
 
 /**
@@ -4201,7 +4224,8 @@ function renderRankTimeline() {
         let titleText = '';
         let detailText = '';
 
-        const formattedRunner = formatRunnerName(event.runnerName);
+        // 「大学名 N区 選手名」形式のラベル（記録更新イベント用）
+        const runnerLabel = buildRankTimelineRunnerLabel(event.runnerName, teamName);
 
         if (event.type === 'leader_change') {
             titleText = `${teamName}が首位に浮上`;
@@ -4215,11 +4239,11 @@ function renderRankTimeline() {
             detailText = `${Math.abs(event.rankDelta)}ランクダウン、総合${event.totalDistance.toFixed(1)}km`;
         } else if (event.type === 'daily_record') {
             if (event.isHistoricalLegRecord) {
-                titleText = `✨${formattedRunner}が歴代区間最高を更新！✨`;
-                detailText = `本日走行距離: ${event.distance.toFixed(1)}km（${teamName}）※第${event.legNumber}区の歴代最高記録を更新する大快挙！`;
+                titleText = `✨${runnerLabel}が第${event.legNumber}区の歴代最高記録を更新！✨`;
+                detailText = `本日走行距離: ${event.distance.toFixed(1)}km`;
             } else {
-                titleText = `${formattedRunner}が本日最高を更新`;
-                detailText = `本日走行距離: ${event.distance.toFixed(1)}km（${teamName}）※本日の走行距離における全体最高記録`;
+                titleText = `${runnerLabel}が本日最高記録を更新`;
+                detailText = `本日走行距離: ${event.distance.toFixed(1)}km`;
             }
         }
 
