@@ -2406,6 +2406,11 @@
 
         #ekidenRankingBody td.team-name {
             cursor: pointer;
+            /* NOTE: display:flex を td に直接使うと Safari で background-color が消えるため、
+               flex は td 内の .team-name-inner div に移す */
+        }
+
+        #ekidenRankingBody td.team-name .team-name-inner {
             display: flex;
             align-items: center;
             gap: 0.2rem;

@@ -1702,16 +1702,18 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         row.appendChild(rankCell);
 
         // 大学名セルは、フルネームと短縮名を切り替えるために特別なHTML構造を持つ
+        // NOTE: Safari では <td> に display:flex を直接使うと background-color が失われるバグがあるため、
+        //       flex コンテナは td の子 div に適用する。
         const teamNameCell = document.createElement('td');
         teamNameCell.className = 'team-name';
-        const starPrefix = document.createElement('span');
-        starPrefix.className = 'team-name-favorite-prefix';
+        const teamNameInner = document.createElement('div');
+        teamNameInner.className = 'team-name-inner';
         const starButton = createFavoriteButton(team.id);
         starButton.classList.add('fav-btn--inline');
         starButton.textContent = isFavoriteTeam(team.id) ? '★' : '☆';
-        starPrefix.appendChild(starButton);
-        teamNameCell.appendChild(starPrefix);
-        teamNameCell.insertAdjacentHTML('beforeend', `${finishIcon}<span class="full-name">${team.name}</span><span class="short-name">${team.short_name}</span>`);
+        teamNameInner.appendChild(starButton);
+        teamNameInner.insertAdjacentHTML('beforeend', `${finishIcon}<span class="full-name">${team.name}</span><span class="short-name">${team.short_name}</span>`);
+        teamNameCell.appendChild(teamNameInner);
         teamNameCell.title = 'クリックで注目チームに登録/解除';
         teamNameCell.addEventListener('click', () => {
             const result = toggleFavoriteTeam(team.id);
