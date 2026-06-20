@@ -623,14 +623,18 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
 
     runnerLocations.forEach(runner => {
         const color = teamColorMap.get(runner.team_name) || '#808080'; // Default to grey
-        const realtimeShadowTeam = runner.is_shadow_confederation && lastRealtimeData && Array.isArray(lastRealtimeData.teams)
-            ? lastRealtimeData.teams.find(team => team.is_shadow_confederation)
+        // 区間記録連合は currentLeg の更新より先に次区間へ進むことがあるため、
+        // マーカーの総距離から現在区間を判定する。境界と記録の両方が揃わない場合は表示しない。
+        const shadowLegFromDistance = runner.is_shadow_confederation
+            && Number.isFinite(runner.total_distance_km)
+            && Array.isArray(ekidenData.leg_boundaries)
+            ? ekidenData.leg_boundaries.findIndex(boundary => runner.total_distance_km < boundary) + 1
             : null;
-        const shadowLegForPopup = realtimeShadowTeam && Number.isFinite(realtimeShadowTeam.currentLeg)
-            ? realtimeShadowTeam.currentLeg
-            : runner.current_leg;
+        const shadowLegForPopup = shadowLegFromDistance > 0
+            ? shadowLegFromDistance
+            : null;
         const shadowLegRecord = runner.is_shadow_confederation
-            ? legBestRecordByLeg.get(shadowLegForPopup ?? runner.current_leg ?? 1)
+            ? legBestRecordByLeg.get(shadowLegForPopup)
             : null;
 
         // マーカーに表示する文字を決定
@@ -658,14 +662,14 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         let popupContent;
         if (runner.is_shadow_confederation) {
             // 区間記録連合用のポップアップ内容
-            const editionText = shadowLegRecord?.edition ? `：第${shadowLegRecord.edition}回` : (runner.edition ? `：第${runner.edition}回` : '');
-            if (Number.isFinite(shadowLegForPopup)) {
+            const editionText = shadowLegRecord?.edition ? `：第${shadowLegRecord.edition}回` : '';
+            if (Number.isFinite(shadowLegForPopup) && shadowLegRecord) {
                 popupContent = `
                     <b>区間最高記録${editionText}</b><br>
                     区間: 第${shadowLegForPopup}区<br>
-                    走者: ${formatRunnerName(runner.runner_name)}<br>
-                    ${shadowLegRecord?.record != null ? `記録: ${Number(shadowLegRecord.record).toFixed(3)} km/日<br>` : (runner.leg_record != null ? `記録: ${Number(runner.leg_record).toFixed(3)} km/日<br>` : '')}
-                    総距離: ${runner.total_distance_km.toFixed(1)} km
+                    走者: ${formatRunnerName(shadowLegRecord.runner_name)}<br>
+                    ${shadowLegRecord.record != null ? `記録: ${Number(shadowLegRecord.record).toFixed(3)} km/日<br>` : ''}
+                    総合距離: ${runner.total_distance_km.toFixed(1)} km
                 `;
             }
         } else {
@@ -673,7 +677,7 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
             popupContent = `
                 <b>${runner.rank}位: ${runner.team_short_name} (${runner.team_name})</b><br>
                 走者: ${formatRunnerName(runner.runner_name)}<br>
-                総距離: ${runner.total_distance_km.toFixed(1)} km
+                総合距離: ${runner.total_distance_km.toFixed(1)} km
             `;
             if (isGoalReached) {
                 popupContent += `<br><strong>ゴール済</strong>`;
