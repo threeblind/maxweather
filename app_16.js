@@ -659,13 +659,15 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         if (runner.is_shadow_confederation) {
             // 区間記録連合用のポップアップ内容
             const editionText = shadowLegRecord?.edition ? `：第${shadowLegRecord.edition}回` : (runner.edition ? `：第${runner.edition}回` : '');
-            popupContent = `
-                <b>区間最高記録${editionText}</b><br>
-                区間: 第${shadowLegForPopup || '?'}区<br>
-                走者: ${formatRunnerName(runner.runner_name)}<br>
-                ${shadowLegRecord?.record != null ? `記録: ${Number(shadowLegRecord.record).toFixed(3)} km/日<br>` : (runner.leg_record != null ? `記録: ${Number(runner.leg_record).toFixed(3)} km/日<br>` : '')}
-                総距離: ${runner.total_distance_km.toFixed(1)} km
-            `;
+            if (Number.isFinite(shadowLegForPopup)) {
+                popupContent = `
+                    <b>区間最高記録${editionText}</b><br>
+                    区間: 第${shadowLegForPopup}区<br>
+                    走者: ${formatRunnerName(runner.runner_name)}<br>
+                    ${shadowLegRecord?.record != null ? `記録: ${Number(shadowLegRecord.record).toFixed(3)} km/日<br>` : (runner.leg_record != null ? `記録: ${Number(runner.leg_record).toFixed(3)} km/日<br>` : '')}
+                    総距離: ${runner.total_distance_km.toFixed(1)} km
+                `;
+            }
         } else {
             // 通常チーム用のポップアップ内容
             popupContent = `
@@ -677,7 +679,9 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
                 popupContent += `<br><strong>ゴール済</strong>`;
             }
         }
-        marker.bindPopup(popupContent, { closeButton: false });
+        if (popupContent) {
+            marker.bindPopup(popupContent, { closeButton: false });
+        }
 
         // Add click event to scroll to the ranking table and highlight the row
         marker.on('click', () => {
