@@ -604,6 +604,12 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         });
     }
 
+    const leadLeg = lastRealtimeData && Array.isArray(lastRealtimeData.teams)
+        ? Math.min(...lastRealtimeData.teams
+            .filter(team => team && team.is_shadow_confederation !== true && Number.isFinite(team.currentLeg))
+            .map(team => team.currentLeg))
+        : null;
+
     if (!runnerLocations || runnerLocations.length === 0) {
         return; // 表示するランナーがいない場合は何もしない
     }
@@ -617,6 +623,15 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
 
     runnerLocations.forEach(runner => {
         const color = teamColorMap.get(runner.team_name) || '#808080'; // Default to grey
+        const realtimeShadowTeam = runner.is_shadow_confederation && lastRealtimeData && Array.isArray(lastRealtimeData.teams)
+            ? lastRealtimeData.teams.find(team => team.is_shadow_confederation)
+            : null;
+        const shadowLegForPopup = realtimeShadowTeam && Number.isFinite(realtimeShadowTeam.currentLeg)
+            ? realtimeShadowTeam.currentLeg
+            : runner.current_leg;
+        const shadowLegRecord = runner.is_shadow_confederation
+            ? legBestRecordByLeg.get(shadowLegForPopup ?? runner.current_leg ?? 1)
+            : null;
 
         // マーカーに表示する文字を決定
         // is_shadow_confederation フラグが true の場合（区間記録連合）は「最高」と表示
@@ -643,12 +658,12 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         let popupContent;
         if (runner.is_shadow_confederation) {
             // 区間記録連合用のポップアップ内容
-            const editionText = runner.edition ? `：第${runner.edition}回` : '';
+            const editionText = shadowLegRecord?.edition ? `：第${shadowLegRecord.edition}回` : (runner.edition ? `：第${runner.edition}回` : '');
             popupContent = `
                 <b>区間最高記録${editionText}</b><br>
-                区間: 第${runner.current_leg || '?'}区<br>
+                区間: 第${shadowLegForPopup || '?'}区<br>
                 走者: ${formatRunnerName(runner.runner_name)}<br>
-                ${runner.leg_record != null ? `記録: ${Number(runner.leg_record).toFixed(3)} km/日<br>` : ''}
+                ${shadowLegRecord?.record != null ? `記録: ${Number(shadowLegRecord.record).toFixed(3)} km/日<br>` : (runner.leg_record != null ? `記録: ${Number(runner.leg_record).toFixed(3)} km/日<br>` : '')}
                 総距離: ${runner.total_distance_km.toFixed(1)} km
             `;
         } else {
@@ -696,6 +711,11 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         map.fitBounds(bounds.pad(0.1)); // .pad(0.1) for some margin
     } else if (trackedTeamName === "shadow_confederation") {
         // --- 「区間記録連合」と「先頭走者」を追跡 ---
+        // 現在見ている区間番号と区間最高の現在区間がずれている場合は、誤った区間表示を避けるため
+        // 区間最高の追跡を行わず、先頭走者側の表示に寄せる。
+        const realtimeShadowTeam = lastRealtimeData && Array.isArray(lastRealtimeData.teams)
+            ? lastRealtimeData.teams.find(team => team.is_shadow_confederation)
+            : null;
         const shadowRunner = runnerLocations.find(r => r.is_shadow_confederation);
 
         // 正規の走行中トップ選手を探す (ゴール済みと区間記録連合は除く)
@@ -704,7 +724,12 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         });
 
         const trackingGroup = [];
-        if (shadowRunner) trackingGroup.push(shadowRunner);
+        const shadowLeg = realtimeShadowTeam && Number.isFinite(realtimeShadowTeam.currentLeg)
+            ? realtimeShadowTeam.currentLeg
+            : null;
+        const canShowShadow = shadowRunner && shadowLeg != null && leadLeg != null && shadowLeg === leadLeg;
+
+        if (canShowShadow) trackingGroup.push(shadowRunner);
         if (activeTopRunner) trackingGroup.push(activeTopRunner);
 
         if (trackingGroup.length > 0) {
