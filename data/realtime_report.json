@@ -1,8 +1,8 @@
 {
-  "updateTime": "2026/06/20 11:35",
+  "updateTime": "2026/06/20 11:45",
   "raceDay": 3,
-  "breakingNewsComment": "【定時速報】現在トップは名古屋大学！総合距離90.9kmです！",
-  "breakingNewsTimestamp": "2026-06-20T11:15:08.165597",
+  "breakingNewsComment": "【定時速報】本日のトップは北原選手！29.7kmと素晴らしい走りです！",
+  "breakingNewsTimestamp": "2026-06-20T11:45:11.384585",
   "breakingNewsFullText": "",
   "teams": [
     {
@@ -166,6 +166,22 @@
       "is_shadow_confederation": false
     },
     {
+      "id": 15,
+      "name": "四国大学",
+      "short_name": "四国",
+      "currentLeg": 1,
+      "runner": "1穴吹",
+      "todayDistance": 26.2,
+      "todayRank": 7,
+      "totalDistance": 84.9,
+      "overallRank": 11,
+      "previousRank": 13,
+      "nextRunner": "2大三島",
+      "error": null,
+      "finishDay": null,
+      "is_shadow_confederation": false
+    },
+    {
       "id": 12,
       "name": "熊本学園大学",
       "short_name": "熊学",
@@ -174,25 +190,9 @@
       "todayDistance": 29.4,
       "todayRank": 2,
       "totalDistance": 84.5,
-      "overallRank": 11,
+      "overallRank": 12,
       "previousRank": 15,
       "nextRunner": "2岱明",
-      "error": null,
-      "finishDay": null,
-      "is_shadow_confederation": false
-    },
-    {
-      "id": 15,
-      "name": "四国大学",
-      "short_name": "四国",
-      "currentLeg": 1,
-      "runner": "1穴吹",
-      "todayDistance": 25.6,
-      "todayRank": 7,
-      "totalDistance": 84.3,
-      "overallRank": 12,
-      "previousRank": 13,
-      "nextRunner": "2大三島",
       "error": null,
       "finishDay": null,
       "is_shadow_confederation": false
