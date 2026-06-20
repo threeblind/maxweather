@@ -3271,19 +3271,37 @@ function displayTeamDetails(teamId) {
         `;
     }).join('');
 
-    // 補欠選手のHTMLを生成
-    const substitutesHtml = (teamConfig.substitutes && teamConfig.substitutes.length > 0)
-        ? `
-            <div class="team-substitutes-container">
-                <h4>補欠</h4>
-                <ul class="team-substitutes-list">
-                    ${teamConfig.substitutes.map(sub => {
-            return `<li><a href="#" class="runner-name player-profile-trigger" data-runner-name="${sub.name}" onclick="event.preventDefault()" style="color: #007bff;">${formatRunnerName(sub.name)}</a></li>`;
-        }).join('')}
-                </ul>
-            </div>
-        `
-        : '';
+    // 補欠選手のテーブル行のHTMLを生成
+    const substituteEntriesHtml = (teamConfig.substitutes || []).map(sub => {
+        const runnerName = sub.name;
+        const profile = playerProfiles[runnerName] || {};
+        const formattedRunnerName = formatRunnerName(runnerName);
+        const runnerImage = profile.image_url || 'https://via.placeholder.com/60';
+        // コメントが存在する場合のみpタグを生成
+        const runnerCommentHtml = profile.comment
+            ? `<p class="runner-comment">"${profile.comment}"</p>`
+            : '';
+
+        const runnerMeta = `${profile.grade || ''} / ${profile.prefecture || ''} / ${profile.address || ''}`;
+
+        return `
+            <tr>
+                <th>補欠</th>
+                <td>
+                    <div class="runner-info">
+                        <img src="${runnerImage}" alt="${formattedRunnerName}" class="runner-image">
+                        <div class="runner-details">
+                            <div class="runner-name-details">
+                                <a href="#" class="runner-name player-profile-trigger" data-runner-name="${runnerName}" onclick="event.preventDefault()" style="color: #007bff;">${formattedRunnerName}</a>
+                                <div class="runner-meta">${runnerMeta}</div>
+                            </div>
+                            ${runnerCommentHtml}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
 
     // 全体のHTMLを組み立て
     const teamColor = teamConfig.color || '#6c757d';
@@ -3300,10 +3318,9 @@ function displayTeamDetails(teamId) {
             <table class="team-kukan-table">
                 <tbody>
                     ${kukanEntriesHtml}
+                    ${substituteEntriesHtml}
                 </tbody>
             </table>
-
-            ${substitutesHtml}
         </div>
     `;
 
