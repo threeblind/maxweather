@@ -19,6 +19,7 @@ let rankTimelineEvents = [];
 let rankTimelineFilter = 'all';
 let isRankTimelineExpanded = false;
 const SHADOW_TEAM_ID = 99; // マジックナンバー99を排除するための定数
+let lastForegroundRefreshAt = 0;
 
 // --- 注目チーム用状態変数 ---
 let favoriteTeamIds = new Set();          // 注目中の team.id セット
@@ -3396,6 +3397,22 @@ document.addEventListener('DOMContentLoaded', async function () {
         syncFavoriteTeamNotificationBaseline(lastRealtimeData);
     }
 
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+            refreshOnForeground();
+        }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            refreshOnForeground();
+        }
+    });
+
+    window.addEventListener('focus', () => {
+        refreshOnForeground();
+    });
+
     // 3. 順位変動タイムラインの初期化とデータロード
     initRankTimeline();
     loadRankTimeline().catch(err => console.error('Failed to load timeline on startup', err));
@@ -3902,6 +3919,25 @@ function clearBadge() {
             .catch(err => console.error("Failed to clear badge", err));
     } else {
         console.log("clearAppBadge not supported");
+    }
+}
+
+/**
+ * アプリ復帰時の再取得をまとめて行います。
+ * iPhone PWA の bfcache 復帰やバックグラウンド復帰を想定します。
+ */
+async function refreshOnForeground() {
+    const now = Date.now();
+    if (now - lastForegroundRefreshAt < 3000) return;
+    lastForegroundRefreshAt = now;
+
+    try {
+        await fetchEkidenData();
+        if (lastRealtimeData) {
+            syncFavoriteTeamNotificationBaseline(lastRealtimeData);
+        }
+    } catch (error) {
+        console.error('Foreground refresh failed:', error);
     }
 }
 
