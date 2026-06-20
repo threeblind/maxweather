@@ -2293,21 +2293,25 @@
         .fav-btn {
             appearance: none;
             border: 1px solid var(--border-color);
-            background: var(--surface-color);
-            color: var(--text-muted-color);
-            width: 2.2rem;
-            height: 2.2rem;
+            background: rgba(255, 255, 255, 0.72);
+            color: #6b7280;
+            width: 2rem;
+            height: 2rem;
             border-radius: 999px;
             font-size: 1rem;
             line-height: 1;
             cursor: pointer;
-            transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+            font-weight: 800;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 2px rgba(255, 255, 255, 0.7);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+            transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
         .fav-btn:hover {
             transform: translateY(-1px);
             border-color: var(--primary-color);
             color: var(--primary-color);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
         }
 
         .fav-btn.is-favorite {
@@ -2328,6 +2332,10 @@
             margin-left: 0.5rem;
         }
 
+        .fav-btn--legend {
+            background: rgba(255, 255, 255, 0.92);
+        }
+
         .fav-col {
             width: 3rem;
         }
@@ -2338,6 +2346,15 @@
 
         #ekidenRankingBody tr.is-favorite td:first-child {
             box-shadow: inset 4px 0 0 #d4af37;
+        }
+
+        #ekidenRankingBody td.team-name {
+            cursor: pointer;
+        }
+
+        #ekidenRankingBody td.team-name:hover .full-name,
+        #ekidenRankingBody td.team-name:hover .short-name {
+            text-decoration: underline;
         }
 
         .runner-icon--favorite {

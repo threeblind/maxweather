@@ -1698,6 +1698,14 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         const teamNameCell = document.createElement('td');
         teamNameCell.className = 'team-name';
         teamNameCell.innerHTML = `${finishIcon}<span class="full-name">${team.name}</span><span class="short-name">${team.short_name}</span>`;
+        teamNameCell.title = 'クリックで注目チームに登録/解除';
+        teamNameCell.addEventListener('click', () => {
+            const result = toggleFavoriteTeam(team.id);
+            if (result === 'full') {
+                return;
+            }
+            applyFavoriteHighlights();
+        });
         row.appendChild(teamNameCell);
 
         // ログファイルの存在に応じて、クリック可能にするかを決定
