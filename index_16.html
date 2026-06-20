@@ -2394,11 +2394,19 @@
             display: flex;
             align-items: center;
             gap: 0.2rem;
+            color: var(--text-color);
         }
 
         #ekidenRankingBody td.team-name:hover .full-name,
         #ekidenRankingBody td.team-name:hover .short-name {
             text-decoration: underline;
+            color: var(--text-color);
+        }
+
+        #ekidenRankingBody td.team-name:hover,
+        #ekidenRankingBody td.team-name:active,
+        #ekidenRankingBody td.team-name:focus {
+            color: var(--text-color);
         }
 
         .runner-icon--favorite {

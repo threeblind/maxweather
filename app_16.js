@@ -3421,8 +3421,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     updateMapRefreshButtonVisibility();
     const mapRefreshBtn = document.getElementById('map-refresh-btn');
     if (mapRefreshBtn) {
-        mapRefreshBtn.addEventListener('click', () => {
-            refreshOnForeground();
+        mapRefreshBtn.addEventListener('click', async () => {
+            await refreshOnForeground({ force: true, showProgress: true });
         });
     }
 
@@ -3941,10 +3941,17 @@ function clearBadge() {
  * アプリ復帰時の再取得をまとめて行います。
  * iPhone PWA の bfcache 復帰やバックグラウンド復帰を想定します。
  */
-async function refreshOnForeground() {
+async function refreshOnForeground({ force = false, showProgress = false } = {}) {
     const now = Date.now();
-    if (now - lastForegroundRefreshAt < 3000) return;
+    if (!force && now - lastForegroundRefreshAt < 3000) return;
     lastForegroundRefreshAt = now;
+
+    const refreshButton = document.getElementById('map-refresh-btn');
+    const originalLabel = refreshButton?.textContent;
+    if (showProgress && refreshButton) {
+        refreshButton.disabled = true;
+        refreshButton.textContent = '更新中…';
+    }
 
     try {
         await fetchEkidenData();
@@ -3953,6 +3960,14 @@ async function refreshOnForeground() {
         }
     } catch (error) {
         console.error('Foreground refresh failed:', error);
+    } finally {
+        if (showProgress && refreshButton) {
+            refreshButton.textContent = '✓ 更新完了';
+            window.setTimeout(() => {
+                refreshButton.textContent = originalLabel || '🔄 更新';
+                refreshButton.disabled = false;
+            }, 1000);
+        }
     }
 }
 
