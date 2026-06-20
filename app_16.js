@@ -14,6 +14,12 @@ let legRankHistoryData = null; // leg_rank_history.json の内容を保持
 let legBestRecordByLeg = new Map(); // 区間最高記録のキャッシュ
 let goalLatLng = null; // ゴール地点の座標を保持
 
+// --- 順位変動タイムライン用状態変数 ---
+let rankTimelineEvents = [];
+let rankTimelineFilter = 'all';
+let isRankTimelineExpanded = false;
+const SHADOW_TEAM_ID = 99; // マジックナンバー99を排除するための定数
+
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
 let EKIDEN_START_DATE = '2026-03-08'; // outline.json で上書き
@@ -1749,6 +1755,9 @@ async function refreshRealtimeData() {
         updateEkidenRankingTable(realtimeData, ekidenDataCache);
         updateRunnerMarkers(runnerLocations, ekidenDataCache);
 
+        // タイムラインを更新
+        loadRankTimeline({ force: true }).catch(err => console.error('Failed to load timeline on refresh', err));
+
     } catch (error) {
         console.error('Error during realtime data refresh:', error);
     }
@@ -1986,6 +1995,9 @@ const fetchEkidenData = async () => {
         updateIndividualSections(realtimeData, individualData, ekidenData);
         updateRunnerMarkers(runnerLocations, ekidenData); // Update map markers
         await setupResponsiveSelectors();
+
+        // タイムラインを更新 (非同期かつエラー分離)
+        loadRankTimeline().catch(err => console.error('Failed to load timeline in fetchEkidenData', err));
 
     } catch (error) {
         console.error('Error fetching ekiden data:', error);
@@ -3278,6 +3290,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     await initializeMap();
     // 2. 最も重要な速報データを取得して表示
     await fetchEkidenData();
+
+    // 3. 順位変動タイムラインの初期化とデータロード
+    initRankTimeline();
+    loadRankTimeline().catch(err => console.error('Failed to load timeline on startup', err));
     // 3. レスポンシブセレクターをセットアップ
     await setupResponsiveSelectors();
     const defaultIntramuralTeamId = 1;
@@ -3793,3 +3809,637 @@ function clearBadge() {
     document.write(`<base href="${location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1)}" />`);
 </script>
 */
+
+
+/**
+ * タイムライン用のタイムスタンプを解釈し、日本時間に変換します。
+ * @param {string} value - タイムスタンプ文字列
+ * @returns {Date} 解釈されたDateオブジェクト
+ */
+function parseRealtimeLogTimestamp(value) {
+    const normalized = /(?:Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}Z`;
+    return new Date(normalized);
+}
+
+/**
+ * jsonl テキストを行ごとに安全にパースします。
+ * @param {string} text - JSONL形式の文字列
+ * @returns {Array} パースされたオブジェクトの配列
+ */
+function parseRealtimeLogJsonl(text) {
+    if (!text) return [];
+    const lines = text.split('\n');
+    const records = [];
+    lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        try {
+            const record = JSON.parse(trimmed);
+            if (record && typeof record === 'object') {
+                records.push(record);
+            }
+        } catch (e) {
+            console.warn('JSONL parse warning: line skipped due to error', e);
+        }
+    });
+    return records;
+}
+
+/**
+ * レコードをタイムスタンプ毎にグループ化してスナップショットを構築します。
+ * @param {Array} records - レコード配列
+ * @returns {Array} スナップショット配列
+ */
+function buildRankSnapshots(records) {
+    const groups = new Map();
+    records.forEach(r => {
+        if (!r.timestamp || r.team_id === undefined || r.total_distance === undefined) return;
+        const ts = r.timestamp;
+        if (!groups.has(ts)) {
+            groups.set(ts, new Map());
+        }
+        // 同一タイムスタンプ内で同一team_idが出現した場合は後勝ち
+        groups.get(ts).set(r.team_id, r);
+    });
+
+    const snapshots = [];
+    groups.forEach((teamMap, timestamp) => {
+        snapshots.push({
+            timestamp: parseRealtimeLogTimestamp(timestamp),
+            rawTimestamp: timestamp,
+            teams: Array.from(teamMap.values())
+        });
+    });
+
+    // タイムスタンプ昇順でソート
+    snapshots.sort((a, b) => a.timestamp - b.timestamp);
+    return snapshots;
+}
+
+/**
+ * 各スナップショットの順位を計算します。
+ * 不完全なスナップショットは計算対象外（daily_record用を除き順位計算からスキップ）にします。
+ * @param {Array} snapshots - スナップショットの配列
+ * @param {number} expectedTeamCount - 期待される通常チーム数
+ * @returns {Array} 順位付きスナップショットの配列
+ */
+function calculateSnapshotRanks(snapshots, expectedTeamCount) {
+    let lastRanksMap = new Map(); // teamId -> rank
+    const rankedSnapshots = [];
+    let isFullyInitialized = false;
+
+    snapshots.forEach(snapshot => {
+        const teams = snapshot.teams;
+        // シャドーチーム（ID 99）などの対象外チームを除外した、通常チームだけを抽出
+        const regularTeams = teams.filter(t => t.team_id !== SHADOW_TEAM_ID && Number.isFinite(t.total_distance) && Number.isFinite(t.distance));
+        
+        // 最初の完全なスナップショットが現れるまで初期化しない
+        if (!isFullyInitialized) {
+            if (regularTeams.length >= expectedTeamCount) {
+                isFullyInitialized = true;
+            } else {
+                // 初期化前でチーム数が足りない場合は、順位計算用としてはスキップ。ただしdaily_record用は保持したいので ranked: false
+                rankedSnapshots.push({
+                    ...snapshot,
+                    ranked: false,
+                    regularTeams: regularTeams
+                });
+                return;
+            }
+        }
+
+        // 一度完全になった後に一部チームが欠けたスナップショットは、順位変動計算から除外
+        if (regularTeams.length < expectedTeamCount) {
+            rankedSnapshots.push({
+                ...snapshot,
+                ranked: false,
+                regularTeams: regularTeams
+            });
+            return;
+        }
+
+        // 順位ソート: 1.距離降順 2.前回順位昇順 3.teamId昇順
+        regularTeams.sort((a, b) => {
+            if (b.total_distance !== a.total_distance) {
+                return b.total_distance - a.total_distance;
+            }
+            const prevRankA = lastRanksMap.get(a.team_id) ?? Number.POSITIVE_INFINITY;
+            const prevRankB = lastRanksMap.get(b.team_id) ?? Number.POSITIVE_INFINITY;
+            if (prevRankA !== prevRankB) {
+                return prevRankA - prevRankB;
+            }
+            return a.team_id - b.team_id;
+        });
+
+        // 順位付け (同距離でも一意な順位にする)
+        const teamRanks = regularTeams.map((t, idx) => {
+            const rank = idx + 1;
+            lastRanksMap.set(t.team_id, rank);
+            return {
+                ...t,
+                overallRank: rank
+            };
+        });
+
+        rankedSnapshots.push({
+            ...snapshot,
+            ranked: true,
+            teams: teamRanks,
+            leaderDistance: teamRanks[0]?.total_distance || 0
+        });
+    });
+
+    return rankedSnapshots;
+}
+
+/**
+ * 順位変動タイムラインのイベントを生成します。
+ * @param {Array} rankedSnapshots - 順位付きスナップショット配列
+ * @returns {Array} イベントオブジェクトの配列
+ */
+function generateRankTimelineEvents(rankedSnapshots) {
+    const events = [];
+    let lastValidSnapshot = null;
+    let dailyMaxRecord = 0.0;
+    let hasDailyRecordStarted = false;
+
+    // 同一チーム・同一種類・同一新順位の重複発生防止用マップ
+    // キー: `${teamId}-${type}-${newRank}` -> 直近のタイムスタンプ
+    const lastEventMap = new Map();
+
+    rankedSnapshots.forEach(snapshot => {
+        // --- 1. 本日最高記録更新の検出 (スナップショットの完全性によらず検出して良い) ---
+        const activeRunners = snapshot.regularTeams || snapshot.teams;
+        activeRunners.forEach(r => {
+            const dist = Number(r.distance);
+            if (!Number.isFinite(dist)) return;
+
+            if (!hasDailyRecordStarted) {
+                // 初回は基準値とし、イベントは生成しない
+                if (dist > dailyMaxRecord) {
+                    dailyMaxRecord = dist;
+                }
+            } else {
+                // 基準値を超えて 0.1km 以上更新された場合
+                if (dist >= dailyMaxRecord + 0.1) {
+                    dailyMaxRecord = dist;
+
+                    const legNumber = parseInt(r.runner_name, 10);
+                    const historicalRecordObj = Number.isFinite(legNumber) ? legBestRecordByLeg.get(legNumber) : null;
+                    console.log('DEBUG: runner_name:', r.runner_name, 'legNumber:', legNumber, 'historicalRecordObj:', historicalRecordObj, 'dist:', dist, 'legBestRecordByLeg keys:', Array.from(legBestRecordByLeg.keys()));
+                    const isHistoricalLegRecord = historicalRecordObj && dist > Number(historicalRecordObj.record);
+
+                    events.push({
+                        id: `${snapshot.rawTimestamp}-record-${r.team_id}-${dist.toFixed(1)}`,
+                        timestamp: snapshot.timestamp,
+                        type: 'daily_record',
+                        category: 'record',
+                        teamId: r.team_id,
+                        runnerName: r.runner_name,
+                        distance: dist,
+                        isHistoricalLegRecord: !!isHistoricalLegRecord,
+                        legNumber: legNumber
+                    });
+                } else if (dist > dailyMaxRecord) {
+                    // 0.1km未満の微増でも基準値としては更新する
+                    dailyMaxRecord = dist;
+                }
+            }
+        });
+        if (activeRunners.length > 0) {
+            hasDailyRecordStarted = true;
+        }
+
+        // --- 2. 順位関連イベントの検出 (完全なスナップショット間でのみ比較) ---
+        if (!snapshot.ranked) return;
+
+        if (lastValidSnapshot) {
+            const prevTeamsMap = new Map(lastValidSnapshot.teams.map(t => [t.team_id, t]));
+            const leaderChanged = snapshot.teams[0]?.team_id !== lastValidSnapshot.teams[0]?.team_id;
+
+            snapshot.teams.forEach(team => {
+                const prevTeam = prevTeamsMap.get(team.team_id);
+                if (!prevTeam) return;
+
+                const oldRank = prevTeam.overallRank;
+                const newRank = team.overallRank;
+                const rankDelta = oldRank - newRank; // 順位が上がる (数値が小さくなる) と正
+
+                let eventType = null;
+                if (newRank === 1 && leaderChanged) {
+                    eventType = 'leader_change';
+                } else if (rankDelta > 0) {
+                    eventType = 'rank_up';
+                } else if (rankDelta < 0) {
+                    eventType = 'rank_down';
+                }
+
+                if (eventType) {
+                    const eventKey = `${team.team_id}-${eventType}-${newRank}`;
+                    // 重複イベント (連続2スナップショットで発生した同じ新順位イベント) は除外
+                    const lastEventTs = lastEventMap.get(eventKey);
+                    const isDuplicate = lastEventTs && (snapshot.timestamp - lastEventTs < 120000); // 2分以内の重複
+
+                    if (!isDuplicate) {
+                        lastEventMap.set(eventKey, snapshot.timestamp);
+
+                        const leaderGap = snapshot.leaderDistance - team.total_distance;
+                        events.push({
+                            id: `${snapshot.rawTimestamp}-${eventType}-${team.team_id}`,
+                            timestamp: snapshot.timestamp,
+                            type: eventType,
+                            category: 'rank',
+                            teamId: team.team_id,
+                            runnerName: team.runner_name,
+                            oldRank: oldRank,
+                            newRank: newRank,
+                            rankDelta: rankDelta,
+                            distance: team.distance,
+                            totalDistance: team.total_distance,
+                            leaderGap: leaderGap
+                        });
+                    }
+                }
+            });
+        }
+
+        lastValidSnapshot = snapshot;
+    });
+
+    // 仕様に従った並び順ソート
+    // 1. timestamp 降順
+    // 2. leader_change
+    // 3. daily_record
+    // 4. rank_up (上昇幅の大きい順)
+    // 5. rank_down (下降幅の大きい順)
+    // 6. teamId 昇順
+    events.sort((a, b) => {
+        if (b.timestamp - a.timestamp !== 0) {
+            return b.timestamp - a.timestamp;
+        }
+        
+        const getPriority = (type) => {
+            if (type === 'leader_change') return 1;
+            if (type === 'daily_record') return 2;
+            if (type === 'rank_up') return 3;
+            if (type === 'rank_down') return 4;
+            return 5;
+        };
+
+        const pA = getPriority(a.type);
+        const pB = getPriority(b.type);
+        if (pA !== pB) {
+            return pA - pB;
+        }
+
+        if (a.type === 'rank_up' && b.type === 'rank_up') {
+            return b.rankDelta - a.rankDelta; // 上昇幅の大きい順
+        }
+        if (a.type === 'rank_down' && b.type === 'rank_down') {
+            return a.rankDelta - b.rankDelta; // 下降幅の大きい順 (より下降した順)
+        }
+
+        return a.teamId - b.teamId;
+    });
+
+    // 最大保持件数は当日200件
+    return events.slice(0, 200);
+}
+
+/**
+ * 順位変動タイムラインのUIをDOMに描画します。
+ */
+function renderRankTimeline() {
+    const listEl = document.getElementById('rank-timeline-list');
+    const toggleBtn = document.getElementById('rank-timeline-toggle');
+    const statusEl = document.getElementById('rank-timeline-status');
+    const updateTimeEl = document.getElementById('rank-timeline-update-time');
+
+    if (!listEl || !toggleBtn || !statusEl || !updateTimeEl) return;
+
+    // 1. フィルターに合わせたイベントの抽出
+    const filteredEvents = rankTimelineEvents.filter(event => {
+        if (rankTimelineFilter === 'all') return true;
+        if (rankTimelineFilter === 'rank') {
+            return event.type === 'leader_change' || event.type === 'rank_up' || event.type === 'rank_down';
+        }
+        if (rankTimelineFilter === 'record') {
+            return event.type === 'daily_record';
+        }
+        return false;
+    });
+
+    // 2. 件数ゼロ時の処理
+    if (filteredEvents.length === 0) {
+        listEl.innerHTML = '';
+        toggleBtn.hidden = true;
+        statusEl.textContent = '該当する順位変動はまだありません。';
+        statusEl.style.display = 'block';
+        return;
+    }
+
+    statusEl.style.display = 'none';
+
+    // 3. 表示件数の決定 (PC: 3件, スマホ: 1件, 展開時: 全件)
+    const isMobile = window.innerWidth <= 768;
+    const initialLimit = isMobile ? 1 : 3;
+    const displayLimit = isRankTimelineExpanded ? filteredEvents.length : initialLimit;
+    const eventsToShow = filteredEvents.slice(0, displayLimit);
+
+    // 4. リストの構築 (XSS対策のため textContent と createElement を利用)
+    listEl.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+
+    eventsToShow.forEach(event => {
+        // マスタ情報から大学名などを引く
+        const teamObj = ekidenDataCache && Array.isArray(ekidenDataCache.teams)
+            ? ekidenDataCache.teams.find(t => t.id === event.teamId)
+            : null;
+        const teamName = teamObj ? teamObj.name : 'N/A';
+        const teamShortName = teamObj ? teamObj.short_name || teamName : teamName;
+
+        const itemTypeClass = event.isHistoricalLegRecord 
+            ? 'historical-record' 
+            : (event.type === 'leader_change' ? 'leader' : event.type === 'rank_up' ? 'up' : event.type === 'rank_down' ? 'down' : 'record');
+        const li = document.createElement('li');
+        li.className = `rank-timeline-item rank-timeline-item--${itemTypeClass}`;
+        li.dataset.teamId = event.teamId;
+
+        // 時間要素
+        const timeEl = document.createElement('time');
+        timeEl.className = 'rank-timeline-time';
+        timeEl.dateTime = event.timestamp.toISOString();
+        timeEl.textContent = event.timestamp.toLocaleTimeString('ja-JP', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            timeZone: 'Asia/Tokyo' 
+        });
+        li.appendChild(timeEl);
+
+        // アイコン要素
+        const iconEl = document.createElement('span');
+        iconEl.className = 'rank-timeline-icon';
+        iconEl.setAttribute('aria-hidden', 'true');
+        let iconText = '';
+        if (event.isHistoricalLegRecord) iconText = '✨';
+        else if (event.type === 'leader_change') iconText = '👑';
+        else if (event.type === 'rank_up') iconText = '▲';
+        else if (event.type === 'rank_down') iconText = '▼';
+        else if (event.type === 'daily_record') iconText = '🔥';
+        iconEl.textContent = iconText;
+        li.appendChild(iconEl);
+
+        // コンテンツ要素
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'rank-timeline-content';
+
+        // タイトルボタン/テキスト
+        const teamBtn = document.createElement('button');
+        teamBtn.type = 'button';
+        teamBtn.className = 'rank-timeline-team';
+        
+        let titleText = '';
+        let detailText = '';
+
+        const formattedRunner = formatRunnerName(event.runnerName);
+
+        if (event.type === 'leader_change') {
+            titleText = `${teamName}が首位に浮上`;
+            detailText = `${event.oldRank}位 → 1位、総合${event.totalDistance.toFixed(1)}km`;
+        } else if (event.type === 'rank_up') {
+            titleText = `${teamName} ${event.oldRank}位 → ${event.newRank}位`;
+            const suffix = event.leaderGap === 0 ? '首位と同距離' : `首位との差は${event.leaderGap.toFixed(1)}km`;
+            detailText = `${event.rankDelta}ランクアップ。${suffix}`;
+        } else if (event.type === 'rank_down') {
+            titleText = `${teamName} ${event.oldRank}位 → ${event.newRank}位`;
+            detailText = `${Math.abs(event.rankDelta)}ランクダウン、総合${event.totalDistance.toFixed(1)}km`;
+        } else if (event.type === 'daily_record') {
+            if (event.isHistoricalLegRecord) {
+                titleText = `✨${formattedRunner}が歴代区間最高を更新！✨`;
+                detailText = `本日走行距離: ${event.distance.toFixed(1)}km（${teamName}）※第${event.legNumber}区の歴代最高記録を更新する大快挙！`;
+            } else {
+                titleText = `${formattedRunner}が本日最高を更新`;
+                detailText = `本日走行距離: ${event.distance.toFixed(1)}km（${teamName}）※本日の走行距離における全体最高記録`;
+            }
+        }
+
+        teamBtn.textContent = titleText;
+        
+        // ボタンクリック時に、対象チームのマーカーへ移動するか、詳細モーダルを開く
+        teamBtn.addEventListener('click', () => {
+            if (typeof trackedTeamName !== 'undefined') {
+                // 1. マップが利用可能なら、該当チームを追跡モードにし、マーカーポップアップを開く
+                const selectEl = document.getElementById('team-tracker-select');
+                if (selectEl) {
+                    const teamOption = Array.from(selectEl.options).find(opt => opt.value === teamName);
+                    if (teamOption) {
+                        selectEl.value = teamName;
+                        trackedTeamName = teamName;
+                        shouldAutoFollowMap = true;
+                        
+                        // マップ表示更新＆ポップアップ表示
+                        fetchEkidenData().then(() => {
+                            if (typeof runnerMarkersLayer !== 'undefined' && runnerMarkersLayer) {
+                                runnerMarkersLayer.eachLayer(marker => {
+                                    const popup = marker.getPopup();
+                                    if (popup && popup.getContent().includes(teamName)) {
+                                        marker.openPopup();
+                                        map.setView(marker.getLatLng(), 14);
+                                    }
+                                });
+                            }
+                        });
+                        
+                        // マップセクションへスムーズスクロール
+                        const mapSec = document.getElementById('section-course-map');
+                        if (mapSec) {
+                            mapSec.scrollIntoView({ behavior: 'smooth' });
+                        }
+                        return;
+                    }
+                }
+            }
+            
+            // 2. マップが利用できない場合はチーム詳細モーダルを開く
+            if (typeof showTeamDetailsModal === 'function') {
+                const team = lastRealtimeData && Array.isArray(lastRealtimeData.teams)
+                    ? lastRealtimeData.teams.find(t => t.id === event.teamId)
+                    : null;
+                const topDistance = lastRealtimeData && Array.isArray(lastRealtimeData.teams) && lastRealtimeData.teams[0]
+                    ? lastRealtimeData.teams[0].totalDistance
+                    : 0;
+                if (team) {
+                    showTeamDetailsModal(team, topDistance);
+                }
+            }
+        });
+
+        contentDiv.appendChild(teamBtn);
+
+        const detailP = document.createElement('p');
+        detailP.className = 'rank-timeline-detail';
+        detailP.textContent = detailText;
+        contentDiv.appendChild(detailP);
+
+        li.appendChild(contentDiv);
+        fragment.appendChild(li);
+    });
+
+    listEl.appendChild(fragment);
+
+    // 5. 展開トグルの更新
+    if (filteredEvents.length <= initialLimit) {
+        toggleBtn.hidden = true;
+    } else {
+        toggleBtn.hidden = false;
+        toggleBtn.setAttribute('aria-expanded', isRankTimelineExpanded ? 'true' : 'false');
+        toggleBtn.textContent = isRankTimelineExpanded ? '折りたたむ' : `すべて見る（${filteredEvents.length}件）`;
+    }
+}
+
+/**
+ * データを読み込んで順位変動タイムラインをロードします。
+ * @param {object} options - オプション
+ * @param {boolean} options.force - 強制更新フラグ
+ */
+async function loadRankTimeline({ force = false } = {}) {
+    const statusEl = document.getElementById('rank-timeline-status');
+    const updateTimeEl = document.getElementById('rank-timeline-update-time');
+    const toggleBtn = document.getElementById('rank-timeline-toggle');
+
+    if (!statusEl || !updateTimeEl || !toggleBtn) return;
+
+    // データがすでにあり、強制更新でない場合は再読み込みしない
+    if (rankTimelineEvents.length > 0 && !force) {
+        renderRankTimeline();
+        return;
+    }
+
+    try {
+        const response = await fetch(`data/realtime_log.jsonl?_=${Date.now()}`, { cache: 'no-store' });
+        
+        // 404は「開始前またはログ未生成」として扱う
+        if (response.status === 404) {
+            statusEl.textContent = '本日の順位変動はまだありません。';
+            statusEl.style.display = 'block';
+            document.getElementById('rank-timeline-list').innerHTML = '';
+            toggleBtn.hidden = true;
+            updateTimeEl.textContent = '';
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+
+        const text = await response.text();
+        const records = parseRealtimeLogJsonl(text);
+
+        if (records.length === 0) {
+            statusEl.textContent = '本日の順位変動はまだありません。';
+            statusEl.style.display = 'block';
+            document.getElementById('rank-timeline-list').innerHTML = '';
+            toggleBtn.hidden = true;
+            updateTimeEl.textContent = '';
+            return;
+        }
+
+        // 大会日をまたいだデータが混在した場合は、最新の raceDay (最新ログ日付) に対応する当日ログだけに絞る
+        // タイムスタンプの日付の最大値を取得し、その日付のレコードのみを処理対象にする
+        const dates = records.map(r => r.timestamp ? r.timestamp.substring(0, 10) : '').filter(d => d !== '');
+        if (dates.length > 0) {
+            const latestDateStr = dates.reduce((max, d) => d > max ? d : max, dates[0]);
+            const filteredRecords = records.filter(r => r.timestamp && r.timestamp.startsWith(latestDateStr));
+            
+            const snapshots = buildRankSnapshots(filteredRecords);
+            
+            // 期待する通常チーム数 (シャドーチームを除外した数) を取得
+            const expectedTeamCount = ekidenDataCache && Array.isArray(ekidenDataCache.teams)
+                ? ekidenDataCache.teams.filter(t => !t.is_shadow_confederation).length
+                : 0;
+
+            const rankedSnapshots = calculateSnapshotRanks(snapshots, expectedTeamCount);
+            rankTimelineEvents = generateRankTimelineEvents(rankedSnapshots);
+        } else {
+            rankTimelineEvents = [];
+        }
+
+        // スナップショットが1件のみなどの場合
+        if (rankTimelineEvents.length === 0) {
+            const snapshotsCount = buildRankSnapshots(records).length;
+            if (snapshotsCount === 1) {
+                statusEl.textContent = '比較できる次回更新を待っています。';
+            } else {
+                statusEl.textContent = '本日の順位変動はまだありません。';
+            }
+            statusEl.style.display = 'block';
+            document.getElementById('rank-timeline-list').innerHTML = '';
+            toggleBtn.hidden = true;
+            updateTimeEl.textContent = '';
+            return;
+        }
+
+        // 描画
+        renderRankTimeline();
+
+        // 更新時刻の表示 (日本時間形式)
+        const now = new Date();
+        updateTimeEl.textContent = `${now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}更新`;
+
+    } catch (error) {
+        console.error('Error loading rank timeline:', error);
+        
+        // 過去の表示がある場合は維持
+        if (rankTimelineEvents.length > 0) {
+            if (!updateTimeEl.textContent.includes('更新に失敗しました')) {
+                updateTimeEl.textContent += ' (更新に失敗しました)';
+            }
+        } else {
+            statusEl.innerHTML = `タイムラインを取得できませんでした。 <button type="button" onclick="loadRankTimeline({ force: true })" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">再読み込み</button>`;
+            statusEl.style.display = 'block';
+            document.getElementById('rank-timeline-list').innerHTML = '';
+            toggleBtn.hidden = true;
+        }
+    }
+}
+
+/**
+ * 順位変動タイムラインの初期化を行います。
+ */
+function initRankTimeline() {
+    // 展開ボタンのクリックハンドラ
+    const toggleBtn = document.getElementById('rank-timeline-toggle');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            isRankTimelineExpanded = !isRankTimelineExpanded;
+            renderRankTimeline();
+        });
+    }
+
+    // フィルターボタンのクリックハンドラ
+    const filterButtons = document.querySelectorAll('.rank-timeline-filter');
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            filterButtons.forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-pressed', 'false');
+            });
+            const filter = e.target.dataset.filter;
+            rankTimelineFilter = filter;
+            e.target.classList.add('active');
+            e.target.setAttribute('aria-pressed', 'true');
+            renderRankTimeline();
+        });
+    });
+
+    // ウィンドウリサイズ時の対応 (閉じている時のみ件数調整)
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (!isRankTimelineExpanded) {
+                renderRankTimeline();
+            }
+        }, 150);
+    });
+}
