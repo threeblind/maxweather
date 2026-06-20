@@ -19,9 +19,25 @@ LOGS_DIR = Path('logs')
 HISTORY_DATA_DIR = Path('history_data')
 SNAPSHOT_DIR = DATA_DIR / 'snapshots'  # スナップショットの保存ディレクトリ
 
+def determine_leg_from_total_distance(total_distance, leg_boundaries):
+    """総合距離から 1-based の区間番号を返す。境界値は次区間扱いにする。"""
+    try:
+        total_dist = float(total_distance)
+    except (ValueError, TypeError):
+        return 1
+
+    if total_dist < 0:
+        return 1
+
+    for i, boundary in enumerate(leg_boundaries):
+        if total_dist < boundary:
+            return i + 1
+
+    return len(leg_boundaries) + 1
 # --- ファイルパス定義 ---
-EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
-SHADOW_TEAM_FILE = CONFIG_DIR / 'shadow_team.json'
+
+
+EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden-data.json'
 AMEDAS_STATIONS_FILE = CONFIG_DIR / 'amedas_stations.json'
 OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 COURSE_PATH_FILE = CONFIG_DIR / 'course_path.json'
@@ -525,7 +541,7 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
         report_data["teams"].append({
             "id": r["id"], "name": r["name"],
             "short_name": team_info.get("short_name", r["name"]),
-            "currentLeg": r["currentLegNumber"], "runner": runner_display,
+            "currentLeg": r["newCurrentLeg"], "runner": runner_display,
             "todayDistance": r["todayDistance"], "todayRank": r["todayRank"],
             "totalDistance": r["totalDistance"], "overallRank": r["overallRank"],
             "previousRank": r["previousRank"], "nextRunner": next_runner_str,
@@ -620,6 +636,7 @@ def calculate_and_save_runner_locations(teams_data):
             "team_short_name": short_name,
             "runner_name": team.get('runner'), "total_distance_km": team.get('totalDistance'),
             "latitude": team_lat, "longitude": team_lon,
+            "current_leg": team.get('newCurrentLeg', team.get('currentLegNumber', 1)),
             "is_shadow_confederation": team.get("is_shadow_confederation", False)
         })
         if not team.get("is_shadow_confederation", False):
@@ -730,6 +747,7 @@ def save_snapshot(results, race_day, breaking_news_comment, breaking_news_timest
                 "distance": target_distance_km,
                 "latitude": team_lat,
                 "longitude": team_lon,
+                "current_leg": current_leg,
                 "is_shadow_confederation": team.get("is_shadow_confederation", False)
             })
     except (FileNotFoundError, json.JSONDecodeError) as e:
@@ -769,7 +787,7 @@ def save_snapshot(results, race_day, breaking_news_comment, breaking_news_timest
         snapshot_data["teams"].append({
             "id": r["id"], "name": r["name"],
             "short_name": team_info.get("short_name", r["name"]),
-            "currentLeg": r["currentLegNumber"], "runner": runner_display,
+            "currentLeg": r["newCurrentLeg"], "runner": runner_display,
             "todayDistance": r["todayDistance"], "todayRank": r["todayRank"],
             "totalDistance": r["totalDistance"], "overallRank": r["overallRank"],
             "previousRank": r["previousRank"], "nextRunner": next_runner_str,
@@ -1190,19 +1208,9 @@ def main():
                 print(f"  > {shadow_leg_num}区は走行開始前か完了済みのため、本日の距離加算はスキップします。")
 
         new_total_distance = round(shadow_state['totalDistance'] + today_distance, 1)
-        new_current_leg = shadow_state['currentLeg']
-
-        # タスキ渡し（次の区間への移行）判定
-        if new_current_leg <= len(ekiden_data['leg_boundaries']):
-            # 正規チームの誰かが次の区間に到達したら、シャドーも次の区間に進む
-            if any(team.get('newCurrentLeg') > new_current_leg for team in regular_team_results):
-                new_current_leg += 1
-                # ワープ処理: 次の区間に入った正規チームのトップの距離に合わせる
-                teams_in_next_leg = [t for t in regular_team_results if t.get('newCurrentLeg') == new_current_leg]
-                if teams_in_next_leg:
-                    leader_in_next_leg = max(teams_in_next_leg, key=lambda x: x['totalDistance'])
-                    new_total_distance = leader_in_next_leg['totalDistance']
-                    print(f"  区間記録連合が {new_current_leg}区へタスキ渡し。トップの {leader_in_next_leg['name']} に合わせてワープします。")
+        new_current_leg = determine_leg_from_total_distance(new_total_distance, ekiden_data['leg_boundaries'])
+        if new_current_leg != shadow_state['currentLeg']:
+            print(f"  区間記録連合の区間を {shadow_state['currentLeg']}区 -> {new_current_leg}区 に更新します。")
 
         shadow_team_results.append({
             "id": shadow_state["id"], "name": shadow_team_data["name"], "runner": shadow_runner_name,
