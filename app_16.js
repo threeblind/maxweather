@@ -622,8 +622,8 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
 
     const leadLeg = lastRealtimeData && Array.isArray(lastRealtimeData.teams)
         ? Math.min(...lastRealtimeData.teams
-            .filter(team => team && team.is_shadow_confederation !== true && Number.isFinite(team.currentLeg))
-            .map(team => team.currentLeg))
+            .filter(team => team && team.is_shadow_confederation !== true && Number.isFinite(team.todayLeg ?? team.currentLeg))
+            .map(team => team.todayLeg ?? team.currentLeg))
         : null;
 
     if (!runnerLocations || runnerLocations.length === 0) {
@@ -659,7 +659,9 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
             ? (lastRealtimeData?.teams || []).some(team => {
                 if (!team || team.is_shadow_confederation) return false;
                 if (team.name !== shadowLegRecordTeamName) return false;
-                return team.currentLeg === shadowLegForPopup;
+                // todayLeg: 本日実際に走っている区間番号で比較（currentLeg は翌日以降）
+                const activeLeg = team.todayLeg ?? team.currentLeg;
+                return activeLeg === shadowLegForPopup;
             })
             : false;
 
@@ -780,8 +782,9 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         });
 
         const trackingGroup = [];
-        const shadowLeg = realtimeShadowTeam && Number.isFinite(realtimeShadowTeam.currentLeg)
-            ? realtimeShadowTeam.currentLeg
+        // 区間記録連合の現在区間: currentLeg（明日以降）ではなく総距離から計算した区間を使う
+        const shadowLeg = realtimeShadowTeam && Array.isArray(ekidenData.leg_boundaries)
+            ? ekidenData.leg_boundaries.findIndex(b => (realtimeShadowTeam.totalDistance ?? 0) < b) + 1
             : null;
         const canShowShadow = shadowRunner && shadowLeg != null && leadLeg != null && shadowLeg === leadLeg;
 

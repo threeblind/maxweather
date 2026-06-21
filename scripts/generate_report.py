@@ -1230,10 +1230,14 @@ def main():
     print("\nStep 3: 順位計算とレポート生成...")
     all_results = regular_team_results + shadow_team_results
 
-    # 日間順位の計算 (正規チームのみ)
+    # 日間順位の計算 (正規チームのみ、同率処理あり)
     ranked_teams_today = sorted([r for r in all_results if not r.get('is_shadow_confederation')], key=lambda x: x['todayDistance'], reverse=True)
+    last_today_rank, last_today_dist = 0, None
     for i, team in enumerate(ranked_teams_today):
-        team['todayRank'] = i + 1
+        if team['todayDistance'] != last_today_dist:
+            last_today_rank = i + 1
+            last_today_dist = team['todayDistance']
+        team['todayRank'] = last_today_rank
     for team in all_results:
         if team.get('is_shadow_confederation'):
             team['todayRank'] = None
