@@ -949,10 +949,12 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
         let status = 'past';
         const realtimeTeam = realtimeData.teams.find(t => t.id === runnerData.teamId);
         if (realtimeTeam) {
-            if (realtimeTeam.currentLeg === legNumber) {
+            // todayLeg: 本日実際に走っている区間番号（currentLeg は翌日以降の区間番号）
+            const todayLeg = realtimeTeam.todayLeg ?? realtimeTeam.currentLeg;
+            if (todayLeg === legNumber) {
                 status = 'running';
             } else if (
-                realtimeTeam.currentLeg > legNumber &&
+                todayLeg > legNumber &&
                 summary.status === 'final' &&
                 summary.finalDay === currentRaceDay
             ) {
@@ -2586,7 +2588,8 @@ async function displayIntramuralRanking(teamId) {
         updateTimeEl.textContent = `総距離は ${intramuralDataCache.updateTime} 時点のものです`;
 
         // 5. リアルタイムの選手ステータスを決定するための情報を準備
-        const currentLeg = realtimeTeamData.currentLeg;
+        // todayLeg: 本日実際に走っている区間番号（currentLeg は翌日以降の区間番号）
+        const currentLeg = realtimeTeamData.todayLeg ?? realtimeTeamData.currentLeg;
         const activeRunners = ekidenConfigTeamData.runners.map(r => r.name);
         const substitutedOutRunners = realtimeTeamData.substituted_out || [];
 
@@ -3232,7 +3235,8 @@ function displayTeamDetails(teamId) {
         return;
     }
 
-    const currentLeg = realtimeTeamData ? realtimeTeamData.currentLeg : 1;
+    // todayLeg: 本日実際に走っている区間番号（currentLeg は翌日以降の区間番号）
+    const currentLeg = realtimeTeamData ? (realtimeTeamData.todayLeg ?? realtimeTeamData.currentLeg) : 1;
 
     // 区間エントリー選手のHTMLを生成
     const kukanEntriesHtml = teamConfig.runners.map((runnerObj, index) => {

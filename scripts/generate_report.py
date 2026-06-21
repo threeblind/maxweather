@@ -542,7 +542,9 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
         report_data["teams"].append({
             "id": r["id"], "name": r["name"],
             "short_name": team_info.get("short_name", r["name"]),
-            "currentLeg": r["newCurrentLeg"], "runner": runner_display,
+            "currentLeg": r["newCurrentLeg"],
+            "todayLeg": r["currentLegNumber"],  # 本日実際に走っている区間番号
+            "runner": runner_display,
             "todayDistance": r["todayDistance"], "todayRank": r["todayRank"],
             "totalDistance": r["totalDistance"], "overallRank": r["overallRank"],
             "previousRank": r["previousRank"], "nextRunner": next_runner_str,
@@ -788,7 +790,9 @@ def save_snapshot(results, race_day, breaking_news_comment, breaking_news_timest
         snapshot_data["teams"].append({
             "id": r["id"], "name": r["name"],
             "short_name": team_info.get("short_name", r["name"]),
-            "currentLeg": r["newCurrentLeg"], "runner": runner_display,
+            "currentLeg": r["newCurrentLeg"],
+            "todayLeg": r["currentLegNumber"],  # 本日実際に走っている区間番号
+            "runner": runner_display,
             "todayDistance": r["todayDistance"], "todayRank": r["todayRank"],
             "totalDistance": r["totalDistance"], "overallRank": r["overallRank"],
             "previousRank": r["previousRank"], "nextRunner": next_runner_str,
