@@ -38,6 +38,7 @@ def determine_leg_from_total_distance(total_distance, leg_boundaries):
 
 
 EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
+SHADOW_TEAM_FILE = CONFIG_DIR / 'shadow_team.json'
 AMEDAS_STATIONS_FILE = CONFIG_DIR / 'amedas_stations.json'
 OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 COURSE_PATH_FILE = CONFIG_DIR / 'course_path.json'
