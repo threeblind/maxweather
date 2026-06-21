@@ -1088,10 +1088,31 @@ const updateIndividualSections = (realtimeData, individualData, ekidenData) => {
     // ekiden_data.json から最大区間数を取得
     const maxLegs = Array.isArray(ekidenData.leg_boundaries) ? ekidenData.leg_boundaries.length : 0;
 
-    // 1. Identify and sort active legs
-    const activeLegs = [...new Set(realtimeData.teams.map(t => t.currentLeg).filter(leg => typeof leg === 'number'))]
+    // 1. Identify and sort active legs (実際に走行データが存在する区間のみを対象にする)
+    const legSet = new Set();
+    for (const runnerName in individualData) {
+        const runnerData = individualData[runnerName];
+        if (runnerData.teamId === 99) continue;
+        
+        const teamDetails = teamsInfoMap.get(runnerData.teamId);
+        if (teamDetails && teamDetails.is_shadow_confederation) continue;
+
+        const legSummaries = runnerData.legSummaries || {};
+        for (const legKey in legSummaries) {
+            const summary = legSummaries[legKey];
+            if (summary && summary.days > 0) {
+                legSet.add(parseInt(legKey, 10));
+            }
+        }
+    }
+
+    const activeLegs = Array.from(legSet)
         .filter(leg => maxLegs === 0 || leg <= maxLegs) // ゴール済み(11区)など、最大区間数より大きい区間を除外
         .sort((a, b) => b - a);
+
+    if (activeLegs.length === 0) {
+        activeLegs.push(1);
+    }
 
     // 2. Generate and display tabs
     tabsContainer.innerHTML = ''; // Clear old tabs
