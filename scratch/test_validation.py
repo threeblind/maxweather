@@ -214,6 +214,12 @@ def test_validation_noun_exclusion():
     article_good_no_bold = "名古屋大学の美濃加茂君が快走。"
     assert gen.validate_generated_article(article_good_no_bold, metrics), "Error: 太字なしの正常表現がバリデーション失敗しました"
 
+    # 2.5 接頭辞（「位」「首位」）付きの正常大学名の通過確認
+    article_prefix_uni1 = "1位名古屋大学が激走。"
+    assert gen.validate_generated_article(article_prefix_uni1, metrics), "Error: 『1位名古屋大学』がバリデーション失敗しました"
+    article_prefix_uni2 = "首位名古屋大学がリード。"
+    assert gen.validate_generated_article(article_prefix_uni2, metrics), "Error: 『首位名古屋大学』がバリデーション失敗しました"
+
     # 3. 架架空大学名や架空選手名（太字なし・助詞境界あり）
     article_bad_uni = "架空大学が本日急浮上しました。"
     assert not gen.validate_generated_article(article_bad_uni, metrics), "Error: 存在しない大学名（架空大学）がパスしてしまいました"
