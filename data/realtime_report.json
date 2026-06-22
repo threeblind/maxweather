@@ -1,8 +1,8 @@
 {
-  "updateTime": "2026/06/22 12:35",
+  "updateTime": "2026/06/22 12:45",
   "raceDay": 5,
-  "breakingNewsComment": "",
-  "breakingNewsTimestamp": "",
+  "breakingNewsComment": "【定時速報】本日のトップは仲筋選手！31.1kmと素晴らしい走りです！",
+  "breakingNewsTimestamp": "2026-06-22T12:45:19.530937",
   "breakingNewsFullText": "",
   "teams": [
     {
@@ -183,7 +183,7 @@
       "todayLeg": 2,
       "runner": "2和田山",
       "todayDistance": 21.6,
-      "todayRank": 14,
+      "todayRank": 15,
       "totalDistance": 137.1,
       "overallRank": 11,
       "previousRank": 9,
@@ -210,6 +210,23 @@
       "is_shadow_confederation": false
     },
     {
+      "id": 9,
+      "name": "鳥取大学",
+      "short_name": "鳥取",
+      "currentLeg": 2,
+      "todayLeg": 2,
+      "runner": "2鳥取",
+      "todayDistance": 21.7,
+      "todayRank": 13,
+      "totalDistance": 135.9,
+      "overallRank": 13,
+      "previousRank": 11,
+      "nextRunner": "3広瀬",
+      "error": null,
+      "finishDay": null,
+      "is_shadow_confederation": false
+    },
+    {
       "id": 17,
       "name": "鹿児島大学",
       "short_name": "鹿大",
@@ -222,23 +239,6 @@
       "overallRank": 13,
       "previousRank": 15,
       "nextRunner": "3加久藤",
-      "error": null,
-      "finishDay": null,
-      "is_shadow_confederation": false
-    },
-    {
-      "id": 9,
-      "name": "鳥取大学",
-      "short_name": "鳥取",
-      "currentLeg": 2,
-      "todayLeg": 2,
-      "runner": "2鳥取",
-      "todayDistance": 21.5,
-      "todayRank": 15,
-      "totalDistance": 135.7,
-      "overallRank": 14,
-      "previousRank": 11,
-      "nextRunner": "3広瀬",
       "error": null,
       "finishDay": null,
       "is_shadow_confederation": false
