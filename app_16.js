@@ -38,6 +38,7 @@ const FAVORITE_MAX = 3;
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
 let EKIDEN_START_DATE = '2026-03-08'; // outline.json で上書き
 let CURRENT_EDITION = 16; // outline.json で上書き
+const SHOW_RACE_DIGEST = false;
 
 /**
  * 選手名から括弧で囲まれた都道府県名を取り除く
@@ -2289,6 +2290,7 @@ async function displayOutline() {
  * daily_summary.jsonを読み込み、本日の総括記事を表示します。
  */
 async function displayDailySummary() {
+    if (!SHOW_RACE_DIGEST) return;
     const container = document.getElementById('daily-summary-container');
     if (!container) return;
 
@@ -2363,6 +2365,7 @@ async function displayDailySummary() {
  * 監督の夜間コメントを談話室形式で表示します。
  */
 async function displayManagerComments() {
+    if (!SHOW_RACE_DIGEST) return;
     const loungeContainer = document.getElementById('manager-lounge-container');
     const loungeContent = document.getElementById('manager-lounge-content');
     const statusEl = document.getElementById('manager-lounge-status');
@@ -3384,7 +3387,17 @@ function displayTeamDetails(teamId) {
 }
 // --- 初期化処理 ---
 
+function applyFeatureVisibility() {
+    const digestNavItem = document.querySelector('[data-feature="race-digest"]');
+    const digestSection = document.getElementById('section-digest');
+    const shouldHideDigest = !SHOW_RACE_DIGEST;
+
+    if (digestNavItem) digestNavItem.hidden = shouldHideDigest;
+    if (digestSection) digestSection.hidden = shouldHideDigest;
+}
+
 document.addEventListener('DOMContentLoaded', async function () {
+    applyFeatureVisibility();
     // --- iOS PWA Install Banner Logic ---
     // isIOS と isStandalone を早期に定義して ReferenceError を解決
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
