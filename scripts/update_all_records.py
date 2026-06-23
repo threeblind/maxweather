@@ -162,29 +162,43 @@ def update_all_records():
         substitute_runners = [r['name'] for r in team_data.get('substitutes', []) if 'name' in r]
         substituted_out_runners = [r['name'] for r in team_data.get('substituted_out', []) if 'name' in r]
         current_leg = team_current_leg_map.get(team_data['id'], 1)
-        all_team_members = set(active_runners + substitute_runners + substituted_out_runners)
-        
         daily_results = []
-        for runner_name in all_team_members:
+        
+        # 1. 交代で外れた選手 (交代済)
+        for runner_name in substituted_out_runners:
             temp_result = fetched_temps_cache.get(runner_name)
             if temp_result and temp_result.get('temperature') is not None:
-                # ステータスを決定 (走行中/走行済/走行前/交代済/補欠)
-                status = "補欠" # デフォルト
-                if runner_name in substituted_out_runners:
-                    status = "交代済"
-                elif runner_name in active_runners:
-                    runner_leg = active_runners.index(runner_name) + 1
-                    if runner_leg < current_leg:
-                        status = "走行済"
-                    elif runner_leg == current_leg:
-                        status = "走行中"
-                    else:
-                        status = "走行前"
+                daily_results.append({
+                    "runner_name": runner_name,
+                    "distance": temp_result['temperature'],
+                    "status": "交代済"
+                })
 
+        # 2. 現在の正規走者 (走行済/走行中/走行前)
+        for index, runner_name in enumerate(active_runners):
+            temp_result = fetched_temps_cache.get(runner_name)
+            if temp_result and temp_result.get('temperature') is not None:
+                runner_leg = index + 1
+                if runner_leg < current_leg:
+                    status = "走行済"
+                elif runner_leg == current_leg:
+                    status = "走行中"
+                else:
+                    status = "走行前"
                 daily_results.append({
                     "runner_name": runner_name,
                     "distance": temp_result['temperature'],
                     "status": status
+                })
+
+        # 3. 現在の補欠走者 (補欠)
+        for runner_name in substitute_runners:
+            temp_result = fetched_temps_cache.get(runner_name)
+            if temp_result and temp_result.get('temperature') is not None:
+                daily_results.append({
+                    "runner_name": runner_name,
+                    "distance": temp_result['temperature'],
+                    "status": "補欠"
                 })
         
         daily_results.sort(key=lambda x: x.get('distance', 0), reverse=True)
