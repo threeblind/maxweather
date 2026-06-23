@@ -1209,10 +1209,16 @@ def main():
                 # その日の気温ではなく、歴代記録（1日あたりの平均走行距離）を今日の距離とする
                 today_distance = shadow_runner_info.get('record', 0.0)
                 print(f"  > {shadow_leg_num}区の記録 {today_distance:.1f}km を加算しました。")
+                new_total_distance = round(shadow_state['totalDistance'] + today_distance, 1)
+            elif status == 'finished':
+                # 誰かが次の区間に到達したため、この区間の走行は完了。距離を境界値に合わせる
+                boundary_distance = ekiden_data['leg_boundaries'][shadow_leg_num - 1]
+                new_total_distance = max(shadow_state['totalDistance'], boundary_distance)
+                today_distance = round(new_total_distance - shadow_state['totalDistance'], 1)
+                print(f"  > {shadow_leg_num}区は完了したため、総距離を中継所 ({new_total_distance:.1f}km) に合わせました。本日加算距離: {today_distance:.1f}km")
             else:
-                print(f"  > {shadow_leg_num}区は走行開始前か完了済みのため、本日の距離加算はスキップします。")
-
-        new_total_distance = round(shadow_state['totalDistance'] + today_distance, 1)
+                print(f"  > {shadow_leg_num}区は走行開始前のため、本日の距離加算はスキップします。")
+                new_total_distance = shadow_state['totalDistance']
         new_current_leg = determine_leg_from_total_distance(new_total_distance, ekiden_data['leg_boundaries'])
         if new_current_leg != shadow_state['currentLeg']:
             print(f"  区間記録連合の区間を {shadow_state['currentLeg']}区 -> {new_current_leg}区 に更新します。")
