@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "updated_day": 6,
+  "updated_day": 7,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 3,
-    "last_updated_day": 6,
+    "last_updated_day": 7,
     "teams": [
       "琉球大学",
       "名古屋大学"
@@ -21,12 +21,31 @@
       ],
       "summary": "名古屋大学と琉球大学による首位争い",
       "started_day": 3,
-      "last_updated_day": 6,
-      "last_observed_gap_km": 10.0,
-      "previous_gap_km": 10.0
+      "last_updated_day": 7,
+      "last_observed_gap_km": 13.699999999999989,
+      "previous_gap_km": 13.699999999999989
     }
   ],
-  "momentum": [],
+  "momentum": [
+    {
+      "team": "日本大学",
+      "summary": "10位から6位へ急浮上",
+      "started_day": 7,
+      "last_updated_day": 7,
+      "previous_rank": 10,
+      "current_rank": 6,
+      "diff": 4
+    },
+    {
+      "team": "上武大学",
+      "summary": "8位から5位へ急浮上",
+      "started_day": 7,
+      "last_updated_day": 7,
+      "previous_rank": 8,
+      "current_rank": 5,
+      "diff": 3
+    }
+  ],
   "runner_threads": [
     {
       "runner": "仲筋",
