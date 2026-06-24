@@ -653,14 +653,11 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         const shadowLegRecord = runner.is_shadow_confederation
             ? legBestRecordByLeg.get(shadowLegForPopup)
             : null;
-        const shadowLegRecordTeamName = runner.is_shadow_confederation
-            ? legBestRecordTeamByLeg.get(shadowLegForPopup)
-            : null;
         const shadowLegRecordIsActive = runner.is_shadow_confederation && Number.isFinite(shadowLegForPopup)
             ? (lastRealtimeData?.teams || []).some(team => {
                 if (!team || team.is_shadow_confederation) return false;
-                if (team.name !== shadowLegRecordTeamName) return false;
                 // todayLeg: 本日実際に走っている区間番号で比較（currentLeg は翌日以降）
+                // 区間最高記録は「その区間に到達したチームがいるか」で表示する。
                 const activeLeg = team.todayLeg ?? team.currentLeg;
                 return activeLeg === shadowLegForPopup;
             })
