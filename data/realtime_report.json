@@ -1,5 +1,5 @@
 {
-  "updateTime": "2026/06/25 22:05",
+  "updateTime": "2026/06/25 22:15",
   "raceDay": 8,
   "breakingNewsComment": "",
   "breakingNewsTimestamp": "",
@@ -159,6 +159,23 @@
       "is_shadow_confederation": false
     },
     {
+      "id": 9,
+      "name": "鳥取大学",
+      "short_name": "鳥取",
+      "currentLeg": 3,
+      "todayLeg": 2,
+      "runner": "2鳥取",
+      "todayDistance": 25.2,
+      "todayRank": 7,
+      "totalDistance": 211.7,
+      "overallRank": 10,
+      "previousRank": 11,
+      "nextRunner": "3広瀬",
+      "error": null,
+      "finishDay": null,
+      "is_shadow_confederation": false
+    },
+    {
       "id": 2,
       "name": "上武大学",
       "short_name": "上武",
@@ -168,26 +185,9 @@
       "todayDistance": 22.2,
       "todayRank": 14,
       "totalDistance": 211.6,
-      "overallRank": 10,
+      "overallRank": 11,
       "previousRank": 5,
       "nextRunner": "3熊谷",
-      "error": null,
-      "finishDay": null,
-      "is_shadow_confederation": false
-    },
-    {
-      "id": 9,
-      "name": "鳥取大学",
-      "short_name": "鳥取",
-      "currentLeg": 3,
-      "todayLeg": 2,
-      "runner": "2鳥取",
-      "todayDistance": 25.1,
-      "todayRank": 7,
-      "totalDistance": 211.6,
-      "overallRank": 10,
-      "previousRank": 11,
-      "nextRunner": "3広瀬",
       "error": null,
       "finishDay": null,
       "is_shadow_confederation": false
