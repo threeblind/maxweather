@@ -621,12 +621,6 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         });
     }
 
-    const leadLeg = lastRealtimeData && Array.isArray(lastRealtimeData.teams)
-        ? Math.min(...lastRealtimeData.teams
-            .filter(team => team && team.is_shadow_confederation !== true && Number.isFinite(team.todayLeg ?? team.currentLeg))
-            .map(team => team.todayLeg ?? team.currentLeg))
-        : null;
-
     if (!runnerLocations || runnerLocations.length === 0) {
         return; // 表示するランナーがいない場合は何もしない
     }
@@ -766,33 +760,10 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         const bounds = L.latLngBounds(allRunnerLatLngs);
         map.fitBounds(bounds.pad(0.1)); // .pad(0.1) for some margin
     } else if (trackedTeamName === "shadow_confederation") {
-        // --- 「区間記録連合」と「先頭走者」を追跡 ---
-        // 現在見ている区間番号と区間最高の現在区間がずれている場合は、誤った区間表示を避けるため
-        // 区間最高の追跡を行わず、先頭走者側の表示に寄せる。
-        const realtimeShadowTeam = lastRealtimeData && Array.isArray(lastRealtimeData.teams)
-            ? lastRealtimeData.teams.find(team => team.is_shadow_confederation)
-            : null;
+        // --- 区間最高記録を追跡 ---
         const shadowRunner = runnerLocations.find(r => r.is_shadow_confederation);
-
-        // 正規の走行中トップ選手を探す (ゴール済みと区間記録連合は除く)
-        const activeTopRunner = runnerLocations.find(runner => {
-            return runner.total_distance_km < finalGoalDistance && !runner.is_shadow_confederation;
-        });
-
-        const trackingGroup = [];
-        // 区間記録連合の現在区間: currentLeg（明日以降）ではなく総距離から計算した区間を使う
-        const shadowLeg = realtimeShadowTeam && Array.isArray(ekidenData.leg_boundaries)
-            ? ekidenData.leg_boundaries.findIndex(b => (realtimeShadowTeam.totalDistance ?? 0) < b) + 1
-            : null;
-        const canShowShadow = shadowRunner && shadowLeg != null && leadLeg != null && shadowLeg === leadLeg;
-
-        if (canShowShadow) trackingGroup.push(shadowRunner);
-        if (activeTopRunner) trackingGroup.push(activeTopRunner);
-
-        if (trackingGroup.length > 0) {
-            const groupLatLngs = trackingGroup.map(r => [r.latitude, r.longitude]);
-            const bounds = L.latLngBounds(groupLatLngs);
-            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+        if (shadowRunner) {
+            map.setView([shadowRunner.latitude, shadowRunner.longitude], 14);
         }
     } else if (trackedTeamName && trackedTeamName !== "lead_group") {
         // --- Track a specific team ---
