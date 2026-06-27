@@ -653,7 +653,11 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
                 // todayLeg: 本日実際に走っている区間番号で比較（currentLeg は翌日以降）
                 // 区間最高記録は「その区間に到達したチームがいるか」で表示する。
                 const activeLeg = team.todayLeg ?? team.currentLeg;
-                return activeLeg === shadowLegForPopup;
+                // 総距離から計算した区間も考慮（todayLegがチームの実際の位置に追いついていない場合のため）
+                const distanceLeg = Number.isFinite(team.totalDistance) && Array.isArray(ekidenData.leg_boundaries)
+                    ? ekidenData.leg_boundaries.findIndex(b => team.totalDistance < b) + 1
+                    : null;
+                return activeLeg === shadowLegForPopup || distanceLeg === shadowLegForPopup;
             })
             : false;
 
