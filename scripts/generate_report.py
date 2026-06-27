@@ -490,8 +490,8 @@ def save_ekiden_state(state, file_path, race_day=None):
             "currentLeg": s["newCurrentLeg"],
             "overallRank": s["overallRank"],
             "finishDay": s.get("finishDay"),
-            "currentRunnerStartDistance": s.get("currentRunnerStartDistance", s["totalDistance"]),
-            "currentRunnerLegStartDay": s.get("currentRunnerLegStartDay", race_day or 1)
+            "currentRunnerStartDistance": s.get("nextRunnerStartDistance", s.get("currentRunnerStartDistance", s["totalDistance"])),
+            "currentRunnerLegStartDay": s.get("nextRunnerLegStartDay", s.get("currentRunnerLegStartDay", race_day or 1))
         }
         data_to_save.append(team_state)
     
@@ -1064,14 +1064,16 @@ def main():
                 if new_current_leg > len(ekiden_data['leg_boundaries']) and finish_day_today is None:
                     finish_day_today = race_day
 
-        # 現在走者の開始距離と開始日を計算（ゴーストランナー用）
+        # 現在走者の開始距離と開始日（表示用 = todayLegの走者の値）
         current_runner_start_distance = team_state.get('currentRunnerStartDistance', team_state['totalDistance'])
         current_runner_leg_start_day = team_state.get('currentRunnerLegStartDay', race_day)
-        # 区間交代が発生した場合、新走者の開始距離を現在の総距離に設定
+        # 次状態保存用（区間交代時は新走者の値に更新、交代なしなら表示用と同じ）
+        next_runner_start_distance = current_runner_start_distance
+        next_runner_leg_start_day = current_runner_leg_start_day
         if is_leg_change:
             # 新しい走者の開始距離 = 交代時の総距離
-            current_runner_start_distance = new_total_distance
-            current_runner_leg_start_day = race_day
+            next_runner_start_distance = new_total_distance
+            next_runner_leg_start_day = race_day
 
         # 個人記録を、その日に実際に走った選手に紐付ける
         if today_distance > 0:
@@ -1134,7 +1136,9 @@ def main():
             "rawTempResult": max_temp_result, "finishDay": finish_day_today,
             "group_id": 0, "currentTempForLog": current_temp_for_log,
             "currentRunnerStartDistance": current_runner_start_distance,
-            "currentRunnerLegStartDay": current_runner_leg_start_day
+            "currentRunnerLegStartDay": current_runner_leg_start_day,
+            "nextRunnerStartDistance": next_runner_start_distance,
+            "nextRunnerLegStartDay": next_runner_leg_start_day
         })
 
     # 区間ごとの平均距離・順位を更新
