@@ -545,14 +545,15 @@ function createGoalIcon(color) {
  * 区間最高記録ゴースト用のマーカーアイコン（通常と差別化したデザイン）
  */
 function createGhostIcon(color) {
+    // 通常のcreateRunnerIconと同じスタイル（灰色で「最」表示）
     const iconHtml = `
-        <div class="runner-marker ghost-marker" style="background-color: ${color}; border-color: ${color};">
+        <div class="runner-marker" style="background-color: ${color}; border-color: ${color};">
             <span class="rank-number">最</span>
         </div>
     `;
     return L.divIcon({
         html: iconHtml,
-        className: 'runner-icon ghost-icon',
+        className: 'runner-icon',
         iconSize: [32, 44],
         iconAnchor: [16, 44],
         popupAnchor: [0, -46]
@@ -805,8 +806,7 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
                         diffKm: diffKm
                     };
 
-                    // ゴーストマーカーを生成（通常と差別化したピンク）
-                    const ghostIcon = createGhostIcon('#FF4081');
+                    // ゴーストマーカーを生成（灰色）\n                    const ghostIcon = createGhostIcon('#808080');
                     const ghostMarker = L.marker(ghostLatLng, { icon: ghostIcon, zIndexOffset: 1000 });
 
                     const diffText = diffKm > 0
@@ -819,8 +819,6 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
                     ghostMarker.bindPopup(`
                         <b>${targetLeg}区 区間最高記録${editionText ? `（${editionText}）` : ''}</b><br>
                         走者: ${formatRunnerName(legRecord.runner_name)}（${legRecord.team_name}）<br>
-                        比較対象: ${leaderTeam.short_name || leaderTeam.name} ${formatRunnerName(leaderTeam.runner)}<br>
-                        開始距離: ${ghostStartDistance.toFixed(1)} km<br>
                         記録ペース: ${recordDailyKm.toFixed(3)} km/日<br>
                         現在距離: ${ghostTotalDistance.toFixed(1)} km<br>
                         <strong>${diffText}</strong>
