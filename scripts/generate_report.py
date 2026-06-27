@@ -439,7 +439,8 @@ def load_ekiden_state(file_path):
         return [
             {
                 "id": team["id"], "name": team["name"],
-                "totalDistance": 0.0, "currentLeg": 1, "overallRank": 0, "finishDay": None
+                "totalDistance": 0.0, "currentLeg": 1, "overallRank": 0, "finishDay": None,
+                "currentRunnerStartDistance": 0.0, "currentRunnerLegStartDay": 1
             } for team in all_teams_data
         ]
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -479,14 +480,18 @@ def load_individual_results(file_path):
         runner_data.setdefault("teamId", None)
     return runners_state
 
-def save_ekiden_state(state, file_path):
+def save_ekiden_state(state, file_path, race_day=None):
     """駅伝の現在の状態を保存する"""
     data_to_save = []
     for s in state:
         team_state = {
-            "id": s["id"], "name": s["name"], "totalDistance": s["totalDistance"],
-            "currentLeg": s["newCurrentLeg"], "overallRank": s["overallRank"],
-            "finishDay": s.get("finishDay")
+            "id": s["id"], "name": s["name"],
+            "totalDistance": s["totalDistance"],
+            "currentLeg": s["newCurrentLeg"],
+            "overallRank": s["overallRank"],
+            "finishDay": s.get("finishDay"),
+            "currentRunnerStartDistance": s.get("currentRunnerStartDistance", s["totalDistance"]),
+            "currentRunnerLegStartDay": s.get("currentRunnerLegStartDay", race_day or 1)
         }
         data_to_save.append(team_state)
     
@@ -549,7 +554,9 @@ def save_realtime_report(results, race_day, breaking_news_comment, breaking_news
             "totalDistance": r["totalDistance"], "overallRank": r["overallRank"],
             "previousRank": r["previousRank"], "nextRunner": next_runner_str,
             "error": r['rawTempResult']['error'], "finishDay": r.get("finishDay"),
-            "is_shadow_confederation": r.get("is_shadow_confederation", False)
+            "is_shadow_confederation": r.get("is_shadow_confederation", False),
+            "currentRunnerStartDistance": r.get("currentRunnerStartDistance"),
+            "currentRunnerLegStartDay": r.get("currentRunnerLegStartDay")
         })
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -797,7 +804,9 @@ def save_snapshot(results, race_day, breaking_news_comment, breaking_news_timest
             "totalDistance": r["totalDistance"], "overallRank": r["overallRank"],
             "previousRank": r["previousRank"], "nextRunner": next_runner_str,
             "error": r['rawTempResult']['error'], "finishDay": r.get("finishDay"),
-            "is_shadow_confederation": r.get("is_shadow_confederation", False)
+            "is_shadow_confederation": r.get("is_shadow_confederation", False),
+            "currentRunnerStartDistance": r.get("currentRunnerStartDistance"),
+            "currentRunnerLegStartDay": r.get("currentRunnerLegStartDay")
         })
 
     snapshot_path = SNAPSHOT_DIR / f"realtime_report_{timestamp_str}.json"
@@ -1017,7 +1026,9 @@ def main():
                 "todayDistance": 0.0, "totalDistance": team_state["totalDistance"],
                 "previousRank": previous_rank_map.get(team_state["id"], 0),
                 "rawTempResult": {'temperature': 0, 'error': None},
-                "finishDay": finish_day, "group_id": 1
+                "finishDay": finish_day, "group_id": 1,
+                "currentRunnerStartDistance": team_state.get("currentRunnerStartDistance", team_state["totalDistance"]),
+                "currentRunnerLegStartDay": team_state.get("currentRunnerLegStartDay", race_day)
             })
             continue
 
@@ -1052,6 +1063,15 @@ def main():
                     legs_completed_today.append((runner_name, finished_leg_number))
                 if new_current_leg > len(ekiden_data['leg_boundaries']) and finish_day_today is None:
                     finish_day_today = race_day
+
+        # 現在走者の開始距離と開始日を計算（ゴーストランナー用）
+        current_runner_start_distance = team_state.get('currentRunnerStartDistance', team_state['totalDistance'])
+        current_runner_leg_start_day = team_state.get('currentRunnerLegStartDay', race_day)
+        # 区間交代が発生した場合、新走者の開始距離を現在の総距離に設定
+        if is_leg_change:
+            # 新しい走者の開始距離 = 交代時の総距離
+            current_runner_start_distance = new_total_distance
+            current_runner_leg_start_day = race_day
 
         # 個人記録を、その日に実際に走った選手に紐付ける
         if today_distance > 0:
@@ -1112,7 +1132,9 @@ def main():
             "todayDistance": today_distance, "totalDistance": new_total_distance,
             "previousRank": previous_rank_map.get(team_state["id"], 0),
             "rawTempResult": max_temp_result, "finishDay": finish_day_today,
-            "group_id": 0, "currentTempForLog": current_temp_for_log
+            "group_id": 0, "currentTempForLog": current_temp_for_log,
+            "currentRunnerStartDistance": current_runner_start_distance,
+            "currentRunnerLegStartDay": current_runner_leg_start_day
         })
 
     # 区間ごとの平均距離・順位を更新
@@ -1353,7 +1375,7 @@ def main():
 
     if args.commit:
         # コミットモードでは、`current_state`（その日の開始時点の状態）を比較対象として渡す
-        save_ekiden_state(all_results, args.state_file)
+        save_ekiden_state(all_results, args.state_file, race_day)
         update_rank_history(all_results, race_day, args.history_file)
         update_leg_rank_history(all_results, current_state, LEG_RANK_HISTORY_FILE, is_commit_mode=True)
         save_individual_results(individual_results, args.individual_state_file)

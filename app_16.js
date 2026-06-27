@@ -771,12 +771,16 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
             const legRecord = legBestRecordByLeg.get(targetLeg);
 
             if (legRecord && legRecord.record > 0) {
-                // ゴースト開始距離 = 先頭チームが今の区間を開始した時点の総距離
-                const ghostStartDistance = leaderTeam.totalDistance - leaderTeam.todayDistance;
+                // ゴースト開始距離 = 現在走者がこの区間を開始した時点の総距離（Python側で固定値として計算）
+                const ghostStartDistance = Number.isFinite(leaderTeam.currentRunnerStartDistance)
+                    ? leaderTeam.currentRunnerStartDistance
+                    : (leaderTeam.totalDistance - leaderTeam.todayDistance);
                 const recordDailyKm = legRecord.record;
 
-                // 経過日数: 当日なら1日目、todayDistance / recordDailyKm の切り上げ
-                const elapsedDays = Math.max(1, Math.ceil(leaderTeam.todayDistance / recordDailyKm));
+                // 経過日数 = 現在走者がこの区間を走り始めてからの表示日数
+                const elapsedDays = Number.isFinite(leaderTeam.currentRunnerLegStartDay)
+                    ? (lastRealtimeData.raceDay - leaderTeam.currentRunnerLegStartDay + 1)
+                    : 1;
 
                 const ghostTotalDistance = ghostStartDistance + recordDailyKm * elapsedDays;
 
