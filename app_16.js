@@ -14,6 +14,7 @@ let legRankHistoryData = null; // leg_rank_history.json の内容を保持
 let legBestRecordByLeg = new Map(); // 区間最高記録のキャッシュ
 let legBestRecordTeamByLeg = new Map(); // 区間最高記録の保持チーム名
 let goalLatLng = null; // ゴール地点の座標を保持
+let coursePathData = null; // course_path.json の全ポイントデータ（座標変換用）
 
 // --- 順位変動タイムライン用状態変数 ---
 let rankTimelineEvents = [];
@@ -445,6 +446,7 @@ async function initializeMap() {
         }
 
         const coursePath = await coursePathRes.json();
+        coursePathData = coursePath; // course_path.json をグローバルに保持
         const relayPoints = await relayPointsRes.json();
         // 区間記録データは任意。取得できなくてもエラーにしない
         const legBestRecords = legBestRecordsRes.ok ? await legBestRecordsRes.json() : null;
@@ -540,6 +542,24 @@ function createGoalIcon(color) {
 }
 
 /**
+ * 区間最高記録ゴースト用のマーカーアイコン（通常と差別化したデザイン）
+ */
+function createGhostIcon(color) {
+    const iconHtml = `
+        <div class="runner-marker ghost-marker" style="background-color: ${color}; border-color: ${color};">
+            <span class="rank-number">最</span>
+        </div>
+    `;
+    return L.divIcon({
+        html: iconHtml,
+        className: 'runner-icon ghost-icon',
+        iconSize: [32, 44],
+        iconAnchor: [16, 44],
+        popupAnchor: [0, -46]
+    });
+}
+
+/**
  * Populates the team tracker dropdown and sets up its event listener.
  * @param {Array} teams - The list of teams from ekiden_data.json.
  */
@@ -588,6 +608,45 @@ function setupTeamTracker(teams) {
 }
 
 /**
+ * Haversine公式で2点間の距離(km)を計算
+ */
+function haversineKm(p1, p2) {
+    const R = 6371;
+    const dLat = (p2[0] - p1[0]) * Math.PI / 180;
+    const dLon = (p2[1] - p1[1]) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2
+        + Math.cos(p1[0] * Math.PI / 180) * Math.cos(p2[0] * Math.PI / 180)
+        * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * コース上の総距離から緯度経度を線形補間で求める。
+ * @param {Array} coursePath - [{lat, lon}, ...] の配列
+ * @param {number} targetDistanceKm - 目的の総距離(km)
+ * @returns {[number, number] | null} [lat, lon] または null
+ */
+function getPointByDistance(coursePath, targetDistanceKm) {
+    if (!coursePath || coursePath.length < 2 || !Number.isFinite(targetDistanceKm)) return null;
+    let cumulativeKm = 0;
+    for (let i = 1; i < coursePath.length; i++) {
+        const p1 = [coursePath[i - 1].lat, coursePath[i - 1].lon];
+        const p2 = [coursePath[i].lat, coursePath[i].lon];
+        const segKm = haversineKm(p1, p2);
+        if (segKm > 0 && cumulativeKm <= targetDistanceKm && targetDistanceKm < cumulativeKm + segKm) {
+            const fraction = (targetDistanceKm - cumulativeKm) / segKm;
+            return [
+                p1[0] + fraction * (p2[0] - p1[0]),
+                p1[1] + fraction * (p2[1] - p1[1])
+            ];
+        }
+        cumulativeKm += segKm;
+    }
+    // 最終地点を返す
+    return [coursePath[coursePath.length - 1].lat, coursePath[coursePath.length - 1].lon];
+}
+
+/**
  * Updates the runner markers on the map with the latest locations.
  * @param {Array} runnerLocations - runner_locations.json のデータ。rankでソート済み。
  * @param {object} ekidenData - ekiden_data.json のデータ。ゴール距離の判定に使用。
@@ -633,42 +692,11 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
     const teamDisplayLatLngMap = new Map();
 
     runnerLocations.forEach(runner => {
-        const color = teamColorMap.get(runner.team_name) || '#808080'; // Default to grey
-        // 区間記録連合は currentLeg の更新より先に次区間へ進むことがあるため、
-        // マーカーの総距離から現在区間を判定する。境界と記録の両方が揃わない場合は表示しない。
-        const shadowLegFromDistance = runner.is_shadow_confederation
-            && Number.isFinite(runner.total_distance_km)
-            && Array.isArray(ekidenData.leg_boundaries)
-            ? ekidenData.leg_boundaries.findIndex(boundary => runner.total_distance_km < boundary) + 1
-            : null;
-        const shadowLegForPopup = shadowLegFromDistance > 0
-            ? shadowLegFromDistance
-            : null;
-        const shadowLegRecord = runner.is_shadow_confederation
-            ? legBestRecordByLeg.get(shadowLegForPopup)
-            : null;
-        const shadowLegRecordIsActive = runner.is_shadow_confederation && Number.isFinite(shadowLegForPopup)
-            ? (lastRealtimeData?.teams || []).some(team => {
-                if (!team || team.is_shadow_confederation) return false;
-                // todayLeg: 本日実際に走っている区間番号で比較（currentLeg は翌日以降）
-                // 区間最高記録は「その区間に到達したチームがいるか」で表示する。
-                const activeLeg = team.todayLeg ?? team.currentLeg;
-                return activeLeg === shadowLegForPopup;
-            })
-            : false;
+        // 固定の区間記録連合(runner_locations.json)は表示しない（ゴーストは後段で生成）
+        if (runner.is_shadow_confederation) return;
 
-        if (runner.is_shadow_confederation && !shadowLegRecordIsActive) {
-            return;
-        }
-
-        // マーカーに表示する文字を決定
-        // is_shadow_confederation フラグが true の場合（区間記録連合）は「最高」と表示
-        let teamInitial;
-        if (runner.is_shadow_confederation) {
-            teamInitial = '最高';
-        } else {
-            teamInitial = runner.team_short_name || '??';
-        }
+        const color = teamColorMap.get(runner.team_name) || '#808080';
+        let teamInitial = runner.team_short_name || '??';
 
         // 注目チームかどうかを team_name から ekidenDataCache で teamId を解決して判定
         const teamConfig = ekidenDataCache && Array.isArray(ekidenDataCache.teams)
@@ -703,27 +731,13 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         const marker = L.marker(markerLatLng, markerOptions);
 
         let popupContent;
-        if (runner.is_shadow_confederation) {
-            // 区間記録連合用のポップアップ内容
-            const editionText = shadowLegRecord?.edition ? `：第${shadowLegRecord.edition}回` : '';
-            if (Number.isFinite(shadowLegForPopup) && shadowLegRecord && shadowLegRecordIsActive) {
-                popupContent = `
-                    <b>区間最高記録${editionText}</b><br>
-                    区間: 第${shadowLegForPopup}区<br>
-                    走者: ${formatRunnerName(shadowLegRecord.runner_name)}<br>
-                    ${shadowLegRecord.record != null ? `記録: ${Number(shadowLegRecord.record).toFixed(3)} km/日<br>` : ''}
-                `;
-            }
-        } else {
-            // 通常チーム用のポップアップ内容
-            popupContent = `
-                <b>${runner.rank}位: ${runner.team_short_name} (${runner.team_name})</b><br>
-                走者: ${formatRunnerName(runner.runner_name)}<br>
-                総合距離: ${runner.total_distance_km.toFixed(1)} km
-            `;
-            if (isGoalReached) {
-                popupContent += `<br><strong>ゴール済</strong>`;
-            }
+        popupContent = `
+            <b>${runner.rank}位: ${runner.team_short_name} (${runner.team_name})</b><br>
+            走者: ${formatRunnerName(runner.runner_name)}<br>
+            総合距離: ${runner.total_distance_km.toFixed(1)} km
+        `;
+        if (isGoalReached) {
+            popupContent += `<br><strong>ゴール済</strong>`;
         }
         if (popupContent) {
             marker.bindPopup(popupContent, { closeButton: false });
@@ -744,6 +758,77 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         runner.display_lat_lng = markerLatLng;
     });
 
+    // --- ゴーストランナー生成（区間最高記録モード） ---
+    let ghostRunner = null;
+    if (trackedTeamName === "shadow_confederation" && lastRealtimeData && Array.isArray(lastRealtimeData.teams)) {
+        // 先頭チームを探す（最長走行距離の通常チーム）
+        const leaderTeam = lastRealtimeData.teams
+            .filter(t => !t.is_shadow_confederation)
+            .sort((a, b) => b.totalDistance - a.totalDistance)[0];
+
+        if (leaderTeam && leaderTeam.todayLeg) {
+            const targetLeg = leaderTeam.todayLeg;
+            const legRecord = legBestRecordByLeg.get(targetLeg);
+
+            if (legRecord && legRecord.record > 0) {
+                // ゴースト開始距離 = 先頭チームが今の区間を開始した時点の総距離
+                const ghostStartDistance = leaderTeam.totalDistance - leaderTeam.todayDistance;
+                const recordDailyKm = legRecord.record;
+
+                // 経過日数: 当日なら1日目、todayDistance / recordDailyKm の切り上げ
+                const elapsedDays = Math.max(1, Math.ceil(leaderTeam.todayDistance / recordDailyKm));
+
+                const ghostTotalDistance = ghostStartDistance + recordDailyKm * elapsedDays;
+
+                // コース上の座標を取得（clampなし）
+                const ghostLatLng = getPointByDistance(coursePathData, ghostTotalDistance);
+
+                if (ghostLatLng) {
+                    const diffKm = ghostTotalDistance - leaderTeam.totalDistance;
+                    ghostRunner = {
+                        targetLeg: targetLeg,
+                        runnerName: legRecord.runner_name,
+                        teamName: legRecord.team_name,
+                        edition: legRecord.edition,
+                        totalDistance: ghostTotalDistance,
+                        startDistance: ghostStartDistance,
+                        recordDailyKm: recordDailyKm,
+                        latitude: ghostLatLng[0],
+                        longitude: ghostLatLng[1],
+                        comparedTeamName: leaderTeam.name,
+                        comparedRunnerName: leaderTeam.runner,
+                        comparedTotalDistance: leaderTeam.totalDistance,
+                        diffKm: diffKm
+                    };
+
+                    // ゴーストマーカーを生成（通常と差別化したピンク）
+                    const ghostIcon = createGhostIcon('#FF4081');
+                    const ghostMarker = L.marker(ghostLatLng, { icon: ghostIcon, zIndexOffset: 1000 });
+
+                    const diffText = diffKm > 0
+                        ? `+${diffKm.toFixed(1)}km 先行`
+                        : diffKm < 0
+                            ? `${diffKm.toFixed(1)}km 後方`
+                            : '同位置';
+                    const editionText = legRecord.edition ? `第${legRecord.edition}回` : '';
+
+                    ghostMarker.bindPopup(`
+                        <b>${targetLeg}区 区間最高記録${editionText ? `（${editionText}）` : ''}</b><br>
+                        走者: ${formatRunnerName(legRecord.runner_name)}（${legRecord.team_name}）<br>
+                        比較対象: ${leaderTeam.short_name || leaderTeam.name} ${formatRunnerName(leaderTeam.runner)}<br>
+                        開始距離: ${ghostStartDistance.toFixed(1)} km<br>
+                        記録ペース: ${recordDailyKm.toFixed(3)} km/日<br>
+                        現在距離: ${ghostTotalDistance.toFixed(1)} km<br>
+                        <strong>${diffText}</strong>
+                    `, { closeButton: false });
+
+                    runnerMarkersLayer.addLayer(ghostMarker);
+                    displayedLatLngs.push(ghostLatLng);
+                }
+            }
+        }
+    }
+
     if (!shouldAutoFollowMap) {
         return;
     }
@@ -760,10 +845,9 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         const bounds = L.latLngBounds(allRunnerLatLngs);
         map.fitBounds(bounds.pad(0.1)); // .pad(0.1) for some margin
     } else if (trackedTeamName === "shadow_confederation") {
-        // --- 区間最高記録を追跡 ---
-        const shadowRunner = runnerLocations.find(r => r.is_shadow_confederation);
-        if (shadowRunner) {
-            map.setView([shadowRunner.latitude, shadowRunner.longitude], 14);
+        // --- 区間最高記録のゴーストを追跡 ---
+        if (ghostRunner) {
+            map.setView([ghostRunner.latitude, ghostRunner.longitude], 14);
         }
     } else if (trackedTeamName && trackedTeamName !== "lead_group") {
         // --- Track a specific team ---
