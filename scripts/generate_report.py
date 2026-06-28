@@ -432,7 +432,7 @@ def generate_breaking_news_comment(current_results, previous_report_data):
 
     return ""
 
-def load_ekiden_state(file_path):
+def load_ekiden_state(file_path, race_day=None):
     """駅伝の現在の状態を読み込む。ファイルがなければ全チームの初期状態を生成。"""
     if not os.path.exists(file_path):
         print(f"情報: '{file_path}' が見つかりません。全チームの初期状態を生成します。")
@@ -444,7 +444,16 @@ def load_ekiden_state(file_path):
             } for team in all_teams_data
         ]
     with open(file_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        states = json.load(f)
+    # 既存stateに新フィールドがない場合の補完
+    for s in states:
+        s.setdefault("currentRunnerStartDistance", s.get("totalDistance", 0.0))
+        if "currentRunnerLegStartDay" not in s:
+            if s.get("currentLeg", 1) == 1:
+                s["currentRunnerLegStartDay"] = 1
+            else:
+                s["currentRunnerLegStartDay"] = race_day or 1
+    return states
 
 def load_individual_results(file_path):
     """選手個人の結果を読み込む。ファイルがなければ初期状態を生成。"""
@@ -992,7 +1001,7 @@ def main():
     start_date = datetime.strptime(EKIDEN_START_DATE, '%Y-%m-%d')
     race_day = (datetime.now().date() - start_date.date()).days + 1
 
-    current_state = load_ekiden_state(args.state_file)
+    current_state = load_ekiden_state(args.state_file, race_day)
     previous_rank_map = {s['id']: s['overallRank'] for s in current_state}
     individual_results = load_individual_results(args.individual_state_file)
     
@@ -1072,8 +1081,9 @@ def main():
         next_runner_leg_start_day = current_runner_leg_start_day
         if is_leg_change:
             # 新しい走者の開始距離 = 交代時の総距離
+            # 開始日は翌日から（交代当日は旧走者が走っているため）
             next_runner_start_distance = new_total_distance
-            next_runner_leg_start_day = race_day
+            next_runner_leg_start_day = race_day + 1
 
         # 個人記録を、その日に実際に走った選手に紐付ける
         if today_distance > 0:
