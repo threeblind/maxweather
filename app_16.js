@@ -548,7 +548,7 @@ function createGhostIcon(color) {
     // 通常のcreateRunnerIconと同じスタイル（灰色で「最」表示）
     const iconHtml = `
         <div class="runner-marker" style="background-color: ${color}; border-color: ${color};">
-            <span class="rank-number">最</span>
+            <span class="rank-number">最高</span>
         </div>
     `;
     return L.divIcon({
