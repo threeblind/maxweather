@@ -806,7 +806,8 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
                         diffKm: diffKm
                     };
 
-                    // ゴーストマーカーを生成（灰色）\n                    const ghostIcon = createGhostIcon('#808080');
+                    // ゴーストマーカーを生成（灰色）
+                    const ghostIcon = createGhostIcon('#808080');
                     const ghostMarker = L.marker(ghostLatLng, { icon: ghostIcon, zIndexOffset: 1000 });
 
                     const diffText = diffKm > 0
