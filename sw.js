@@ -1,9 +1,9 @@
-const CACHE_NAME = 'ekiden-sokuhou-cache-v8';
+const CACHE_NAME = 'ekiden-sokuhou-cache-v9';
 // オフライン時に利用できるようにキャッシュするファイルのリスト
 const urlsToCache = [
   './', // ルートURL
-  'index_16.html',
-  'app_16.js',
+  'index.html',
+  'app.js',
   'images/icon-192x192.png',
   'images/icon-512x512.png',
   'config/ekiden_data.json',
