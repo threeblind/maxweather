@@ -661,7 +661,12 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
     // 古いマーカーをクリア
     runnerMarkersLayer.clearLayers();
 
-    if ((!runnerLocations || runnerLocations.length === 0) && startLatLng) {
+    const isPreStartOrEmpty =
+        !runnerLocations || runnerLocations.length === 0 ||
+        (lastRealtimeData && Number(lastRealtimeData.raceDay) <= 0) ||
+        (Array.isArray(runnerLocations) && runnerLocations.every(r => Number(r.total_distance_km || 0) <= 0));
+
+    if (isPreStartOrEmpty && startLatLng) {
         const fallbackTeams = lastRealtimeData && Array.isArray(lastRealtimeData.teams) && lastRealtimeData.teams.length > 0
             ? lastRealtimeData.teams
             : (ekidenData && Array.isArray(ekidenData.teams) ? ekidenData.teams : []);
@@ -1972,12 +1977,12 @@ const fetchEkidenData = async () => {
     const statusEl = document.getElementById('ekidenRankingStatus');
     const bodyEl = document.getElementById('ekidenRankingBody');
 
-    if (!titleEl || !updateTimeEl || !statusEl || !bodyEl) {
-        console.error("Ekiden ranking elements not found in the DOM.");
-        return;
-    }
+        if (!titleEl || !updateTimeEl || !statusEl || !bodyEl) {
+            console.error("Ekiden ranking elements not found in the DOM.");
+            return;
+        }
 
-    try {
+        try {
         // Fetch all necessary data in parallel
         const [realtimeRes, individualRes, runnerLocationsRes, ekidenDataRes, legRankHistoryRes, logFileRes] = await Promise.all([
             fetch(`data/realtime_report.json?_=${new Date().getTime()}`),
@@ -2199,9 +2204,7 @@ const fetchEkidenData = async () => {
 
     } catch (error) {
         console.error('Error fetching ekiden data:', error);
-        statusEl.textContent = '駅伝関連データの取得に失敗しました。';
-        statusEl.className = 'result error';
-        statusEl.style.display = 'block';
+        statusEl.style.display = 'none';
         bodyEl.innerHTML = '';
     }
 };
