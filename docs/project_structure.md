@@ -14,8 +14,7 @@
 | `scripts/` | Python スクリプト本体 | レポート生成・AI記事・コメント取得など |
 | `logs/` | cron やスクリプト出力ログ | 失敗時のトラブルシュートで参照 |
 | `images/` | フロントで使用する静的画像 | 大会バナーなど |
-| `index.html` / `app.js` | 第15回大会のフロントエンド | UI ロジックは `app.js` に集約 |
-| `index_16.html` / `app_16.js` | 第16回向け準備版 | 次大会仕様の検証用 |
+| `index.html` / `app.js` | 公開中のフロントエンド | UI ロジックは `app.js` に集約 |
 | `sw.js` | Service Worker | キャッシュ制御・オフライン対策 |
 | `scripts/*.sh` | cron 用シェル | 自動実行と Git コミット制御 |
 
@@ -91,8 +90,8 @@
 - `data/article_history.json`: 過去記事の履歴とプロンプトメタ情報。
 
 ## フロントエンド構成
-- `index.html` / `index_16.html`: UI セクションの HTML 定義。Leaflet/Chart.js/CDN 読み込み。
-- `app.js` / `app_16.js`: fetch/描画ロジック、モーダル・チャート管理、アニメーション制御。
+- `index.html`: UI セクションの HTML 定義。Leaflet/Chart.js/CDN 読み込み。
+- `app.js`: fetch/描画ロジック、モーダル・チャート管理、アニメーション制御。
 - `sw.js`: キャッシュ戦略。最新データの常時取得を優先しつつ、静的アセットのキャッシュを保持。
 - `images/`: バナーやチームロゴなどを格納。
 
@@ -105,4 +104,3 @@
 - 運用メモ・開発履歴: `docs/Gemini.md`
 - 協業フロー・コミュニケーション: `docs/Codex-notes.md`
 - 要件・仕様: `docs/requirements.md` (本書とセットで参照)
-

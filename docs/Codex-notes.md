@@ -14,7 +14,7 @@
 - 架空大会「高温大学駅伝」の速報サイト。各選手の走行距離 = 担当アメダス地点の最高気温というルールで進行。
 - バックエンド（Python + cron + シェル）が Yahoo!天気・5ch をスクレイピングし、JSON を生成・更新。
 - フロントエンド（プレーン HTML/JS）が生成済み JSON を読み込み、地図・グラフ・コメント等を表示。
-- **現在運用中は第15回大会。来季（第16回）向けの準備ファイルが `index_16.html` / `app_16.js` にある。** 15回大会の本番用ファイルは `index.html`, `app.js`（および `15/` ディレクトリ）に配置。
+- **現在運用中は公開版の `index.html` / `app.js` を使う。** 15回大会の旧コードは `15/` ディレクトリに残し、公開版はルート直下の `index.html`, `app.js` を参照する。
 
 ## 日次オペレーション
 1. **リアルタイム更新 (07:00–19:00)**  
@@ -49,11 +49,11 @@
   - cron 実行前提でログの整形、git 操作を管理。
 
 ## フロントエンド構成
-- `index_16.html`  
+- `index.html`  
   - レイアウトとスタイルを全て内包。Chart.js、Leaflet、OMS、date-fns（日本語ロケール）、Google Fonts を CDN から読み込み。  
   - セクション構成：ナビ・速報コメント・マップ・各種ランキング・区間賞・エントリー・AI記事・監督談話・アメダス検索/全国ランキングなど。  
   - 大会固有の文言（タイトル等）は直接埋め込み。
-- `app_16.js`  
+- `app.js`  
   - データ取得、テーブル描画、Leaflet マーカー更新、チャート描画、検索系 UI などを一括で制御。  
   - `EKIDEN_START_DATE`, `CURRENT_EDITION` は毎年更新が必要。  
   - ブラウザ側のスクレイピングは allorigins プロキシ経由。
@@ -87,7 +87,7 @@
 ## 開発者の意図・方針
 - メンテナは単独。商用ではなく、自分が使いやすいことが最優先。  
 - 大規模リファクタより **新機能や改善アイデアの追加** を重視。  
-- ファイル名に大会番号を付ける（例: `index_16.html`）のは意図的。多少の複雑さは許容。  
+- 公開用ファイル名は `index.html` / `app.js` に統一し、番号付きの別版は必要時のみ残す。  
 - テストは手動が主体。既存フロー（cron, スクレイピング）を壊さないことが重要。
 - ユーザーの大半はスマートフォンで閲覧する（勤務中の休憩時間等）。モバイルでも下位校まで一望できることが重要で、一覧を省略しない方針。
 
@@ -96,12 +96,12 @@
 ### 1. 大会切り替え時のデータ初期化（例: 第16回開始前）
 1. cron の `update_realtime.sh`, `update_manager_comments.sh`, `update_substitutions.sh`, `commit_daily.sh` を一時停止。  
 2. 最新の 15回大会データをアーカイブ（例: `mv data data_15_archive && mkdir data`、`mv logs logs_15_archive && mkdir logs`）。  
-3. `config/` ディレクトリを第16回仕様に更新（チーム編成、コース、outline、player_profiles など）。  
-4. `EKIDEN_START_DATE` を Python / JS の全ファイルで揃える（`scripts/generate_report.py`, `scripts/update_all_records.py`, `app_16.js` 等）。  
+3. `config/` ディレクトリを当該大会仕様に更新（チーム編成、コース、outline、player_profiles など）。  
+4. `EKIDEN_START_DATE` を Python / JS の全ファイルで揃える（`scripts/generate_report.py`, `scripts/update_all_records.py`, `app.js` 等）。  
 5. `data/` 配下は空でも問題なし。初回の `python scripts/generate_report.py --realtime` 実行で `ekiden_state.json`, `individual_results.json`, `rank_history.json`, `leg_rank_history.json`, `runner_locations.json`, `realtime_report.json` などが自動生成される。  
    - 手動でゼロ初期化したい場合は `python scripts/rebuild_history.py` の `initialize_result_files()` を参考にする。  
 6. `logs/substitution_log.txt` も新規作成または空ファイルにしておく。  
-7. フロント公開用に `index_16.html` / `app_16.js` を `index.html` / `app.js` に差し替えるか、GitHub Pages 側で参照先を更新。  
+7. フロント公開用に `index.html` / `app.js` を参照するように GitHub Pages 側を設定する。  
 8. ローカルで `python scripts/generate_report.py --realtime` を1回実行し、生成された JSON を確認。問題なければ cron を再開。
 
 ### 2. 監督の交代宣言があったとき
@@ -114,7 +114,7 @@
 4. 交代処理後に `python scripts/generate_report.py --realtime` を1度回し、`data/realtime_report.json` 等に反映されているかチェックする。
 
 ## 次回大会を見据えた軽いアドバイス
-- 第16回開始時は上記「データ初期化」手順を参考にし、15回大会の成果物をアーカイブ。  
+- 大会切り替え時は上記「データ初期化」手順を参考にし、旧大会の成果物をアーカイブ。  
 - 第17回以降に向けては、大会メタ情報を json 化しておくと大会番号の差し替えが楽になる。  
 - 新しい JSON や追加仕様を導入した際は、本メモと `README.md` に概要を追記する。  
 - Yahoo!天気の DOM 変更が発生した際は、前回値で暫定対応するなど復旧プランを用意しておく。

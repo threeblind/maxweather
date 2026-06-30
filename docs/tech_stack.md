@@ -4,8 +4,8 @@
 ## 言語・ランタイム
 - **Python 3.11** (想定): バックエンドスクリプト (`scripts/`)。仮想環境 `venv/` を利用。
 - **Shell (bash)**: cron 用ラッパースクリプト、Git 自動コミット。
-- **JavaScript (ES2020)**: フロントロジック (`app.js`, `app_16.js`)。ブラウザ実行。
-- **HTML/CSS**: `index.html`, `index_16.html`。CDN 由来のスタイルを併用。
+- **JavaScript (ES2020)**: フロントロジック (`app.js`)。ブラウザ実行。
+- **HTML/CSS**: `index.html`。CDN 由来のスタイルを併用。
 
 ## 主要ライブラリ
 ### バックエンド
@@ -35,7 +35,7 @@
 - `logs/`: cron 実行結果の記録。障害時の一次情報。
 
 ## 品質・監視
-- **テスト**: 現状はスクリプト単体テスト未整備。第16回に向けて `pytest` 導入検討。
+- **テスト**: 現状はスクリプト単体テスト未整備。`pytest` 導入検討。
 - **ロギング**: シェルスクリプト内で `logs/` に日次ログを残し、異常検知に活用。
 - **監視案**: GitHub Actions or 外部サービスでの疎通監視を検討。
 
@@ -44,4 +44,3 @@
 - 仕様と要件: `docs/requirements.md`
 - タスクボード: `docs/development_tasks.md`
 - 最新ドキュメント一覧: `docs/documentation_index.md`
-
