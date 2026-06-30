@@ -15,6 +15,7 @@ let legBestRecordByLeg = new Map(); // 区間最高記録のキャッシュ
 let legBestRecordTeamByLeg = new Map(); // 区間最高記録の保持チーム名
 let goalLatLng = null; // ゴール地点の座標を保持
 let coursePathData = null; // course_path.json の全ポイントデータ（座標変換用）
+let shouldShowInitialAllTeamsPreview = true; // 初回の「全大学を表示」はスタート地点に重ねる
 
 // --- 順位変動タイムライン用状態変数 ---
 let rankTimelineEvents = [];
@@ -683,6 +684,20 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         });
     }
 
+    const shouldUseStartPreview =
+        trackedTeamName === "all_teams" &&
+        shouldShowInitialAllTeamsPreview &&
+        !!startLatLng;
+
+    if (shouldUseStartPreview && Array.isArray(runnerLocations) && runnerLocations.length > 0) {
+        runnerLocations = runnerLocations.map((runner, index) => ({
+            ...runner,
+            rank: typeof runner.rank === 'number' ? runner.rank : index + 1,
+            latitude: startLatLng[0],
+            longitude: startLatLng[1]
+        }));
+    }
+
     if (!runnerLocations || runnerLocations.length === 0) {
         return; // 表示するランナーがいない場合は何もしない
     }
@@ -848,7 +863,10 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         // --- Show all teams ---
         const allRunnerLatLngs = displayedLatLngs;
         const uniqueLatLngs = new Set(allRunnerLatLngs.map(latlng => `${latlng[0]},${latlng[1]}`));
-        if (startLatLng && uniqueLatLngs.size <= 1) {
+        if (shouldUseStartPreview) {
+            map.setView(startLatLng, 6);
+            shouldShowInitialAllTeamsPreview = false;
+        } else if (startLatLng && uniqueLatLngs.size <= 1) {
             map.setView(startLatLng, 6);
         } else {
             const bounds = L.latLngBounds(allRunnerLatLngs);
