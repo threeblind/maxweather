@@ -15,7 +15,6 @@ let legBestRecordByLeg = new Map(); // 区間最高記録のキャッシュ
 let legBestRecordTeamByLeg = new Map(); // 区間最高記録の保持チーム名
 let goalLatLng = null; // ゴール地点の座標を保持
 let coursePathData = null; // course_path.json の全ポイントデータ（座標変換用）
-let shouldShowInitialAllTeamsPreview = true; // 初回の「全大学を表示」はスタート地点に重ねる
 
 // --- 順位変動タイムライン用状態変数 ---
 let rankTimelineEvents = [];
@@ -38,9 +37,23 @@ const FAVORITE_MAX = 3;
 
 // CORS制限を回避するためのプロキシサーバーURLのテンプレート
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
-let EKIDEN_START_DATE = '2026-03-08'; // outline.json で上書き
+let EKIDEN_START_DATE = '2026-07-23'; // outline.json で上書き
 let CURRENT_EDITION = 16; // outline.json で上書き
 const SHOW_RACE_DIGEST = true;
+
+async function readJsonOrFallback(response, fallbackValue, label) {
+    if (!response || !response.ok) {
+        console.warn(`${label} が見つかりません。既定値で処理を続行します。`);
+        return fallbackValue;
+    }
+
+    try {
+        return await response.json();
+    } catch (error) {
+        console.warn(`${label} をJSONとして解析できません。既定値で処理を続行します。`, error);
+        return fallbackValue;
+    }
+}
 
 /**
  * 選手名から括弧で囲まれた都道府県名を取り除く
@@ -392,6 +405,7 @@ async function loadRanking() {
 // --- Map Variables ---
 let map = null;
 let runnerMarkersLayer = null;
+let relayPointsLayer = null;
 let teamColorMap = new Map();
 let trackedTeamName = "all_teams"; // デフォルトは全大学をスタート地点に重ねて表示
 let coursePolyline = null; // コースのポリラインをグローバルに保持
@@ -433,6 +447,7 @@ async function initializeMap() {
 
     // 3. Create a layer group for runner markers that can be easily cleared and updated
     runnerMarkersLayer = L.layerGroup().addTo(map);
+    relayPointsLayer = L.layerGroup().addTo(map);
 
     try {
         // 4. Fetch course path, relay points, and leg best records data in parallel
@@ -493,8 +508,14 @@ async function initializeMap() {
                     `;
                 }
 
-                L.marker([point.latitude, point.longitude])
-                    .addTo(map)
+                L.circleMarker([point.latitude, point.longitude], {
+                    radius: 5,
+                    color: '#007bff',
+                    weight: 2,
+                    fillColor: '#ffffff',
+                    fillOpacity: 0.9
+                })
+                    .addTo(relayPointsLayer)
                     .bindPopup(popupContent);
             });
         }
@@ -645,6 +666,38 @@ function getPointByDistance(coursePath, targetDistanceKm) {
     return [coursePath[coursePath.length - 1].lat, coursePath[coursePath.length - 1].lon];
 }
 
+function hasEkidenStarted() {
+    const [year, month, day] = String(EKIDEN_START_DATE || '').split('-').map(Number);
+    if (!year || !month || !day) return false;
+
+    const startDate = new Date(year, month - 1, day);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today >= startDate;
+}
+
+function buildStartPreviewLocations(ekidenData) {
+    if (!startLatLng) return [];
+
+    const teams = lastRealtimeData && Array.isArray(lastRealtimeData.teams) && lastRealtimeData.teams.length > 0
+        ? lastRealtimeData.teams
+        : (ekidenData && Array.isArray(ekidenData.teams) ? ekidenData.teams : []);
+
+    return teams
+        .filter(team => team && team.is_shadow_confederation !== true)
+        .map((team, index) => ({
+            rank: team.overallRank ?? index + 1,
+            team_name: team.name,
+            team_short_name: team.short_name || team.name,
+            runner_name: team.runner || (team.runners && team.runners[0] ? team.runners[0].name : "第1走者"),
+            total_distance_km: 0.0,
+            latitude: startLatLng[0],
+            longitude: startLatLng[1],
+            is_shadow_confederation: false,
+            current_leg: 1
+        }));
+}
+
 /**
  * Updates the runner markers on the map with the latest locations.
  * @param {Array} runnerLocations - runner_locations.json のデータ。rankでソート済み。
@@ -656,46 +709,34 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
     // 古いマーカーをクリア
     runnerMarkersLayer.clearLayers();
 
+    const hasRunnerLocationArray = Array.isArray(runnerLocations);
+    const normalRunnerLocations = hasRunnerLocationArray
+        ? runnerLocations.filter(runner => runner && runner.is_shadow_confederation !== true)
+        : [];
+    const distanceKeys = new Set(normalRunnerLocations.map(runner => Number(runner.total_distance_km || 0).toFixed(3)));
+    const isBeforeStart = !hasEkidenStarted();
+    const isEmpty = !hasRunnerLocationArray || runnerLocations.length === 0;
+    const isSameDistance = normalRunnerLocations.length > 0 && distanceKeys.size <= 1;
+    const shouldUseStartPreview =
+        trackedTeamName === "all_teams" &&
+        !!startLatLng &&
+        (isBeforeStart || isEmpty || isSameDistance);
+
     const isPreStartOrEmpty =
-        !runnerLocations || runnerLocations.length === 0 ||
+        isEmpty ||
         (lastRealtimeData && Number(lastRealtimeData.raceDay) <= 0) ||
         (Array.isArray(runnerLocations) && runnerLocations.every(r => Number(r.total_distance_km || 0) <= 0));
 
-    if (isPreStartOrEmpty && startLatLng) {
-        const fallbackTeams = lastRealtimeData && Array.isArray(lastRealtimeData.teams) && lastRealtimeData.teams.length > 0
-            ? lastRealtimeData.teams
-            : (ekidenData && Array.isArray(ekidenData.teams) ? ekidenData.teams : []);
-
-        runnerLocations = fallbackTeams.map((team, index) => {
-            const legRecord = team.is_shadow_confederation ? legBestRecordByLeg.get(team.currentLeg) : null;
-            return {
-                rank: team.overallRank ?? index + 1,
-                team_name: team.name,
-                team_short_name: team.short_name || team.name,
-                runner_name: team.runner || (team.runners && team.runners[0] ? team.runners[0].name : "第1走者"),
-                total_distance_km: team.totalDistance ?? 0.0,
-                latitude: startLatLng[0],
-                longitude: startLatLng[1],
-                is_shadow_confederation: team.is_shadow_confederation === true,
-                current_leg: team.currentLeg ?? 1,
-                edition: legRecord?.edition ?? null,
-                leg_record: legRecord?.record ?? (team.todayDistance ?? null)
-            };
-        });
-    }
-
-    const shouldUseStartPreview =
-        trackedTeamName === "all_teams" &&
-        shouldShowInitialAllTeamsPreview &&
-        !!startLatLng;
-
-    if (shouldUseStartPreview && Array.isArray(runnerLocations) && runnerLocations.length > 0) {
-        runnerLocations = runnerLocations.map((runner, index) => ({
+    if ((isPreStartOrEmpty || shouldUseStartPreview) && startLatLng) {
+        const previewLocations = buildStartPreviewLocations(ekidenData);
+        runnerLocations = previewLocations.length > 0
+            ? previewLocations
+            : (Array.isArray(runnerLocations) ? runnerLocations.map((runner, index) => ({
             ...runner,
             rank: typeof runner.rank === 'number' ? runner.rank : index + 1,
             latitude: startLatLng[0],
             longitude: startLatLng[1]
-        }));
+            })) : []);
     }
 
     if (!runnerLocations || runnerLocations.length === 0) {
@@ -865,7 +906,6 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         const uniqueLatLngs = new Set(allRunnerLatLngs.map(latlng => `${latlng[0]},${latlng[1]}`));
         if (shouldUseStartPreview) {
             map.setView(startLatLng, 6);
-            shouldShowInitialAllTeamsPreview = false;
         } else if (startLatLng && uniqueLatLngs.size <= 1) {
             map.setView(startLatLng, 6);
         } else {
@@ -1923,13 +1963,13 @@ async function refreshRealtimeData() {
             fetch(`data/runner_locations.json?_=${new Date().getTime()}`)
         ]);
 
-        if (!realtimeRes.ok || !runnerLocationsRes.ok) {
+        if (!realtimeRes.ok) {
             console.error('Failed to fetch realtime data for refresh.');
             return;
         }
 
-        const realtimeData = await realtimeRes.json();
-        const runnerLocations = await runnerLocationsRes.json();
+        const realtimeData = await readJsonOrFallback(realtimeRes, {}, 'realtime_report.json');
+        const runnerLocations = await readJsonOrFallback(runnerLocationsRes, [], 'runner_locations.json');
 
         // Use cached ekidenData
         if (!ekidenDataCache) {
@@ -2013,11 +2053,11 @@ const fetchEkidenData = async () => {
         // ログファイルの存在をチェックしてフラグを更新
         logFileExists = logFileRes.ok;
 
-        let realtimeData = realtimeRes.ok ? await realtimeRes.json() : {};
-        let individualData = individualRes.ok ? await individualRes.json() : {};
-        let runnerLocations = runnerLocationsRes.ok ? await runnerLocationsRes.json() : [];
-        let ekidenData = ekidenDataRes.ok ? await ekidenDataRes.json() : {};
-        legRankHistoryData = legRankHistoryRes.ok ? await legRankHistoryRes.json() : null;
+        let realtimeData = await readJsonOrFallback(realtimeRes, {}, 'realtime_report.json');
+        let individualData = await readJsonOrFallback(individualRes, {}, 'individual_results.json');
+        let runnerLocations = await readJsonOrFallback(runnerLocationsRes, [], 'runner_locations.json');
+        let ekidenData = await readJsonOrFallback(ekidenDataRes, {}, 'ekiden_data.json');
+        legRankHistoryData = await readJsonOrFallback(legRankHistoryRes, null, 'leg_rank_history.json');
 
         if (!realtimeRes.ok) {
             console.warn('realtime_report.json が見つかりません。初期状態として扱います。');

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ekiden-sokuhou-cache-v9';
+const CACHE_NAME = 'ekiden-sokuhou-cache-v10';
 // オフライン時に利用できるようにキャッシュするファイルのリスト
 const urlsToCache = [
   './', // ルートURL
@@ -42,8 +42,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 動的なデータ(json)と主要なページ(html)は Stale-While-Revalidate 戦略
-  if (request.url.includes('.json') || request.destination === 'document') {
+  if (request.url.includes('.json')) {
+    event.respondWith(
+      fetch(request).then((networkResponse) => {
+        const contentType = networkResponse.headers.get('content-type') || '';
+        if (networkResponse.ok && contentType.includes('application/json')) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+        }
+        return networkResponse;
+      }).catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // 主要なページ(html)は Stale-While-Revalidate 戦略
+  if (request.destination === 'document') {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {
         return cache.match(request).then((cachedResponse) => {

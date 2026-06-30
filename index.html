@@ -335,6 +335,7 @@
 
         .page-nav>ul>li>a {
             display: block;
+            white-space: nowrap;
             padding: 0.55rem 0.85rem;
             background-color: transparent;
             border: 1px solid transparent;
@@ -356,6 +357,11 @@
         .page-nav .dropdown {
             position: relative;
             display: inline-block;
+            flex: 0 0 auto;
+        }
+
+        .page-nav>ul>li {
+            flex: 0 0 auto;
         }
 
         .page-nav .dropdown-content {
