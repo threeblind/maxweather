@@ -39,7 +39,7 @@ const FAVORITE_MAX = 3;
 const PROXY_URL_TEMPLATE = 'https://api.allorigins.win/get?url=%URL%';
 let EKIDEN_START_DATE = '2026-03-08'; // outline.json で上書き
 let CURRENT_EDITION = 16; // outline.json で上書き
-const SHOW_RACE_DIGEST = false;
+const SHOW_RACE_DIGEST = true;
 
 /**
  * 選手名から括弧で囲まれた都道府県名を取り除く
