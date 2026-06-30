@@ -579,16 +579,16 @@ function setupTeamTracker(teams) {
         selectEl.appendChild(option);
     });
 
-    // 3. 全体表示オプションを最後に追加
-    const allTeamsOption = document.createElement('option');
-    allTeamsOption.value = 'all_teams';
-    allTeamsOption.textContent = '全大学を表示';
-    selectEl.appendChild(allTeamsOption);
-
+    // 3. 全体表示オプションを追加（コース全体→全大学→区間最高記録の順）
     const courseOption = document.createElement('option');
     courseOption.value = 'full_course';
     courseOption.textContent = 'コース全体を表示';
     selectEl.appendChild(courseOption);
+
+    const allTeamsOption = document.createElement('option');
+    allTeamsOption.value = 'all_teams';
+    allTeamsOption.textContent = '全大学を表示';
+    selectEl.appendChild(allTeamsOption);
 
     // 「区間記録連合」追跡オプションを追加
     const shadowOption = document.createElement('option');
