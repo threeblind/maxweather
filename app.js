@@ -392,7 +392,7 @@ async function loadRanking() {
 let map = null;
 let runnerMarkersLayer = null;
 let teamColorMap = new Map();
-let trackedTeamName = "lead_group"; // デフォルトは先頭集団を追跡
+let trackedTeamName = "all_teams"; // デフォルトは全大学をスタート地点に重ねて表示
 let coursePolyline = null; // コースのポリラインをグローバルに保持
 let shouldAutoFollowMap = true; // ユーザーが地図を触るまでは追跡を維持する
 let startLatLng = null; // スタート地点の緯度経度
@@ -571,8 +571,8 @@ function setupTeamTracker(teams) {
     const selectEl = document.getElementById('team-tracker-select');
     if (!selectEl) return;
 
-    // 1. 最初に「先頭集団を追跡」オプションのみを設定
-    selectEl.innerHTML = `<option value="lead_group">先頭集団を追跡</option>`;
+    // 1. 最初に「全大学を表示」オプションのみを設定
+    selectEl.innerHTML = `<option value="all_teams">全大学を表示</option>`;
 
     // 2. 各大学をオプションとして追加
     teams.forEach(team => {
@@ -581,12 +581,6 @@ function setupTeamTracker(teams) {
         option.textContent = team.name;
         selectEl.appendChild(option);
     });
-
-    // 3. 全体表示オプションを最後に追加
-    const allTeamsOption = document.createElement('option');
-    allTeamsOption.value = 'all_teams';
-    allTeamsOption.textContent = '全大学を表示';
-    selectEl.appendChild(allTeamsOption);
 
     const courseOption = document.createElement('option');
     courseOption.value = 'full_course';
@@ -853,8 +847,13 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
     } else if (trackedTeamName === "all_teams") {
         // --- Show all teams ---
         const allRunnerLatLngs = displayedLatLngs;
-        const bounds = L.latLngBounds(allRunnerLatLngs);
-        map.fitBounds(bounds.pad(0.1)); // .pad(0.1) for some margin
+        const uniqueLatLngs = new Set(allRunnerLatLngs.map(latlng => `${latlng[0]},${latlng[1]}`));
+        if (startLatLng && uniqueLatLngs.size <= 1) {
+            map.setView(startLatLng, 6);
+        } else {
+            const bounds = L.latLngBounds(allRunnerLatLngs);
+            map.fitBounds(bounds.pad(0.1)); // .pad(0.1) for some margin
+        }
     } else if (trackedTeamName === "shadow_confederation") {
         // --- 区間最高記録のゴーストを追跡 ---
         if (ghostRunner) {
