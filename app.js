@@ -457,6 +457,9 @@ async function initializeMap() {
             coursePolyline = L.polyline(latlngs, { color: '#007bff', weight: 5, opacity: 0.7 }).addTo(map);
             goalLatLng = latlngs[latlngs.length - 1] || null;
             startLatLng = latlngs[0] || null;
+            if (startLatLng) {
+                map.setView(startLatLng, 6);
+            }
         }
 
         // 6. Draw relay point markers with leg record info
@@ -1582,7 +1585,10 @@ async function displayLegRankHistoryTable() {
 
         // 他の必須ファイルがない場合はエラー表示
         if (!legHistoryRes.ok || !ekidenDataRes.ok || !realtimeRes.ok) {
-            throw new Error('表示に必要な基本データの取得に失敗しました。');
+            statusEl.style.display = 'none';
+            tableEl.style.display = 'none';
+            sectionEl.style.display = 'block';
+            return;
         }
 
         const historyData = await legHistoryRes.json();
@@ -1591,7 +1597,10 @@ async function displayLegRankHistoryTable() {
         const intramuralData = intramuralRes.ok ? await intramuralRes.json() : null;
 
         if (!historyData || !historyData.teams || historyData.teams.length === 0) {
-            throw new Error('表示する区間通過順位データがありません。');
+            statusEl.style.display = 'none';
+            tableEl.style.display = 'none';
+            sectionEl.style.display = 'block';
+            return;
         }
 
         // ヘッダーを日本語化し、往路・復路のグループ化を追加
@@ -1645,8 +1654,7 @@ async function displayLegRankHistoryTable() {
 
     } catch (error) {
         console.error('区間通過順位テーブルの描画に失敗:', error);
-        statusEl.textContent = `(Error) 通過順位データ解析失敗: ${error.message}`;
-        statusEl.className = 'result error';
+        statusEl.style.display = 'none';
         tableEl.style.display = 'none';
     }
 }
@@ -5065,8 +5073,8 @@ async function loadRankTimeline({ force = false } = {}) {
                 updateTimeEl.textContent += ' (更新に失敗しました)';
             }
         } else {
-            statusEl.innerHTML = `タイムラインを取得できませんでした。 <button type="button" onclick="loadRankTimeline({ force: true })" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">再読み込み</button>`;
-            statusEl.style.display = 'block';
+            statusEl.textContent = '';
+            statusEl.style.display = 'none';
             document.getElementById('rank-timeline-list').innerHTML = '';
             toggleBtn.hidden = true;
         }
