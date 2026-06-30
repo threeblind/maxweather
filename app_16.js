@@ -3408,15 +3408,12 @@ function displayTeamDetails(teamId) {
     // 全体のHTMLを組み立て
     const teamColor = teamConfig.color || '#6c757d';
     const textColor = getContrastingTextColor(teamColor);
-    const descriptionBgColor = hexToRgba(teamColor, 0.1);
 
     contentContainer.innerHTML = `
         <div class="team-details-container">
-            <div class="team-details-description-wrapper">
-                <div class="team-details-title" style="background-color: ${teamColor}; color: ${textColor};"></div>
-                <div class="team-details-text" style="background-color: ${descriptionBgColor};">${teamConfig.description || 'チーム紹介はありません。'}</div>
+            <div class="team-details-title" style="background-color: ${teamColor}; color: ${textColor};">
+                <span class="team-details-title-text">${teamConfig.name}</span>
             </div>
-            
             <table class="team-kukan-table">
                 <tbody>
                     ${kukanEntriesHtml}
@@ -3429,15 +3426,10 @@ function displayTeamDetails(teamId) {
     // 注目ボタンをタイトルバー右端に追加（innerHTML に直接埋め込まずDOMで挿入）
     const titleEl = contentContainer.querySelector('.team-details-title');
     if (titleEl) {
-        titleEl.textContent = '';
         const favBtn = createFavoriteButton(teamId);
         favBtn.classList.add('fav-btn--in-title');
         favBtn.classList.add('fav-btn--inline');
         titleEl.appendChild(favBtn);
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'team-details-title-text';
-        nameSpan.textContent = `${teamConfig.name} ${teamConfig.manager || ''}`.trim();
-        titleEl.appendChild(nameSpan);
     }
 }
 // --- 初期化処理 ---
