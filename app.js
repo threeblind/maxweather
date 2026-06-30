@@ -405,7 +405,6 @@ async function loadRanking() {
 // --- Map Variables ---
 let map = null;
 let runnerMarkersLayer = null;
-let relayPointsLayer = null;
 let teamColorMap = new Map();
 let trackedTeamName = "all_teams"; // デフォルトは全大学をスタート地点に重ねて表示
 let coursePolyline = null; // コースのポリラインをグローバルに保持
@@ -447,7 +446,6 @@ async function initializeMap() {
 
     // 3. Create a layer group for runner markers that can be easily cleared and updated
     runnerMarkersLayer = L.layerGroup().addTo(map);
-    relayPointsLayer = L.layerGroup().addTo(map);
 
     try {
         // 4. Fetch course path, relay points, and leg best records data in parallel
@@ -508,14 +506,8 @@ async function initializeMap() {
                     `;
                 }
 
-                L.circleMarker([point.latitude, point.longitude], {
-                    radius: 5,
-                    color: '#007bff',
-                    weight: 2,
-                    fillColor: '#ffffff',
-                    fillOpacity: 0.9
-                })
-                    .addTo(relayPointsLayer)
+                L.marker([point.latitude, point.longitude])
+                    .addTo(map)
                     .bindPopup(popupContent);
             });
         }
@@ -696,6 +688,22 @@ function buildStartPreviewLocations(ekidenData) {
             is_shadow_confederation: false,
             current_leg: 1
         }));
+}
+
+function fitMapToFirstLeg() {
+    if (!map || !startLatLng) return;
+
+    const firstLegEndDistance = Array.isArray(ekidenDataCache?.leg_boundaries)
+        ? Number(ekidenDataCache.leg_boundaries[0])
+        : 100;
+    const firstLegEndLatLng = getPointByDistance(coursePathData, firstLegEndDistance);
+
+    if (firstLegEndLatLng) {
+        const bounds = L.latLngBounds([startLatLng, firstLegEndLatLng]);
+        map.fitBounds(bounds.pad(0.25), { maxZoom: 9 });
+    } else {
+        map.setView(startLatLng, 7);
+    }
 }
 
 /**
@@ -905,7 +913,7 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         const allRunnerLatLngs = displayedLatLngs;
         const uniqueLatLngs = new Set(allRunnerLatLngs.map(latlng => `${latlng[0]},${latlng[1]}`));
         if (shouldUseStartPreview) {
-            map.setView(startLatLng, 6);
+            fitMapToFirstLeg();
         } else if (startLatLng && uniqueLatLngs.size <= 1) {
             map.setView(startLatLng, 6);
         } else {
