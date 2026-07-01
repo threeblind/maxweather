@@ -12,7 +12,7 @@
 
 ## プロジェクト概要
 - 架空大会「高温大学駅伝」の速報サイト。各選手の走行距離 = 担当アメダス地点の最高気温というルールで進行。
-- バックエンド（Python + cron + シェル）が Yahoo!天気・5ch をスクレイピングし、JSON を生成・更新。
+- バックエンド（Python + GitHub Actions + シェル）が Yahoo!天気・5ch をスクレイピングし、JSON を生成・更新。
 - フロントエンド（プレーン HTML/JS）が生成済み JSON を読み込み、地図・グラフ・コメント等を表示。
 - **現在運用中は公開版の `index.html` / `app.js` を使う。** 15回大会の旧コードは `15/` ディレクトリに残し、公開版はルート直下の `index.html`, `app.js` を参照する。
 
@@ -45,8 +45,8 @@
   - 全登録選手の最終データを揃え、学内ランキング用 JSON を生成。
 - `scripts/fetch_manager_comments.py`  
   - 監督談話スレを巡回し、HTML を正規化した上で JSON 化。
-- 各種シェル (`update_realtime.sh`, `update_manager_comments.sh`, `commit_daily.sh`)  
-  - cron 実行前提でログの整形、git 操作を管理。
+- 各種シェル (`update_realtime.sh`, `update_manager_comments.sh`, `commit_daily.sh`, `commit_summary.sh`)  
+  - GitHub Actions 実行前提でログの整形、git 操作を管理。
 
 ## フロントエンド構成
 - `index.html`  
@@ -88,13 +88,13 @@
 - メンテナは単独。商用ではなく、自分が使いやすいことが最優先。  
 - 大規模リファクタより **新機能や改善アイデアの追加** を重視。  
 - 公開用ファイル名は `index.html` / `app.js` に統一し、番号付きの別版は必要時のみ残す。  
-- テストは手動が主体。既存フロー（cron, スクレイピング）を壊さないことが重要。
+- テストは手動が主体。既存フロー（GitHub Actions, スクレイピング）を壊さないことが重要。
 - ユーザーの大半はスマートフォンで閲覧する（勤務中の休憩時間等）。モバイルでも下位校まで一望できることが重要で、一覧を省略しない方針。
 
 ## 運用タスクのメモ
 
 ### 1. 大会切り替え時のデータ初期化（例: 第16回開始前）
-1. cron の `update_realtime.sh`, `update_manager_comments.sh`, `update_substitutions.sh`, `commit_daily.sh` を一時停止。  
+1. GitHub Actions の schedule を一時停止。必要なら workflow を無効化または分離。  
 2. 最新の 15回大会データをアーカイブ（例: `mv data data_15_archive && mkdir data`、`mv logs logs_15_archive && mkdir logs`）。  
 3. `config/` ディレクトリを当該大会仕様に更新（チーム編成、コース、outline、player_profiles など）。  
 4. `EKIDEN_START_DATE` を Python / JS の全ファイルで揃える（`scripts/generate_report.py`, `scripts/update_all_records.py`, `app.js` 等）。  
@@ -102,10 +102,10 @@
    - 手動でゼロ初期化したい場合は `python scripts/rebuild_history.py` の `initialize_result_files()` を参考にする。  
 6. `logs/substitution_log.txt` も新規作成または空ファイルにしておく。  
 7. フロント公開用に `index.html` / `app.js` を参照するように GitHub Pages 側を設定する。  
-8. ローカルで `python scripts/generate_report.py --realtime` を1回実行し、生成された JSON を確認。問題なければ cron を再開。
+8. ローカルで `python scripts/generate_report.py --realtime` を1回実行し、生成された JSON を確認。問題なければ workflow の schedule を有効化する。
 
 ### 2. 監督の交代宣言があったとき
-1. 夜間帯（18:00–24:00）に cron の `update_substitutions.sh` が動いていれば自動処理。  
+1. 夜間帯（18:00–24:00）に `update_substitutions.sh` が workflow から動いていれば自動処理。  
 2. 手動で行う場合  
    1. `source venv/bin/activate`  
    2. `python scripts/process_substitutions.py` を実行し、5ch スレを解析させる。  

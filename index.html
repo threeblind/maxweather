@@ -8,6 +8,12 @@
     <script>
         document.write(`<base href="${location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1)}" />`);
     </script>
+    <script>
+        const isPreviewMode = new URLSearchParams(location.search).get('preview') === '1';
+        if (!isPreviewMode) {
+            location.replace('./maintenance.html');
+        }
+    </script>
     <title>高温大学駅伝 速報</title>
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script defer
@@ -17,8 +23,6 @@
         src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <!-- 2. 日本語ロケールスクリプトが参照できるように、グローバルに受け皿となるオブジェクトを定義します -->
     <script>window.dateFns = { locale: {} };</script>
-    <!-- 3. 日本語ロケールを読み込みます。これにより window.dateFns.locale.ja が設定されます -->
-    <script defer src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/locale/ja/index.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

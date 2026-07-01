@@ -4,9 +4,12 @@
 set -euo pipefail
 
 # --- 設定 ---
-# Pythonの実行可能ファイルへのフルパスを指定します。
-# `which python3.9` コマンドで確認したパスに置き換えてください。
-PYTHON_CMD="/Users/t28k2/prj/weather/venv/bin/python"
+# Pythonの実行可能ファイルを解決します。ローカルではvenv、CIではPATH上のpythonを使います。
+if [[ -x "venv/bin/python" ]]; then
+    PYTHON_CMD="venv/bin/python"
+else
+    PYTHON_CMD="${PYTHON_CMD:-python}"
+fi
 GIT_BRANCH="main"
 
 # --- スクリプト本体 ---
@@ -18,7 +21,7 @@ echo "--- $(date +'%Y-%m-%d %H:%M:%S') ---"
 echo "監督談話室のコメント更新を開始します..."
 
 # 1. Pythonスクリプトを実行して manager_comments.json を更新
-${PYTHON_CMD} scripts/fetch_manager_comments.py
+"$PYTHON_CMD" scripts/fetch_manager_comments.py
 
 # 2. manager_comments.json に変更があったかを確認
 if ! git diff --quiet --exit-code data/manager_comments.json; then

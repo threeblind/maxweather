@@ -51,7 +51,8 @@
 - **監視性**: スクリプト結果は `logs/` や Git コミットログで追跡できる。異常時は Slack/メール等への通知拡張を検討する。
 
 ## 運用要件
-- cron で各シェル (`update_realtime.sh`, `update_manager_comments.sh`, `commit_daily.sh`) を定期実行し、Git へ自動コミット・プッシュする。
+- GitHub Actions で各シェル (`update_realtime.sh`, `update_manager_comments.sh`, `commit_daily.sh`, `commit_summary.sh`) を定期実行し、Git へ自動コミット・プッシュする。
+- 定期実行の開始時刻は `2026-07-23 00:00 JST` とし、それ以前の schedule 実行は workflow 側で無効化する。
 - 環境変数 (`.env`) に `PROD_PUSH_API_URL`・`API_SECRET_KEY` を設定し、Push 配信を制御する。無設定時は無害にスキップする。
 - Yahoo!天気や 5ch スレッドの DOM 変更に備え、スクレイピング処理は例外を拾ってログと通知に残す。
 

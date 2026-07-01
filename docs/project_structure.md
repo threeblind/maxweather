@@ -16,7 +16,7 @@
 | `images/` | フロントで使用する静的画像 | 大会バナーなど |
 | `index.html` / `app.js` | 公開中のフロントエンド | UI ロジックは `app.js` に集約 |
 | `sw.js` | Service Worker | キャッシュ制御・オフライン対策 |
-| `scripts/*.sh` | cron 用シェル | 自動実行と Git コミット制御 |
+| `scripts/*.sh` | 自動実行用シェル | GitHub Actions から呼び出し、Git コミット制御 |
 
 ## 実行フロー（概要）
 1. **リアルタイム更新 (07:00–19:00)**  

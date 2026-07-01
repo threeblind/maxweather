@@ -3056,7 +3056,7 @@ async function renderProfileCharts(rawRunnerName, raceDay) {
                     responsive: true, maintainAspectRatio: false,
                     scales: {
                         y: { beginAtZero: false, title: { display: true, text: '距離 (km)' } },
-                        x: { type: 'time', time: { unit: 'hour', displayFormats: { hour: 'H:mm' } }, title: { display: true, text: '時刻' }, adapters: { date: { locale: window.dateFns.locale.ja } } }
+                        x: { type: 'time', time: { unit: 'hour', displayFormats: { hour: 'H:mm' } }, title: { display: true, text: '時刻' }, adapters: { date: { locale: window.dateFns?.locale?.ja } } }
                     },
                     plugins: {
                         tooltip: { callbacks: { label: (context) => ` ${context.dataset.label}: ${context.parsed.y.toFixed(1)} km` } },
