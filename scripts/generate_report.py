@@ -652,6 +652,23 @@ def calculate_and_save_runner_locations(teams_data):
 
     for team in teams_data:
         target_distance_km = team.get('totalDistance', 0)
+
+        # 最終ゴール距離以上ならコース最終点にスナップ
+        final_goal_km = (ekiden_data.get('leg_boundaries') or [])[-1] if ekiden_data.get('leg_boundaries') else None
+        if final_goal_km is not None and target_distance_km >= final_goal_km:
+            team_lat, team_lon = all_points[-1]['lat'], all_points[-1]['lon']
+            team_info = team_info_map.get(team.get('id'))
+            short_name = team_info.get('short_name', team.get('name')) if team_info else team.get('name')
+            runner_locations.append({
+                "rank": team.get('overallRank'), "team_name": team.get('name'),
+                "team_short_name": short_name,
+                "runner_name": team.get('runner'), "total_distance_km": team.get('totalDistance'),
+                "latitude": team_lat, "longitude": team_lon,
+                "current_leg": team.get('newCurrentLeg', team.get('currentLegNumber', 1)),
+                "is_shadow_confederation": team.get("is_shadow_confederation", False)
+            })
+            continue
+
         cumulative_distance_km = 0.0
         team_lat, team_lon = all_points[0]['lat'], all_points[0]['lon']
         location_found = False
