@@ -30,6 +30,13 @@ fi
 echo "generate_daily_summary_bymoment.py を実行中..."
 "$PYTHON_CMD" scripts/generate_daily_summary.py
 
+if [[ "${EKIDEN_DISABLE_GIT_PUSH:-0}" == "1" ]]; then
+    echo "テストモードのため、Git commit / push はスキップします。"
+    echo "処理が正常に完了しました。"
+    echo ""
+    exit 0
+fi
+
 # 3. daily_summary.json, article_history.json, または race_narrative_state.json に変更があったか確認し、変更があればPush
 SUMMARY_FILE="data/daily_summary.json"
 HISTORY_FILE="data/article_history.json"

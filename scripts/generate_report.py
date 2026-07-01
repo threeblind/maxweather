@@ -17,7 +17,9 @@ CONFIG_DIR = Path('config')
 DATA_DIR = Path('data')
 LOGS_DIR = Path('logs')
 HISTORY_DATA_DIR = Path('history_data')
+TEST_EKIDEN_DATA_FILE = Path('15/ekiden_data.json')
 SNAPSHOT_DIR = DATA_DIR / 'snapshots'  # スナップショットの保存ディレクトリ
+TEST_MODE = os.environ.get('EKIDEN_TEST_MODE') == '1'
 
 def determine_leg_from_total_distance(total_distance, leg_boundaries):
     """総合距離から 1-based の区間番号を返す。境界値は次区間扱いにする。"""
@@ -97,6 +99,12 @@ def load_all_data():
             stations_data = json.load(f)
         with open(EKIDEN_DATA_FILE, 'r', encoding='utf-8') as f:
             ekiden_data = json.load(f)
+        if TEST_MODE:
+            has_runners = any(team.get('runners') for team in ekiden_data.get('teams', []))
+            if not has_runners and TEST_EKIDEN_DATA_FILE.exists():
+                print(f"情報: テストモードのため {TEST_EKIDEN_DATA_FILE} を選手データとして使用します。")
+                with open(TEST_EKIDEN_DATA_FILE, 'r', encoding='utf-8') as tf:
+                    ekiden_data = json.load(tf)
         
         # シャドーチームの定義を読み込む
         try:

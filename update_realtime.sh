@@ -34,6 +34,13 @@ fi
 echo "scripts/generate_report.py を実行中..."
 "$PYTHON_CMD" scripts/generate_report.py --realtime
 
+if [[ "${EKIDEN_DISABLE_GIT_PUSH:-0}" == "1" ]]; then
+    echo "テストモードのため、Git commit / push はスキップします。"
+    echo "処理が正常に完了しました。"
+    echo ""
+    exit 0
+fi
+
 # 3. 速報ファイルに変更があるか確認し、変更があればPush
 # 未追跡の新規ファイルも差分検知の対象にするため、存在すれば git add -N (intent-to-add) を行います。
 for f in data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json data/realtime_log.jsonl; do

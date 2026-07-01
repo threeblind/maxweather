@@ -34,6 +34,13 @@ echo "scripts/update_all_records.py を実行中..."
 echo "scripts/generate_report.py --commit を実行中..."
 "$PYTHON_CMD" scripts/generate_report.py --commit
 
+if [[ "${EKIDEN_DISABLE_GIT_PUSH:-0}" == "1" ]]; then
+    echo "テストモードのため、Git commit / push はスキップします。"
+    echo "処理が正常に完了しました。"
+    echo ""
+    exit 0
+fi
+
 # 4. 本日のログファイルをアーカイブ
 LOGS_DIR="logs"
 DATA_DIR="data"
