@@ -45,6 +45,21 @@ def load_start_date_from_outline():
 
 load_start_date_from_outline()
 
+def normalize_runner_entries(team_data):
+    if not isinstance(team_data, dict):
+        return team_data
+
+    for key in ('runners', 'substitutes', 'substituted_out'):
+        entries = team_data.get(key, [])
+        normalized = []
+        for entry in entries:
+            if isinstance(entry, str):
+                normalized.append({'name': entry})
+            else:
+                normalized.append(entry)
+        team_data[key] = normalized
+    return team_data
+
 def load_base_data():
     """
     このスクリプトに必要な基本データ（アメダス地点、駅伝チーム情報）を読み込む。
@@ -61,6 +76,7 @@ def load_base_data():
                 print(f"情報: テストモードのため {TEST_EKIDEN_DATA_FILE} を選手データとして使用します。")
                 with open(TEST_EKIDEN_DATA_FILE, 'r', encoding='utf-8') as tf:
                     ekiden_data = json.load(tf)
+        ekiden_data['teams'] = [normalize_runner_entries(team) for team in ekiden_data.get('teams', [])]
     except FileNotFoundError as e:
         print(f"エラー: データファイルが見つかりません。 {e.filename}")
         exit(1)

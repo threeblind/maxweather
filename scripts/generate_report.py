@@ -91,6 +91,22 @@ def load_start_date_from_outline():
 
 load_start_date_from_outline()
 
+def normalize_runner_entries(team_data):
+    """runners / substitutes が文字列配列でも dict 配列でも扱えるように正規化する"""
+    if not isinstance(team_data, dict):
+        return team_data
+
+    for key in ('runners', 'substitutes'):
+        entries = team_data.get(key, [])
+        normalized = []
+        for entry in entries:
+            if isinstance(entry, str):
+                normalized.append({'name': entry})
+            else:
+                normalized.append(entry)
+        team_data[key] = normalized
+    return team_data
+
 def load_all_data():
     """必要なJSONファイルをすべて読み込む"""
     global stations_data, all_teams_data, ekiden_data, story_settings, past_results, leg_award_history, tournament_records, leg_best_records, intramural_rankings
@@ -105,11 +121,13 @@ def load_all_data():
                 print(f"情報: テストモードのため {TEST_EKIDEN_DATA_FILE} を選手データとして使用します。")
                 with open(TEST_EKIDEN_DATA_FILE, 'r', encoding='utf-8') as tf:
                     ekiden_data = json.load(tf)
+        ekiden_data['teams'] = [normalize_runner_entries(team) for team in ekiden_data.get('teams', [])]
         
         # シャドーチームの定義を読み込む
         try:
             with open(SHADOW_TEAM_FILE, 'r', encoding='utf-8') as f:
                 shadow_team_data = json.load(f)
+            shadow_team_data = normalize_runner_entries(shadow_team_data)
             # 正規チームとシャドーチームの情報を結合
             all_teams_data = ekiden_data.get('teams', []) + [shadow_team_data]
         except FileNotFoundError:
