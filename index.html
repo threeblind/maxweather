@@ -314,23 +314,29 @@
 
         .page-nav ul {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             list-style: none;
             padding: 0;
             margin: 0;
             justify-content: center;
-            flex-wrap: wrap;
-            /* 小画面で折り返す */
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .page-nav ul::-webkit-scrollbar {
+            display: none;
         }
 
         .page-nav a {
             /* This will be the base style for all nav links, including mobile */
-            font-size: 18px;
+            font-size: 17px;
         }
 
         .page-nav>ul>li>a {
             display: block;
-            padding: 0.6rem 1rem;
+            white-space: nowrap;
+            padding: 0.55rem 0.85rem;
             background-color: transparent;
             border: 1px solid transparent;
             border-radius: 99px;
@@ -351,6 +357,11 @@
         .page-nav .dropdown {
             position: relative;
             display: inline-block;
+            flex: 0 0 auto;
+        }
+
+        .page-nav>ul>li {
+            flex: 0 0 auto;
         }
 
         .page-nav .dropdown-content {
@@ -1231,10 +1242,10 @@
 
         @media (max-width: 768px) {
 
-            /* スマホ表示ではナビゲーションを折り返し表示にする */
             .page-nav ul {
-                flex-wrap: wrap;
-                justify-content: center;
+                justify-content: flex-start;
+                gap: 6px;
+                padding-bottom: 4px;
             }
 
             /* スマホ表示でテーブルの文字と余白を小さくする */
@@ -1757,7 +1768,16 @@
             }
         }
 
-        /* --- Team Details Header (New Style) --- */
+        /* --- Team Details Header & Description (New Style) --- */
+        .team-details-description-wrapper {
+            margin-bottom: 2rem;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            /* Ensure child border-radius is clipped */
+            box-shadow: var(--box-shadow);
+            border: 1px solid var(--border-color);
+        }
+
         .team-details-title {
             padding: 1rem 1.5rem;
             font-size: 1.5rem;
@@ -1772,6 +1792,11 @@
             font-size: 0.8rem;
             font-weight: 500;
             opacity: 0.9;
+        }
+
+        .team-details-text {
+            padding: 1.5rem;
+            line-height: 1.8;
         }
 
         .team-kukan-table {
@@ -2824,7 +2849,7 @@
     </footer>
 
     <!-- Leaflet.js should be loaded before app.js -->
-    <script defer src="app_16.js?v=20260628-2"></script>
+    <script defer src="app.js?v=20260630-1"></script>
 </body>
 
 </html>
