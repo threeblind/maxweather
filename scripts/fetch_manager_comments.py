@@ -1,4 +1,5 @@
 import json
+import os
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -15,6 +16,9 @@ DATA_DIR = Path('data')
 EKIDEN_DATA_FILE = CONFIG_DIR / 'ekiden_data.json'
 OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 OUTPUT_FILE = DATA_DIR / 'manager_comments.json'
+TEST_EKIDEN_DATA_FILE = Path('15/ekiden_data.json')
+TEST_MANAGER_COMMENTS_FILE = Path('15/manager_comments.json')
+TEST_MODE = os.environ.get('EKIDEN_TEST_MODE') == '1'
 
 # 5chからスクレイピングする際のリクエストヘッダー
 HEADERS = {
@@ -42,6 +46,15 @@ def get_manager_tripcodes():
             managers[tripcode] = official_name
     return managers
 
+def normalize_manager_comments(entries):
+    """15回大会の fixture をそのまま返せるよう型を揃える"""
+    normalized = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        normalized.append(entry)
+    return normalized
+
 def get_thread_url():
     """outline.jsonからスレッドのURLを取得する"""
     try:
@@ -56,6 +69,15 @@ def fetch_and_process_comments():
     """5chスレッドから監督の夜間コメントを取得してJSONに保存する"""
     manager_tripcodes = get_manager_tripcodes()
     if not manager_tripcodes:
+        if TEST_MODE and TEST_MANAGER_COMMENTS_FILE.exists():
+            print(f"情報: テストモードのため {TEST_MANAGER_COMMENTS_FILE} を使用します。")
+            with open(TEST_MANAGER_COMMENTS_FILE, 'r', encoding='utf-8') as f:
+                manager_comments = normalize_manager_comments(json.load(f))
+            DATA_DIR.mkdir(parents=True, exist_ok=True)
+            with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+                json.dump(manager_comments, f, indent=2, ensure_ascii=False)
+            print(f"処理完了: {len(manager_comments)}件の監督コメントを {OUTPUT_FILE} に保存しました。")
+            return
         print("監督のコテハンが見つかりませんでした。処理を中断します。")
         return
 
