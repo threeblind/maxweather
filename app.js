@@ -612,16 +612,56 @@ function setupTeamTracker(teams) {
     shadowOption.textContent = '区間最高記録';
     selectEl.appendChild(shadowOption);
 
+    const availableValues = new Set([...selectEl.options].map(opt => opt.value));
+    if (!availableValues.has(trackedTeamName)) {
+        trackedTeamName = 'lead_group';
+    }
     selectEl.value = trackedTeamName;
 
     // Add event listener
     selectEl.addEventListener('change', (event) => {
         trackedTeamName = event.target.value;
         shouldAutoFollowMap = true;
-        // Immediately update the map view without waiting for the next 30-second interval
-        // We can do this by re-fetching the data, which will trigger the map update logic.
         fetchEkidenData();
     });
+}
+
+function getJapanDateString(date = new Date()) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
+}
+
+function isBeforeEkidenStartDate() {
+    return getJapanDateString() < EKIDEN_START_DATE;
+}
+
+function buildPreStartRunnerLocations(ekidenData) {
+    if (!startLatLng || !ekidenData || !Array.isArray(ekidenData.teams)) return [];
+
+    return ekidenData.teams
+        .filter(team => !team.is_shadow_confederation && team.id !== SHADOW_TEAM_ID)
+        .sort((a, b) => a.id - b.id)
+        .map((team, index) => ({
+            rank: index + 1,
+            team_name: team.name,
+            team_short_name: team.short_name || team.name,
+            runner_name: 'スタート前',
+            total_distance_km: 0,
+            latitude: startLatLng[0],
+            longitude: startLatLng[1]
+        }));
+}
+
+function areSameLatLngs(latLngs) {
+    if (!Array.isArray(latLngs) || latLngs.length < 2) return false;
+    const [baseLat, baseLng] = latLngs[0];
+    return latLngs.every(([lat, lng]) => lat === baseLat && lng === baseLng);
 }
 
 /**
@@ -671,10 +711,14 @@ function getPointByDistance(coursePath, targetDistanceKm) {
 function updateRunnerMarkers(runnerLocations, ekidenData) {
     if (!map || !runnerMarkersLayer) return;
 
+    const displayRunnerLocations = isBeforeEkidenStartDate()
+        ? buildPreStartRunnerLocations(ekidenData)
+        : runnerLocations;
+
     // 古いマーカーをクリア
     runnerMarkersLayer.clearLayers();
 
-    if (!runnerLocations || runnerLocations.length === 0) {
+    if (!displayRunnerLocations || displayRunnerLocations.length === 0) {
         return; // 表示するランナーがいない場合は何もしない
     }
 
@@ -685,7 +729,7 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
     const displayedLatLngs = [];
     const teamDisplayLatLngMap = new Map();
 
-    runnerLocations.forEach(runner => {
+    displayRunnerLocations.forEach(runner => {
         // 固定の区間記録連合(runner_locations.json)は表示しない（ゴーストは後段で生成）
         if (runner.is_shadow_confederation) return;
 
@@ -829,8 +873,7 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         return;
     }
 
-    // 地図の視点を追跡モードに合わせて更新（別関数に分離）
-    updateMapFollowMode(runnerLocations, ekidenData, ghostRunner, displayedLatLngs, teamDisplayLatLngMap);
+    updateMapFollowMode(displayRunnerLocations, ekidenData, ghostRunner, displayedLatLngs, teamDisplayLatLngMap);
 }
 
 /**
@@ -848,8 +891,12 @@ function updateMapFollowMode(runnerLocations, ekidenData, ghostRunner, displayed
     } else if (trackedTeamName === "all_teams") {
         const latLngs = displayedLatLngs;
         if (latLngs.length > 0) {
-            const bounds = L.latLngBounds(latLngs);
-            map.fitBounds(bounds.pad(0.1));
+            if (areSameLatLngs(latLngs)) {
+                map.setView(latLngs[0], 13);
+            } else {
+                const bounds = L.latLngBounds(latLngs);
+                map.fitBounds(bounds.pad(0.1));
+            }
         }
     } else if (trackedTeamName === "shadow_confederation") {
         if (ghostRunner) {
@@ -867,8 +914,12 @@ function updateMapFollowMode(runnerLocations, ekidenData, ghostRunner, displayed
         if (activeRunners.length > 1) {
             const leadGroup = activeRunners.slice(0, 2);
             const leadLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
-            const bounds = L.latLngBounds(leadLatLngs);
-            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+            if (areSameLatLngs(leadLatLngs)) {
+                map.setView(leadLatLngs[0], 13);
+            } else {
+                const bounds = L.latLngBounds(leadLatLngs);
+                map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+            }
         } else if (activeRunners.length === 1) {
             map.setView([activeRunners[0].latitude, activeRunners[0].longitude], 13);
         } else if (coursePolyline) {
@@ -4892,7 +4943,7 @@ function renderRankTimeline() {
                         selectEl.value = teamName;
                         trackedTeamName = teamName;
                         shouldAutoFollowMap = true;
-                        
+
                         // マップ表示更新＆ポップアップ表示
                         fetchEkidenData().then(() => {
                             if (typeof runnerMarkersLayer !== 'undefined' && runnerMarkersLayer) {
@@ -4900,7 +4951,6 @@ function renderRankTimeline() {
                                     const popup = marker.getPopup();
                                     if (popup && popup.getContent().includes(teamName)) {
                                         marker.openPopup();
-                                        map.setView(marker.getLatLng(), 14);
                                     }
                                 });
                             }
