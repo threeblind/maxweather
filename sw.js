@@ -3,7 +3,7 @@ const CACHE_NAME = 'ekiden-sokuhou-cache-v10';
 const urlsToCache = [
   './', // ルートURL
   'index.html',
-  'app_16.js',
+  'app.js',
   'images/icon-192x192.png',
   'images/icon-512x512.png',
   'config/ekiden_data.json',
