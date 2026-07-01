@@ -28,7 +28,12 @@ fi
 
 # 2. 日次サマリー生成スクリプトを実行 (パスを修正)
 echo "generate_daily_summary_bymoment.py を実行中..."
-"$PYTHON_CMD" scripts/generate_daily_summary.py
+if [[ "${EKIDEN_TEST_MODE:-0}" == "1" ]]; then
+    echo "テストモードのため --dry-run で実行します。"
+    "$PYTHON_CMD" scripts/generate_daily_summary.py --dry-run
+else
+    "$PYTHON_CMD" scripts/generate_daily_summary.py
+fi
 
 if [[ "${EKIDEN_DISABLE_GIT_PUSH:-0}" == "1" ]]; then
     echo "テストモードのため、Git commit / push はスキップします。"
