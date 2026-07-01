@@ -406,7 +406,7 @@ async function loadRanking() {
 let map = null;
 let runnerMarkersLayer = null;
 let teamColorMap = new Map();
-let trackedTeamName = "all_teams"; // デフォルトは全大学をスタート地点に重ねて表示
+let trackedTeamName = "lead_group"; // デフォルトは先頭集団を追跡
 let coursePolyline = null; // コースのポリラインをグローバルに保持
 let shouldAutoFollowMap = true; // ユーザーが地図を触るまでは追跡を維持する
 let startLatLng = null; // スタート地点の緯度経度
@@ -658,54 +658,6 @@ function getPointByDistance(coursePath, targetDistanceKm) {
     return [coursePath[coursePath.length - 1].lat, coursePath[coursePath.length - 1].lon];
 }
 
-function hasEkidenStarted() {
-    const [year, month, day] = String(EKIDEN_START_DATE || '').split('-').map(Number);
-    if (!year || !month || !day) return false;
-
-    const startDate = new Date(year, month - 1, day);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return today >= startDate;
-}
-
-function buildStartPreviewLocations(ekidenData) {
-    if (!startLatLng) return [];
-
-    const teams = lastRealtimeData && Array.isArray(lastRealtimeData.teams) && lastRealtimeData.teams.length > 0
-        ? lastRealtimeData.teams
-        : (ekidenData && Array.isArray(ekidenData.teams) ? ekidenData.teams : []);
-
-    return teams
-        .filter(team => team && team.is_shadow_confederation !== true)
-        .map((team, index) => ({
-            rank: team.overallRank ?? index + 1,
-            team_name: team.name,
-            team_short_name: team.short_name || team.name,
-            runner_name: team.runner || (team.runners && team.runners[0] ? team.runners[0].name : "第1走者"),
-            total_distance_km: 0.0,
-            latitude: startLatLng[0],
-            longitude: startLatLng[1],
-            is_shadow_confederation: false,
-            current_leg: 1
-        }));
-}
-
-function fitMapToFirstLeg() {
-    if (!map || !startLatLng) return;
-
-    const firstLegEndDistance = Array.isArray(ekidenDataCache?.leg_boundaries)
-        ? Number(ekidenDataCache.leg_boundaries[0])
-        : 100;
-    const firstLegEndLatLng = getPointByDistance(coursePathData, firstLegEndDistance);
-
-    if (firstLegEndLatLng) {
-        const bounds = L.latLngBounds([startLatLng, firstLegEndLatLng]);
-        map.fitBounds(bounds.pad(0.25), { maxZoom: 9 });
-    } else {
-        map.setView(startLatLng, 7);
-    }
-}
-
 /**
  * Updates the runner markers on the map with the latest locations.
  * @param {Array} runnerLocations - runner_locations.json のデータ。rankでソート済み。
@@ -716,36 +668,6 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
 
     // 古いマーカーをクリア
     runnerMarkersLayer.clearLayers();
-
-    const hasRunnerLocationArray = Array.isArray(runnerLocations);
-    const normalRunnerLocations = hasRunnerLocationArray
-        ? runnerLocations.filter(runner => runner && runner.is_shadow_confederation !== true)
-        : [];
-    const distanceKeys = new Set(normalRunnerLocations.map(runner => Number(runner.total_distance_km || 0).toFixed(3)));
-    const isBeforeStart = !hasEkidenStarted();
-    const isEmpty = !hasRunnerLocationArray || runnerLocations.length === 0;
-    const isSameDistance = normalRunnerLocations.length > 0 && distanceKeys.size <= 1;
-    const shouldUseStartPreview =
-        trackedTeamName === "all_teams" &&
-        !!startLatLng &&
-        (isBeforeStart || isEmpty || isSameDistance);
-
-    const isPreStartOrEmpty =
-        isEmpty ||
-        (lastRealtimeData && Number(lastRealtimeData.raceDay) <= 0) ||
-        (Array.isArray(runnerLocations) && runnerLocations.every(r => Number(r.total_distance_km || 0) <= 0));
-
-    if ((isPreStartOrEmpty || shouldUseStartPreview) && startLatLng) {
-        const previewLocations = buildStartPreviewLocations(ekidenData);
-        runnerLocations = previewLocations.length > 0
-            ? previewLocations
-            : (Array.isArray(runnerLocations) ? runnerLocations.map((runner, index) => ({
-            ...runner,
-            rank: typeof runner.rank === 'number' ? runner.rank : index + 1,
-            latitude: startLatLng[0],
-            longitude: startLatLng[1]
-            })) : []);
-    }
 
     if (!runnerLocations || runnerLocations.length === 0) {
         return; // 表示するランナーがいない場合は何もしない
@@ -911,15 +833,8 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
     } else if (trackedTeamName === "all_teams") {
         // --- Show all teams ---
         const allRunnerLatLngs = displayedLatLngs;
-        const uniqueLatLngs = new Set(allRunnerLatLngs.map(latlng => `${latlng[0]},${latlng[1]}`));
-        if (shouldUseStartPreview) {
-            fitMapToFirstLeg();
-        } else if (startLatLng && uniqueLatLngs.size <= 1) {
-            map.setView(startLatLng, 6);
-        } else {
-            const bounds = L.latLngBounds(allRunnerLatLngs);
-            map.fitBounds(bounds.pad(0.1)); // .pad(0.1) for some margin
-        }
+        const bounds = L.latLngBounds(allRunnerLatLngs);
+        map.fitBounds(bounds.pad(0.1)); // .pad(0.1) for some margin
     } else if (trackedTeamName === "shadow_confederation") {
         // --- 区間最高記録のゴーストを追跡 ---
         if (ghostRunner) {
@@ -3484,15 +3399,12 @@ function displayTeamDetails(teamId) {
     // 全体のHTMLを組み立て
     const teamColor = teamConfig.color || '#6c757d';
     const textColor = getContrastingTextColor(teamColor);
-    const descriptionBgColor = hexToRgba(teamColor, 0.1);
 
     contentContainer.innerHTML = `
         <div class="team-details-container">
-            <div class="team-details-description-wrapper">
-                <div class="team-details-title" style="background-color: ${teamColor}; color: ${textColor};"></div>
-                <div class="team-details-text" style="background-color: ${descriptionBgColor};">${teamConfig.description || 'チーム紹介はありません。'}</div>
+            <div class="team-details-title" style="background-color: ${teamColor}; color: ${textColor};">
+                <span class="team-details-title-text">${teamConfig.name}</span>
             </div>
-            
             <table class="team-kukan-table">
                 <tbody>
                     ${kukanEntriesHtml}
@@ -3505,15 +3417,10 @@ function displayTeamDetails(teamId) {
     // 注目ボタンをタイトルバー右端に追加（innerHTML に直接埋め込まずDOMで挿入）
     const titleEl = contentContainer.querySelector('.team-details-title');
     if (titleEl) {
-        titleEl.textContent = '';
         const favBtn = createFavoriteButton(teamId);
         favBtn.classList.add('fav-btn--in-title');
         favBtn.classList.add('fav-btn--inline');
         titleEl.appendChild(favBtn);
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'team-details-title-text';
-        nameSpan.textContent = `${teamConfig.name} ${teamConfig.manager || ''}`.trim();
-        titleEl.appendChild(nameSpan);
     }
 }
 // --- 初期化処理 ---
