@@ -829,52 +829,50 @@ function updateRunnerMarkers(runnerLocations, ekidenData) {
         return;
     }
 
-    // --- Map View Update Logic ---
+    // 地図の視点を追跡モードに合わせて更新（別関数に分離）
+    updateMapFollowMode(runnerLocations, ekidenData, ghostRunner, displayedLatLngs, teamDisplayLatLngMap);
+}
+
+/**
+ * 追跡モード(trackedTeamName)に応じて地図の視点を移動する。
+ * マーカー描画とは独立して呼び出せる。
+ */
+function updateMapFollowMode(runnerLocations, ekidenData, ghostRunner, displayedLatLngs, teamDisplayLatLngMap) {
+    if (!map) return;
+    const goalDistance = ekidenData?.leg_boundaries?.[ekidenData.leg_boundaries.length - 1];
+
     if (trackedTeamName === "full_course") {
-        // --- Show the entire course ---
         if (coursePolyline) {
             map.fitBounds(coursePolyline.getBounds().pad(0.1));
         }
     } else if (trackedTeamName === "all_teams") {
-        // --- Show all teams ---
-        const allRunnerLatLngs = displayedLatLngs;
-        const bounds = L.latLngBounds(allRunnerLatLngs);
-        map.fitBounds(bounds.pad(0.1)); // .pad(0.1) for some margin
+        const latLngs = displayedLatLngs;
+        if (latLngs.length > 0) {
+            const bounds = L.latLngBounds(latLngs);
+            map.fitBounds(bounds.pad(0.1));
+        }
     } else if (trackedTeamName === "shadow_confederation") {
-        // --- 区間最高記録のゴーストを追跡 ---
         if (ghostRunner) {
             map.setView([ghostRunner.latitude, ghostRunner.longitude], 14);
         }
     } else if (trackedTeamName && trackedTeamName !== "lead_group") {
-        // --- Track a specific team ---
-        const trackedLatLng = teamDisplayLatLngMap.get(trackedTeamName);
+        const trackedLatLng = teamDisplayLatLngMap?.get(trackedTeamName);
         if (trackedLatLng) {
             map.setView(trackedLatLng, 14);
         }
     } else { // Default is "lead_group"
-        // --- 先頭集団を追跡（動的ロジック） ---
-
-        // 「走行中」の選手を、ゴールしておらず、かつ区間記録連合ではない正規選手として定義する
-        // リストは既に順位でソート済み
-        const activeRunners = runnerLocations.filter(runner => {
-            return runner.total_distance_km < finalGoalDistance && !runner.is_shadow_confederation;
-        });
-
-        // 走行中の選手がいる場合、先頭の1〜2名に焦点を当てる
-        if (activeRunners.length > 0) {
+        const activeRunners = Array.isArray(runnerLocations)
+            ? runnerLocations.filter(r => r.total_distance_km < goalDistance && !r.is_shadow_confederation)
+            : [];
+        if (activeRunners.length > 1) {
             const leadGroup = activeRunners.slice(0, 2);
-            if (leadGroup.length > 1) {
-                const leadGroupLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
-                const bounds = L.latLngBounds(leadGroupLatLngs);
-                map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
-            } else { // 走行中の選手が残り1人の場合
-                map.setView([leadGroup[0].latitude, leadGroup[0].longitude], 13);
-            }
-        } else {
-            // 全選手がゴールした場合、コース全体を表示
-            if (coursePolyline) {
-                map.fitBounds(coursePolyline.getBounds().pad(0.1));
-            }
+            const leadLatLngs = leadGroup.map(r => [r.latitude, r.longitude]);
+            const bounds = L.latLngBounds(leadLatLngs);
+            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+        } else if (activeRunners.length === 1) {
+            map.setView([activeRunners[0].latitude, activeRunners[0].longitude], 13);
+        } else if (coursePolyline) {
+            map.fitBounds(coursePolyline.getBounds().pad(0.1));
         }
     }
 }
