@@ -8,7 +8,7 @@ set -euo pipefail
 # cronジョブとして1日1回、0時5分に実行されることを想定しています。
 
 # --- 設定 ---
-PROJECT_DIR="/Users/t28k2/prj/weather"
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # --- スクリプト本体 ---
 
