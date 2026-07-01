@@ -948,7 +948,7 @@ API_SECRET_KEY = os.getenv("API_SECRET_KEY")
 def send_push_notification(title, body):
     """Render上のAPIサーバーに通知送信を依頼する"""
     if not PUSH_API_URL or not API_SECRET_KEY:
-        print("警告: .envにPROD_PUSH_API_URLまたはAPI_SECRET_KEYが設定されていません。")
+        print("警告: 環境変数 PROD_PUSH_API_URL または API_SECRET_KEY が設定されていません。")
         return
 
     api_endpoint = f"{PUSH_API_URL}/api/send-notification"

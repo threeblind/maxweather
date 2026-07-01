@@ -44,6 +44,10 @@ concurrency:
 
 env:
   START_AT_UTC: "2026-07-22T15:00:00Z"
+  PROD_PUSH_API_URL: ${{ secrets.PROD_PUSH_API_URL }}
+  API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.4-mini' }}
 
 jobs:
   realtime:
