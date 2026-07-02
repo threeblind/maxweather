@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "updated_day": -20,
+  "main_story": {
+    "type": "首位状況",
+    "summary": "首位状況",
+    "started_day": -20,
+    "last_updated_day": -20,
+    "teams": [
+      "琉球大学",
+      "福島大学"
+    ]
+  },
+  "ongoing_battles": [
+    {
+      "id": "lead_battle",
+      "kind": "lead",
+      "teams": [
+        "琉球大学",
+        "福島大学"
+      ],
+      "summary": "琉球大学と福島大学による首位争い",
+      "started_day": -20,
+      "last_updated_day": -20,
+      "last_observed_gap_km": 1.1999999999999886,
+      "previous_gap_km": 1.1999999999999886
+    }
+  ],
+  "momentum": [
+    {
+      "team": "琉球大学",
+      "summary": "18位から1位へ急浮上",
+      "started_day": -20,
+      "last_updated_day": -20,
+      "previous_rank": 18,
+      "current_rank": 1,
+      "diff": 17
+    },
+    {
+      "team": "福島大学",
+      "summary": "16位から2位へ急浮上",
+      "started_day": -20,
+      "last_updated_day": -20,
+      "previous_rank": 16,
+      "current_rank": 2,
+      "diff": 14
+    },
+    {
+      "team": "鹿児島大学",
+      "summary": "17位から3位へ急浮上",
+      "started_day": -20,
+      "last_updated_day": -20,
+      "previous_rank": 17,
+      "current_rank": 3,
+      "diff": 14
+    }
+  ],
+  "runner_threads": [
+    {
+      "runner": "盛山",
+      "team": "福島大学",
+      "summary": "本日最速 31.0km の快走",
+      "started_day": -20,
+      "last_updated_day": -20
+    }
+  ],
+  "resolved_stories": []
+}
