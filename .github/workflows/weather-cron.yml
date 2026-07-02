@@ -48,6 +48,7 @@ env:
   API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.4-mini' }}
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
 jobs:
   validate:
@@ -71,6 +72,14 @@ jobs:
             exit 1
           fi
           echo "All secrets are configured correctly"
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST -H 'Content-type: application/json' \
+            --data '{"text":"❌ *'"${{ github.workflow }}"'* failed\nJob: validate\nRepo: ${{ github.repository }}\nRun: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View>"}' \
+            "$SLACK_WEBHOOK_URL"
 
   realtime:
     needs: validate
@@ -103,6 +112,12 @@ jobs:
             exit 0
           fi
           bash ./update_realtime.sh
+      - name: Notify Slack on failure
+        if: failure()
+        run: |
+          curl -s -X POST -H 'Content-type: application/json' \
+            --data '{"text":"❌ *'"${{ github.workflow }}"'* failed\nJob: realtime\nRepo: ${{ github.repository }}\nRun: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View>"}' \
+            "$SLACK_WEBHOOK_URL"
 
   manager_comments:
     needs: validate
@@ -135,6 +150,12 @@ jobs:
             exit 0
           fi
           bash ./update_manager_comments.sh
+      - name: Notify Slack on failure
+        if: failure()
+        run: |
+          curl -s -X POST -H 'Content-type: application/json' \
+            --data '{"text":"❌ *'"${{ github.workflow }}"'* failed\nJob: manager_comments\nRepo: ${{ github.repository }}\nRun: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View>"}' \
+            "$SLACK_WEBHOOK_URL"
 
   daily_commit:
     needs: validate
@@ -167,6 +188,12 @@ jobs:
             exit 0
           fi
           bash ./commit_daily.sh
+      - name: Notify Slack on failure
+        if: failure()
+        run: |
+          curl -s -X POST -H 'Content-type: application/json' \
+            --data '{"text":"❌ *'"${{ github.workflow }}"'* failed\nJob: daily_commit\nRepo: ${{ github.repository }}\nRun: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View>"}' \
+            "$SLACK_WEBHOOK_URL"
 
   daily_summary:
     needs: validate
@@ -199,3 +226,9 @@ jobs:
             exit 0
           fi
           bash ./commit_summary.sh
+      - name: Notify Slack on failure
+        if: failure()
+        run: |
+          curl -s -X POST -H 'Content-type: application/json' \
+            --data '{"text":"❌ *'"${{ github.workflow }}"'* failed\nJob: daily_summary\nRepo: ${{ github.repository }}\nRun: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View>"}' \
+            "$SLACK_WEBHOOK_URL"
