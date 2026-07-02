@@ -11,6 +11,7 @@ import unicodedata
 from collections import defaultdict
 from bs4 import BeautifulSoup
 from geopy.distance import geodesic
+from time_utils import now_jst, format_jst_iso
 
 # --- ディレクトリ定義 ---
 CONFIG_DIR = Path('config')
@@ -236,7 +237,7 @@ def get_thread_url():
 
 def fetch_daytime_manager_comment(ekiden_data):
     """日中（7:00-18:59）に投稿された最新の監督コメントを1件取得する。"""
-    now = datetime.now()
+    now = now_jst()
     if not (7 <= now.hour < 19):
         return None
     manager_tripcodes = get_manager_tripcodes(ekiden_data)
@@ -397,7 +398,7 @@ def _generate_close_race_comment(current_results, previous_report_data):
 
 def _generate_timed_report_comment(current_results, previous_report_data):
     """定時速報コメントを生成"""
-    now = datetime.now()
+    now = now_jst()
     can_show_timed_report = True
     last_comment = previous_report_data.get('breakingNewsComment', "")
     last_timestamp_str = previous_report_data.get('breakingNewsTimestamp')
@@ -427,7 +428,7 @@ def _generate_timed_report_comment(current_results, previous_report_data):
 
 def generate_breaking_news_comment(current_results, previous_report_data):
     """前回と今回の結果を比較し、注目すべき変動があれば速報コメントを生成する"""
-    now = datetime.now()
+    now = now_jst()
     if not (7 <= now.hour < 19) or not previous_report_data:
         return ""
 
@@ -550,9 +551,10 @@ def pad_str(text, length, char='＿'):
 
 def save_realtime_report(results, race_day, breaking_news_comment, breaking_news_timestamp, breaking_news_full_text=""):
     """速報用のJSONデータを生成して保存する"""
-    now = datetime.now()
+    from time_utils import format_jst_datetime
+    now = now_jst()
     report_data = {
-        "updateTime": now.strftime('%Y/%m/%d %H:%M'),
+        "updateTime": format_jst_datetime(now),
         "raceDay": race_day,
         "breakingNewsComment": breaking_news_comment,
         "breakingNewsTimestamp": breaking_news_timestamp,
@@ -711,7 +713,7 @@ def calculate_and_save_runner_locations(teams_data):
 
 def append_to_realtime_log(results):
     """リアルタイムログファイルに現在の走行データを追記する"""
-    now_iso = datetime.now().isoformat()
+    now_iso = now_jst().isoformat()
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     try:
         with open(REALTIME_LOG_FILE, 'a', encoding='utf-8') as f:
@@ -737,7 +739,7 @@ def should_generate_snapshot():
     1. 毎時5分のタイミング（24時間）
     2. 大きな状態変化（首位交代、区間完走など）があった場合
     """
-    now = datetime.now()
+    now = now_jst()
     return now.minute == 5  # 24時間毎時5分でスナップショットを生成
 
 def list_snapshots():
@@ -773,7 +775,7 @@ def save_snapshot(results, race_day, breaking_news_comment, breaking_news_timest
     
     また、スナップショット一覧ファイルも自動的に更新します。
     """
-    now = datetime.now()
+    now = now_jst()
     timestamp_str = now.strftime('%Y%m%d_%H%M')
     
     # 位置情報の計算
@@ -971,7 +973,7 @@ def send_push_notification(title, body):
 
 def send_hourly_ranking_notification(results):
     """9時〜18時の毎時5分に総合順位を通知する"""
-    now = datetime.now()
+    now = now_jst()
     
     # テスト通知オプションが指定されているか確認
     is_test_mode = '--test-notification' in sys.argv
@@ -1042,7 +1044,7 @@ def main():
     load_all_data()
 
     start_date = datetime.strptime(EKIDEN_START_DATE, '%Y-%m-%d')
-    race_day = (datetime.now().date() - start_date.date()).days + 1
+    race_day = (now_jst().date() - start_date.date()).days + 1
 
     current_state = load_ekiden_state(args.state_file, race_day)
     previous_rank_map = {s['id']: s['overallRank'] for s in current_state}
@@ -1385,7 +1387,7 @@ def main():
             if not previous_report_data or formatted_comment != previous_report_data.get('breakingNewsComment', ''):
                 comment_to_save = formatted_comment
                 full_text_to_save = full_text
-                timestamp_to_save = datetime.now().isoformat()
+                timestamp_to_save = now_jst().isoformat()
 
                 # --- 監督コメントのプッシュ通知を送信 ---
                 notification_title = f"【{daytime_comment['name']}監督コメント】"
@@ -1402,7 +1404,7 @@ def main():
             if new_comment_text:
                 comment_to_save = new_comment_text
                 full_text_to_save = "" # 通常の速報には全文はない
-                timestamp_to_save = datetime.now().isoformat()
+                timestamp_to_save = now_jst().isoformat()
                 # --- プッシュ通知を送信 ---
                 if comment_to_save:
                     notification_title = comment_to_save.split('】')[0] + '】' if '】' in comment_to_save else ''
@@ -1419,7 +1421,7 @@ def main():
         # 3. 古いコメントの維持
         if not comment_to_save and previous_report_data:
             old_comment, old_timestamp, old_full_text = previous_report_data.get('breakingNewsComment', ""), previous_report_data.get('breakingNewsTimestamp', ""), previous_report_data.get('breakingNewsFullText', "")
-            if old_timestamp and (datetime.now() - datetime.fromisoformat(old_timestamp)) < timedelta(hours=1):
+            if old_timestamp and (now_jst() - datetime.fromisoformat(old_timestamp)) < timedelta(hours=1):
                 comment_to_save, timestamp_to_save, full_text_to_save = old_comment, old_timestamp, old_full_text
 
         save_realtime_report(all_results, race_day, comment_to_save, timestamp_to_save, full_text_to_save)
