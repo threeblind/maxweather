@@ -3346,8 +3346,10 @@ function displayTeamDetails(teamId) {
 
     // 区間エントリー選手のHTMLを生成
     const kukanEntriesHtml = teamConfig.runners.map((runnerObj, index) => {
-        const runnerName = runnerObj.name;
-        const isSubstitutedIn = runnerObj.is_substitute_in === true;
+        // 通常のエントリーは選手名の文字列、交代情報付きはオブジェクトの
+        // 旧データ形式にも対応する。
+        const runnerName = typeof runnerObj === 'string' ? runnerObj : runnerObj.name;
+        const isSubstitutedIn = typeof runnerObj === 'object' && runnerObj.is_substitute_in === true;
         const runnerLeg = index + 1;
         const profile = playerProfiles[runnerName] || {};
         const formattedRunnerName = formatRunnerName(runnerName);
