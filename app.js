@@ -3422,7 +3422,7 @@ function displayTeamDetails(teamId) {
 
     // 補欠選手のテーブル行のHTMLを生成
     const substituteEntriesHtml = (teamConfig.substitutes || []).map(sub => {
-        const runnerName = sub.name;
+        const runnerName = typeof sub === 'string' ? sub : sub.name;
         const profile = playerProfiles[runnerName] || {};
         const formattedRunnerName = formatRunnerName(runnerName);
         const runnerImage = profile.image_url || 'https://via.placeholder.com/60';
