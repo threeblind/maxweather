@@ -3333,6 +3333,11 @@ function displayTeamDetails(teamId) {
     const contentContainer = document.getElementById('team-directory-content');
     if (!contentContainer) return;
 
+    // PCのチームボタンから選んだ場合も、SP用セレクトの値を同期して
+    // データ再取得後にデフォルトチームへ戻らないようにする。
+    const directorySelect = document.getElementById('team-directory-select');
+    if (directorySelect) directorySelect.value = String(teamId);
+
     const teamConfig = ekidenDataCache.teams.find(t => t.id === teamId);
     const realtimeTeamData = lastRealtimeData ? lastRealtimeData.teams.find(t => t.id === teamId) : null;
 
