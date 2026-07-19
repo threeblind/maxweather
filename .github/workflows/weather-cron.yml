@@ -48,6 +48,9 @@ env:
   API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.6-luna' }}
+  AI_PROVIDER: ${{ vars.AI_PROVIDER || 'gemini' }}
+  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.1-flash-lite' }}
   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
 jobs:
@@ -59,14 +62,23 @@ jobs:
           PROD_PUSH_API_URL: ${{ secrets.PROD_PUSH_API_URL }}
           API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AI_PROVIDER: ${{ vars.AI_PROVIDER || 'gemini' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           MISSING=""
-          for var in PROD_PUSH_API_URL API_SECRET_KEY OPENAI_API_KEY; do
+          for var in PROD_PUSH_API_URL API_SECRET_KEY; do
             if [ -z "${!var}" ]; then
               echo "ERROR: $var is not set"
               MISSING="$MISSING $var"
             fi
           done
+          if [ "$AI_PROVIDER" = "gemini" ] && [ -z "$GEMINI_API_KEY" ]; then
+            echo "ERROR: GEMINI_API_KEY is not set"
+            MISSING="$MISSING GEMINI_API_KEY"
+          elif [ "$AI_PROVIDER" = "openai" ] && [ -z "$OPENAI_API_KEY" ]; then
+            echo "ERROR: OPENAI_API_KEY is not set"
+            MISSING="$MISSING OPENAI_API_KEY"
+          fi
           if [ -n "$MISSING" ]; then
             echo "::error::Missing secrets:$MISSING"
             exit 1

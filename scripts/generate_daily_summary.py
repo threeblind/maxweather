@@ -32,6 +32,7 @@ class DailySummaryGenerator:
     Generates a daily summary article for the Ekiden race using an LLM.
     """
     DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+    DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
 
     def __init__(self, dry_run=False):
         self.dry_run = dry_run
@@ -40,7 +41,14 @@ class DailySummaryGenerator:
         self.narrative_state = {}
 
         load_dotenv()
-        self.model_name = os.getenv("OPENAI_MODEL", self.DEFAULT_OPENAI_MODEL)
+        self.provider = os.getenv("AI_PROVIDER", "openai").strip().lower()
+        if self.provider not in {"openai", "gemini"}:
+            raise ValueError(f"未対応のAI_PROVIDERです: {self.provider}")
+        self.model_name = (
+            os.getenv("GEMINI_MODEL", self.DEFAULT_GEMINI_MODEL)
+            if self.provider == "gemini"
+            else os.getenv("OPENAI_MODEL", self.DEFAULT_OPENAI_MODEL)
+        )
         self._setup_clients()
         self.load_narrative_state()
 
@@ -89,15 +97,20 @@ class DailySummaryGenerator:
             print(f"エラー: 物語状態の保存に失敗しました: {e}")
 
     def _setup_clients(self):
-        """OpenAI APIクライアントを初期化します。"""
+        """選択されたAIプロバイダーのクライアントを初期化します。"""
         if not self.dry_run:
-            api_key = os.getenv("OPENAI_API_KEY")
+            api_key_name = "GEMINI_API_KEY" if self.provider == "gemini" else "OPENAI_API_KEY"
+            api_key = os.getenv(api_key_name)
             if not api_key:
-                print("エラー: 環境変数 'OPENAI_API_KEY' が設定されていません。")
+                print(f"エラー: 環境変数 '{api_key_name}' が設定されていません。")
                 exit(1)
 
-            self.client = OpenAI(api_key=api_key)
-            print(f"✅ OpenAIクライアントを初期化しました。model={self.model_name}")
+            if self.provider == "gemini":
+                from google import genai
+                self.client = genai.Client(api_key=api_key)
+            else:
+                self.client = OpenAI(api_key=api_key)
+            print(f"✅ {self.provider}クライアントを初期化しました。model={self.model_name}")
 
     def _get_article_history(self, num_articles=2):
         """Fetches the last N articles and prompts from the local history file."""
@@ -1792,15 +1805,24 @@ class DailySummaryGenerator:
             return
 
         try:
-            response = self.client.responses.create(
-                model=self.model_name,
-                instructions=system_prompt,
-                input=user_prompt
-            )
-            raw_article_text = response.output_text.strip()
+            if self.provider == "gemini":
+                from google.genai import types
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=user_prompt,
+                    config=types.GenerateContentConfig(system_instruction=system_prompt)
+                )
+                raw_article_text = response.text.strip()
+            else:
+                response = self.client.responses.create(
+                    model=self.model_name,
+                    instructions=system_prompt,
+                    input=user_prompt
+                )
+                raw_article_text = response.output_text.strip()
             print("記事をMarkdownでフォーマットしています...")
             article_text = self.format_article_with_markdown(raw_article_text)
-            print("✅ OpenAIによる解説記事の生成に成功しました。")
+            print(f"✅ {self.provider}による解説記事の生成に成功しました。")
 
             # 生成された記事のバリデーションを実行
             validation_success = self.validate_generated_article(article_text, metrics)
@@ -1834,13 +1856,13 @@ class DailySummaryGenerator:
             else:
                 print("⚠️ バリデーション警告があるため、ファイル保存、履歴保存および物語状態の更新をすべてスキップします。")
         except Exception as e:
-            print(f"❌ OpenAI API呼び出し中にエラーが発生しました: {e}")
+            print(f"❌ {self.provider} API呼び出し中にエラーが発生しました: {e}")
             print("⚠️ APIエラーのため、ファイル保存および物語状態の更新をスキップします。")
 
 def main():
     """Parses arguments and runs the generator."""
     parser = argparse.ArgumentParser(description='高温大学駅伝の1日の総括記事を生成します（履歴機能付き）。')
-    parser.add_argument('--dry-run', action='store_true', help='OpenAI APIを呼び出さずにプロンプトのデバッグ表示のみ行います。')
+    parser.add_argument('--dry-run', action='store_true', help='AI APIを呼び出さずにプロンプトのデバッグ表示のみ行います。')
     args = parser.parse_args()
 
     generator = DailySummaryGenerator(dry_run=args.dry_run)
