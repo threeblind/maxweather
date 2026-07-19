@@ -47,7 +47,7 @@ env:
   PROD_PUSH_API_URL: ${{ secrets.PROD_PUSH_API_URL }}
   API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-  OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.4-mini' }}
+  OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.6-luna' }}
   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
 jobs:
