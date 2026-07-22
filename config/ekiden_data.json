@@ -136,13 +136,13 @@
       "id": 11,
       "name": "日本大学",
       "short_name": "日大",
-      "status_symbol": "●",
+      "status_symbol": "☆",
       "prefectures": "（東京・千葉・神奈川・茨城 +1）",
       "manager": "",
       "color": "#FF5252",
       "description": "",
-      "runners": [],
-      "substitutes": []
+      "runners": ["八王子", "古河", "下館", "牛久", "青梅", "府中（東京）", "東京", "練馬", "船橋", "海老名"],
+      "substitutes": ["大子", "南鳥島", "茂原", "小田原"]
     },
     {
       "id": 12,
@@ -172,25 +172,25 @@
       "id": 14,
       "name": "東北大学",
       "short_name": "東北",
-      "status_symbol": "●",
+      "status_symbol": "☆",
       "prefectures": "（北海道・青森・岩手・秋田・山形・宮城 +3）",
       "manager": "",
       "color": "#006064",
       "description": "",
-      "runners": [],
-      "substitutes": []
+      "runners": ["上富良野", "弘前", "江刺", "横手", "米沢", "山形（山形）", "一関", "丸森", "東根", "高畠"],
+      "substitutes": ["鶴岡", "釜石", "北見", "北上", "大館", "白石（宮城）"]
     },
     {
       "id": 15,
       "name": "四国大学",
       "short_name": "四国",
-      "status_symbol": "●",
+      "status_symbol": "☆",
       "prefectures": "（愛媛・高知・徳島）",
       "manager": "",
       "color": "#9FC3FF",
       "description": "",
-      "runners": [],
-      "substitutes": []
+      "runners": ["穴吹", "本山", "御荘", "新居浜", "江川崎", "大洲", "中村", "西条", "徳島", "高知"],
+      "substitutes": ["四国中央", "近永", "松山"]
     },
     {
       "id": 16,
@@ -220,13 +220,13 @@
       "id": 18,
       "name": "琉球大学",
       "short_name": "琉球",
-      "status_symbol": "■",
-      "prefectures": "（沖縄 +1)",
+      "status_symbol": "☆",
+      "prefectures": "（沖縄 +2）",
       "manager": "",
       "color": "#F4B400",
       "description": "",
-      "runners": [],
-      "substitutes": []
+      "runners": ["北原", "仲筋", "名護", "盛山", "波照間", "石垣島", "西表島", "那覇", "与那国島", "伊是名"],
+      "substitutes": ["南大東", "久米島", "北大東", "鏡原", "大原"]
     }
   ]
 }
