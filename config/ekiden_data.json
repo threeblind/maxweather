@@ -28,13 +28,13 @@
       "id": 2,
       "name": "上武大学",
       "short_name": "上武",
-      "status_symbol": "★",
+      "status_symbol": "■",
       "prefectures": "（群馬・埼玉・栃木）",
-      "manager": "",
+      "manager": "上武大学監督(前福岡大監督)◆1Lye/U2E2I",
       "color": "#000000",
       "description": "",
-      "runners": [],
-      "substitutes": []
+      "runners": ["前橋", "寄居", "佐野", "伊勢崎", "桐生", "熊谷", "館林", "久喜", "さいたま", "鳩山"],
+      "substitutes": ["上里見", "越谷", "小山"]
     },
     {
       "id": 3,
@@ -88,13 +88,13 @@
       "id": 7,
       "name": "福岡大学",
       "short_name": "福岡",
-      "status_symbol": "■",
+      "status_symbol": "●",
       "prefectures": "（福岡・長崎・佐賀）",
-      "manager": "",
+      "manager": "上武大学監督(前福岡大監督)◆1Lye/U2E2I",
       "color": "#C2185B",
       "description": "",
-      "runners": [],
-      "substitutes": []
+      "runners": ["飯塚", "久留米", "黒木", "朝倉", "太宰府", "佐賀（佐賀）", "白石（佐賀）", "島原", "博多", "口之津"],
+      "substitutes": ["添田", "大牟田", "前原"]
     },
     {
       "id": 8,

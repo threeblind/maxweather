@@ -1,4 +1,19 @@
 {
+  "白石（佐賀）": {
+    "name": "白石（佐賀）", "code": "85166", "prefecture": "佐賀県", "team_id": 7, "team_name": "福岡大学",
+    "image_url": "amedas/jpg/85166.jpg", "address": "杵島郡白石町大字福田", "start_date": "1977/03/02", "elevation": 2.0,
+    "comment": "", "performance": {}, "personal_best": []
+  },
+  "島原": {
+    "name": "島原", "code": "84523", "prefecture": "長崎県", "team_id": 7, "team_name": "福岡大学",
+    "image_url": "amedas/jpg/84523.jpg", "address": "島原市新湊", "start_date": null, "elevation": 14.0,
+    "comment": "", "performance": {}, "personal_best": []
+  },
+  "添田": {
+    "name": "添田", "code": "82206", "prefecture": "福岡県", "team_id": 7, "team_name": "福岡大学",
+    "image_url": "amedas/jpg/82206.jpg", "address": "田川郡添田町大字野田字大野ノ原", "start_date": "1977/02/21", "elevation": 92.0,
+    "comment": "", "performance": {}, "personal_best": []
+  },
   "智頭": {
     "name": "智頭", "code": "69246", "prefecture": "鳥取県", "team_id": 9, "team_name": "鳥取大学",
     "image_url": "amedas/jpg/69246.jpg", "address": "八頭郡智頭町智頭沖代", "start_date": "1978/11/13", "elevation": 182.0,
@@ -4378,8 +4393,8 @@
     "name": "飯塚",
     "code": "82136",
     "prefecture": "福岡県",
-    "team_id": 8,
-    "team_name": "学連選抜",
+    "team_id": 7,
+    "team_name": "福岡大学",
     "image_url": "amedas/jpg/82136.jpg",
     "address": "飯塚市川島字甘木　飯塚特別地域気象観測所",
     "start_date": "1975/12/16",
