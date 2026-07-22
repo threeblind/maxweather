@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ekiden-sokuhou-cache-v11';
+const CACHE_NAME = 'ekiden-sokuhou-cache-v12';
 // オフライン時に利用できるようにキャッシュするファイルのリスト
 const urlsToCache = [
   './', // ルートURL
@@ -25,6 +25,20 @@ self.addEventListener('install', (event) => {
         console.log('[Service Worker] Opened cache');
         return cache.addAll(urlsToCache);
       })
+      .then(() => self.skipWaiting())
+  );
+});
+
+// 新版を即時に有効化し、旧版のHTML/JSキャッシュを残さない。
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((cacheNames) => Promise.all(
+        cacheNames
+          .filter((cacheName) => cacheName.startsWith('ekiden-sokuhou-cache-') && cacheName !== CACHE_NAME)
+          .map((cacheName) => caches.delete(cacheName))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 

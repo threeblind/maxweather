@@ -3464,7 +3464,10 @@ function displayTeamDetails(teamId) {
     contentContainer.innerHTML = `
         <div class="team-details-container">
             <div class="team-details-title" style="background-color: ${teamColor}; color: ${textColor};">
-                <span class="team-details-title-text">${teamConfig.name}${teamConfig.manager ? `　${teamConfig.manager}` : ''}</span>
+                <div class="team-details-title-copy">
+                    <span class="team-details-title-text">${teamConfig.name}</span>
+                    ${teamConfig.manager ? `<span class="team-details-manager">${teamConfig.manager}</span>` : ''}
+                </div>
             </div>
             <table class="team-kukan-table">
                 <tbody>
