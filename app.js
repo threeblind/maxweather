@@ -1,6 +1,7 @@
 let stationsData = [];
 let allIndividualData = {}; // 選手個人の全記録を保持するグローバル変数
 let playerProfiles = {}; // 選手名鑑データを保持
+let playerSongs = {}; // 選手の登場曲データを保持
 let lastRealtimeData = null; // 最新のrealtime_report.jsonを保持する
 let ekidenDataCache = null; // ekiden_data.jsonをキャッシュする
 let intramuralDataCache = null; // 学内ランキングデータを保持する
@@ -120,6 +121,20 @@ async function loadPlayerProfiles() {
     } catch (error) {
         console.error('選手名鑑データの読み込みに失敗:', error);
     }
+}
+
+async function loadPlayerSongs() {
+    try {
+        const response = await fetch('config/player_songs.json');
+        if (response.ok) playerSongs = await response.json();
+    } catch (error) {
+        console.error('登場曲データの読み込みに失敗:', error);
+    }
+}
+
+function renderPlayerSong(name) {
+    const song = playerSongs[name];
+    return song ? `<div class="runner-song">🎵 登場曲：${song[0]} <a href="${song[1]}" target="_blank" rel="noopener noreferrer">▶ YouTubeで聴く</a></div>` : '';
 }
 
 // 地点名から観測所情報を検索
@@ -3417,7 +3432,7 @@ function displayTeamDetails(teamId) {
                                 <a href="#" class="runner-name player-profile-trigger" data-runner-name="${runnerName}" onclick="event.preventDefault()" style="color: #007bff;">${formattedRunnerName}</a>${substitutionLabelHtml}${currentPerformanceHtml}
                                 <div class="runner-meta">${runnerMeta}</div>
                             </div>
-                            ${runnerCommentHtml}
+            ${runnerCommentHtml}${renderPlayerSong(runnerName)}
                         </div>
                     </div>
                 </td>
@@ -3449,7 +3464,7 @@ function displayTeamDetails(teamId) {
                                 <a href="#" class="runner-name player-profile-trigger" data-runner-name="${runnerName}" onclick="event.preventDefault()" style="color: #007bff;">${formattedRunnerName}</a>
                                 <div class="runner-meta">${runnerMeta}</div>
                             </div>
-                            ${runnerCommentHtml}
+                            ${runnerCommentHtml}${renderPlayerSong(runnerName)}
                         </div>
                     </div>
                 </td>
@@ -3552,6 +3567,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // アメダス機能の初期化
     loadStationsData();
     loadPlayerProfiles();
+    loadPlayerSongs();
     loadSearchHistory(); // アメダス検索履歴の読み込み
     // loadRanking(); // 全国ランキングは公開用 index.html には無いためコメントアウト
 
