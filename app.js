@@ -4883,6 +4883,7 @@ function renderRankTimeline() {
     if (filteredEvents.length === 0) {
         listEl.innerHTML = '';
         toggleBtn.hidden = true;
+        toggleBtn.style.display = 'none';
         statusEl.textContent = '該当する順位変動はまだありません。';
         statusEl.style.display = 'block';
         return;
@@ -5040,8 +5041,10 @@ function renderRankTimeline() {
     // 5. 展開トグルの更新
     if (filteredEvents.length <= initialLimit) {
         toggleBtn.hidden = true;
+        toggleBtn.style.display = 'none';
     } else {
         toggleBtn.hidden = false;
+        toggleBtn.style.display = 'block';
         toggleBtn.setAttribute('aria-expanded', isRankTimelineExpanded ? 'true' : 'false');
         toggleBtn.textContent = isRankTimelineExpanded ? '折りたたむ' : `すべて見る（${filteredEvents.length}件）`;
     }
