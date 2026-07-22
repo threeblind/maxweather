@@ -10,9 +10,6 @@ venv/
 .env.*
 !.env.example
 
-# Temporary files
-data/realtime_report_previous.json
-
 # IDE settings
 .vscode/
 
@@ -23,5 +20,3 @@ data/realtime_report_previous.json
 *.plist
 
 ekiden_map.kml
-data/ekiden_state.json
-data/
