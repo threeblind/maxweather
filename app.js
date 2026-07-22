@@ -3372,10 +3372,11 @@ function displayTeamDetails(teamId) {
         const isSubstitutedIn = typeof runnerObj === 'object' && runnerObj.is_substitute_in === true;
         const runnerLeg = index + 1;
         const profile = playerProfiles[runnerName] || {};
+        const hasTeamComment = profile.comment && profile.team_id === teamConfig.id;
         const formattedRunnerName = formatRunnerName(runnerName);
         const runnerImage = profile.image_url || 'https://via.placeholder.com/60';
         // コメントが存在する場合のみpタグを生成
-        const runnerCommentHtml = profile.comment
+        const runnerCommentHtml = hasTeamComment
             ? `<p class="runner-comment">"${profile.comment}"</p>`
             : '';
 
@@ -3444,10 +3445,11 @@ function displayTeamDetails(teamId) {
     const substituteEntriesHtml = (teamConfig.substitutes || []).map(sub => {
         const runnerName = typeof sub === 'string' ? sub : sub.name;
         const profile = playerProfiles[runnerName] || {};
+        const hasTeamComment = profile.comment && profile.team_id === teamConfig.id;
         const formattedRunnerName = formatRunnerName(runnerName);
         const runnerImage = profile.image_url || 'https://via.placeholder.com/60';
         // コメントが存在する場合のみpタグを生成
-        const runnerCommentHtml = profile.comment
+        const runnerCommentHtml = hasTeamComment
             ? `<p class="runner-comment">"${profile.comment}"</p>`
             : '';
 
