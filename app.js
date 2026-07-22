@@ -3191,6 +3191,7 @@ async function showPlayerProfileModal(rawRunnerName) {
                    "${profile.comment}"
                </blockquote>`
             : '';
+        const songHtml = renderPlayerSong(rawRunnerName);
 
         // --- 各セクションのHTMLを生成 ---
         let currentPerformanceHtml = createSectionTitle('今大会の成績');
@@ -3276,7 +3277,7 @@ async function showPlayerProfileModal(rawRunnerName) {
                     <p><b>出身:</b> ${profile.prefecture || '未設定'}</p>
                     <p><b>地点:</b> ${profile.address} (標高: ${profile.elevation}m)</p>
                     <p><b>開始:</b> ${profile.start_date}</p>
-                    ${commentHtml}
+                    ${commentHtml}${songHtml}
                 </div>
             </div>
             ${currentPerformanceHtml}
