@@ -2,6 +2,7 @@ let stationsData = [];
 let allIndividualData = {}; // 選手個人の全記録を保持するグローバル変数
 let playerProfiles = {}; // 選手名鑑データを保持
 let playerSongs = {}; // 選手の登場曲データを保持
+let teamComments = {}; // チーム別の選手コメント上書き
 let lastRealtimeData = null; // 最新のrealtime_report.jsonを保持する
 let ekidenDataCache = null; // ekiden_data.jsonをキャッシュする
 let intramuralDataCache = null; // 学内ランキングデータを保持する
@@ -130,6 +131,19 @@ async function loadPlayerSongs() {
     } catch (error) {
         console.error('登場曲データの読み込みに失敗:', error);
     }
+}
+
+async function loadTeamComments() {
+    try {
+        const response = await fetch('config/team_comments.json');
+        if (response.ok) teamComments = await response.json();
+    } catch (error) {
+        console.error('チーム別コメントの読み込みに失敗:', error);
+    }
+}
+
+function getTeamComment(teamId, runnerName, profile) {
+    return teamComments[String(teamId)]?.[runnerName] || (profile.team_id === teamId ? profile.comment : '');
 }
 
 function renderPlayerSong(name) {
@@ -3372,12 +3386,12 @@ function displayTeamDetails(teamId) {
         const isSubstitutedIn = typeof runnerObj === 'object' && runnerObj.is_substitute_in === true;
         const runnerLeg = index + 1;
         const profile = playerProfiles[runnerName] || {};
-        const hasTeamComment = profile.comment && profile.team_id === teamConfig.id;
+        const teamComment = getTeamComment(teamConfig.id, runnerName, profile);
         const formattedRunnerName = formatRunnerName(runnerName);
         const runnerImage = profile.image_url || 'https://via.placeholder.com/60';
         // コメントが存在する場合のみpタグを生成
-        const runnerCommentHtml = hasTeamComment
-            ? `<p class="runner-comment">"${profile.comment}"</p>`
+        const runnerCommentHtml = teamComment
+            ? `<p class="runner-comment">"${teamComment}"</p>`
             : '';
 
         const runnerMeta = `${profile.grade || ''} / ${profile.prefecture || ''} / ${profile.address || ''}`;
@@ -3445,12 +3459,12 @@ function displayTeamDetails(teamId) {
     const substituteEntriesHtml = (teamConfig.substitutes || []).map(sub => {
         const runnerName = typeof sub === 'string' ? sub : sub.name;
         const profile = playerProfiles[runnerName] || {};
-        const hasTeamComment = profile.comment && profile.team_id === teamConfig.id;
+        const teamComment = getTeamComment(teamConfig.id, runnerName, profile);
         const formattedRunnerName = formatRunnerName(runnerName);
         const runnerImage = profile.image_url || 'https://via.placeholder.com/60';
         // コメントが存在する場合のみpタグを生成
-        const runnerCommentHtml = hasTeamComment
-            ? `<p class="runner-comment">"${profile.comment}"</p>`
+        const runnerCommentHtml = teamComment
+            ? `<p class="runner-comment">"${teamComment}"</p>`
             : '';
 
         const runnerMeta = `${profile.grade || ''} / ${profile.prefecture || ''} / ${profile.address || ''}`;
@@ -3570,6 +3584,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     loadStationsData();
     loadPlayerProfiles();
     loadPlayerSongs();
+    loadTeamComments();
     loadSearchHistory(); // アメダス検索履歴の読み込み
     // loadRanking(); // 全国ランキングは公開用 index.html には無いためコメントアウト
 
