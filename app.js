@@ -113,7 +113,7 @@ async function loadStationsData() {
 // 選手名鑑データを読み込み
 async function loadPlayerProfiles() {
     try {
-        const response = await fetch('config/player_profiles.json');
+        const response = await fetch(`config/player_profiles.json?_=${new Date().getTime()}`, { cache: 'no-store' });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
