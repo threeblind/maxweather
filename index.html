@@ -1789,16 +1789,14 @@
 
         @media (max-width: 768px) {
             .team-details-title {
-                overflow-x: auto;
-                white-space: nowrap;
                 padding: 0.8rem 1rem;
             }
 
             .team-details-title-copy {
-                flex-direction: row;
-                align-items: baseline;
-                gap: 0.65rem;
-                min-width: max-content;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem;
+                min-width: 0;
             }
 
             .team-details-title-text {
@@ -1807,11 +1805,11 @@
             }
 
             .team-details-manager {
-                display: inline;
+                display: block;
                 font-size: 0.72rem;
-                line-height: 1.2;
-                overflow-wrap: normal;
-                flex: 0 0 auto;
+                line-height: 1.35;
+                overflow-wrap: anywhere;
+                white-space: normal;
             }
         }
 
