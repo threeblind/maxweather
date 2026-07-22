@@ -11,7 +11,7 @@ import unicodedata
 from collections import defaultdict
 from bs4 import BeautifulSoup
 from geopy.distance import geodesic
-from time_utils import now_jst, format_jst_iso
+from time_utils import JST, now_jst, format_jst_iso
 
 # --- ディレクトリ定義 ---
 CONFIG_DIR = Path('config')
@@ -272,7 +272,10 @@ def fetch_daytime_manager_comment(ekiden_data):
         if not date_match:
             continue
 
-        post_datetime = datetime.strptime(f"{date_match.group(1)} {date_match.group(2)}", '%Y/%m/%d %H:%M:%S')
+        # 掲示板の時刻はJST表記で、datetime.strptimeはnaiveになるためJSTを付与する。
+        post_datetime = datetime.strptime(
+            f"{date_match.group(1)} {date_match.group(2)}", '%Y/%m/%d %H:%M:%S'
+        ).replace(tzinfo=JST)
         if time(7, 0) <= post_datetime.time() < time(19, 0) and (now - post_datetime) < timedelta(minutes=10):
             posted_name = username_span.get_text().split('◆')[0].strip()
             content_text = content_div.get_text(separator=' ', strip=True)
