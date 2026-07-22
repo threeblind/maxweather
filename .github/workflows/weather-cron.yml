@@ -3,9 +3,9 @@ name: Weather Cron Jobs
 on:
   schedule:
     - cron: "*/10 22-23 * * *"
-    - cron: "*/10 0-10 * * *"
-    - cron: "*/10 10-23 * * *"
     - cron: "*/10 0-1 * * *"
+    - cron: "*/10 2-9 * * *"
+    - cron: "*/10 10-21 * * *"
     - cron: "45 14 * * *"
     - cron: "5 15 * * *"
     - cron: "0 15 * * *"
@@ -95,7 +95,7 @@ jobs:
 
   realtime:
     needs: validate
-    if: github.event_name == 'schedule' && (github.event.schedule == '*/10 22-23 * * *' || github.event.schedule == '*/10 0-10 * * *') || github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'realtime'
+    if: github.event_name == 'schedule' && (github.event.schedule == '*/10 22-23 * * *' || github.event.schedule == '*/10 0-1 * * *' || github.event.schedule == '*/10 2-9 * * *' || github.event.schedule == '*/10 10-21 * * *') || github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'realtime'
     runs-on: ubuntu-latest
     env:
       EKIDEN_TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'test' && '1' || '0' }}
@@ -133,7 +133,7 @@ jobs:
 
   manager_comments:
     needs: validate
-    if: github.event_name == 'schedule' && (github.event.schedule == '*/10 10-23 * * *' || github.event.schedule == '*/10 0-1 * * *') || github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'manager_comments'
+    if: github.event_name == 'schedule' && (github.event.schedule == '*/10 10-21 * * *' || github.event.schedule == '*/10 22-23 * * *' || github.event.schedule == '*/10 0-1 * * *') || github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'manager_comments'
     runs-on: ubuntu-latest
     env:
       EKIDEN_TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'test' && '1' || '0' }}
