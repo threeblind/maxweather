@@ -1787,6 +1787,34 @@
             opacity: 0.9;
         }
 
+        @media (max-width: 768px) {
+            .team-details-title {
+                overflow-x: auto;
+                white-space: nowrap;
+                padding: 0.8rem 1rem;
+            }
+
+            .team-details-title-copy {
+                flex-direction: row;
+                align-items: baseline;
+                gap: 0.65rem;
+                min-width: max-content;
+            }
+
+            .team-details-title-text {
+                font-size: 1rem;
+                flex: 0 0 auto;
+            }
+
+            .team-details-manager {
+                display: inline;
+                font-size: 0.72rem;
+                line-height: 1.2;
+                overflow-wrap: normal;
+                flex: 0 0 auto;
+            }
+        }
+
         .team-kukan-table {
             width: 100%;
             border-collapse: collapse;
