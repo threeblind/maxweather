@@ -45,7 +45,7 @@ fi
 # 未追跡の新規ファイルも差分検知の対象にするため、存在すれば git add -N (intent-to-add) を行います。
 for f in data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json data/realtime_log.jsonl; do
     if [[ -f "$f" ]]; then
-        git add -N "$f" || true
+        git add -f -N "$f" || true
     fi
 done
 
@@ -65,11 +65,11 @@ if ! git diff --quiet --exit-code \
 
     # 当日分の snapshot を add（存在しなければ無視）
     if compgen -G "$SNAP_DIR/realtime_report_${TODAY}_*.json" > /dev/null; then
-        git add "$SNAP_DIR"/realtime_report_${TODAY}_*.json || true
+        git add -f "$SNAP_DIR"/realtime_report_${TODAY}_*.json || true
     fi
     # snapshot_index.json も add（存在すれば）
     if [[ -f "$SNAP_DIR/snapshot_index.json" ]]; then
-        git add "$SNAP_DIR/snapshot_index.json" || true
+        git add -f "$SNAP_DIR/snapshot_index.json" || true
     fi
 
     # リポジトリに既にある過去の snapshot ファイル（当日以外）を削除してコミット対象にする
@@ -83,7 +83,7 @@ if ! git diff --quiet --exit-code \
     # 主要な速報ファイルを add（存在するファイルのみ）
     for f in data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json data/realtime_log.jsonl; do
         if [[ -f "$f" ]]; then
-            git add "$f"
+        git add -f "$f"
         fi
     done
 
