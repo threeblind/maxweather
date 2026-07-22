@@ -1,4 +1,11 @@
 {
+  "豊田": {"name": "豊田", "code": "51116", "prefecture": "愛知県", "team_id": 1, "team_name": "名古屋大学", "image_url": "amedas/jpg/51116.jpg", "address": "豊田市高町東山", "start_date": "1979/01/09", "elevation": 75.0, "comment": "", "performance": {}, "personal_best": []},
+  "八幡": {"name": "八幡", "code": "52331", "prefecture": "岐阜県", "team_id": 1, "team_name": "名古屋大学", "image_url": "amedas/jpg/52331.jpg", "address": "郡上市八幡町旭田尻", "start_date": "1978/11/16", "elevation": 271.0, "comment": "暖気が北上した条件で西でも東でもいいから風吹けば郡上おどりは最高潮。", "performance": {}, "personal_best": []},
+  "新城": {"name": "新城", "code": "51247", "prefecture": "愛知県", "team_id": 1, "team_name": "名古屋大学", "image_url": "amedas/jpg/51247.jpg", "address": "新城市富沢字広瀬", "start_date": "2002/12/25", "elevation": 53.0, "comment": "前線南下時の防御と北西強風の快走が強み、出走は監督の勇気次第。", "performance": {}, "personal_best": []},
+  "岡山": {"name": "岡山", "code": "66408", "prefecture": "岡山県", "team_id": 6, "team_name": "広島経済大学", "image_url": "amedas/jpg/66408.jpg", "address": "岡山市北区津島中　岡山地方気象台", "start_date": "1996/03/25", "elevation": 5.0, "comment": "晴れの国・岡山の重鎮、2025年に見せた爆発力の再来なるか。", "performance": {}, "personal_best": []},
+  "府中": {"name": "府中", "code": "67326", "prefecture": "広島県", "team_id": 6, "team_name": "広島経済大学", "image_url": "amedas/jpg/67326.jpg", "address": "府中市土生町", "start_date": "1979/01/11", "elevation": 70.0, "comment": "華やかさの加計とは対極の泥臭い強さが持ち味、エースをねらえる逸材に育ってくれた。", "performance": {}, "personal_best": []},
+  "高松": {"name": "高松", "code": "72086", "prefecture": "香川県", "team_id": 6, "team_name": "広島経済大学", "image_url": "amedas/jpg/72086.jpg", "address": "高松市伏石町　高松地方気象台", "start_date": "1975/04/01", "elevation": 9.0, "comment": "TDT（多度津）の防御力と安定した攻撃力を兼ね備えたコシの強いうどん県の副主将。", "performance": {}, "personal_best": []},
+  "福渡": {"name": "福渡", "code": "66296", "prefecture": "岡山県", "team_id": 6, "team_name": "広島経済大学", "image_url": "amedas/jpg/66296.jpg", "address": "岡山市北区建部町福渡", "start_date": "1979/01/09", "elevation": 63.0, "comment": "補欠へ回る偵察メンバーかもしれないが、去年の岡山バブル再来なら出走だ。", "performance": {}, "personal_best": []},
   "八尾": {
     "name": "八尾", "code": "62096", "prefecture": "大阪府", "team_id": 3, "team_name": "関西大学",
     "image_url": "amedas/jpg/62096.jpg", "address": "八尾市空港　八尾航空気象観測所", "start_date": "2003/01/01", "elevation": 10.0,
@@ -198,7 +205,7 @@
     "address": "岡崎市美合町地蔵野",
     "start_date": "1979/01/09",
     "elevation": 47.0,
-    "comment": "",
+    "comment": "太平洋高気圧が弱まった時に粘れる強力なサブ、海風は大嫌い。",
     "performance": {},
     "personal_best": []
   },
@@ -212,7 +219,7 @@
     "address": "名古屋市千種区日和町　名古屋地方気象台",
     "start_date": "1975/03/19",
     "elevation": 51.0,
-    "comment": "",
+    "comment": "攻撃も防御もそつなくこなすのでドンピシャの気圧配置で走ることは少ない。どの区間でも確実に戦力になってくれる頼もしいキャプテン。",
     "performance": {
       "15": {
         "summary": {
@@ -274,7 +281,7 @@
     "address": "多治見市光ケ丘",
     "start_date": "1978/11/24",
     "elevation": 120.0,
-    "comment": "",
+    "comment": "かつての暴力的な強さは無くとも南風でも走る粘り強さは健在。日本記録時代に注目された「うながっぱ」は今年も活動中。",
     "performance": {
       "15": {
         "summary": {
@@ -401,7 +408,7 @@
     "address": "美濃加茂市西町",
     "start_date": "1978/11/15",
     "elevation": 74.0,
-    "comment": "",
+    "comment": "正午までは寝ている超スロースターターだが終わってみればちゃんとまとめる不思議ちゃん、兄の美濃君とは真逆のまろやかな走りで行こう。",
     "performance": {
       "15": {
         "summary": {
@@ -446,7 +453,7 @@
     "address": "美濃市前野中川原",
     "start_date": "1978/11/15",
     "elevation": 68.0,
-    "comment": "",
+    "comment": "晴天時の切れ味はエース級、雷雲に弱いのは御愛敬。美濃和紙のように繊細だが強い美濃兄弟の兄。",
     "performance": {
       "15": {
         "summary": {
@@ -510,7 +517,7 @@
     "address": "愛西市江西町川原",
     "start_date": "1979/01/11",
     "elevation": 5.0,
-    "comment": "",
+    "comment": "本家に及ばないが桑名君をリスペクトする40℃クラブ初期メンバー。木曽三川を束ねた薩摩義士たちも活躍を見ている。",
     "performance": {
       "15": {
         "summary": {
@@ -580,7 +587,7 @@
     "address": "岐阜市加納二之丸　岐阜地方気象台",
     "start_date": "1975/04/01",
     "elevation": 13.0,
-    "comment": "",
+    "comment": "天気予報で雨マークが入っても何とかしてしまう責任感の塊の副主将。金華山の城から9区までの走りを見下ろし今年もアンカーで出陣だ。",
     "performance": {
       "15": {
         "summary": {
@@ -649,7 +656,7 @@
     "address": "大垣市禾森町",
     "start_date": "1978/11/13",
     "elevation": 6.0,
-    "comment": "",
+    "comment": "北西風が苦手の異端児、代わりに東風逆風での防御と攻撃は任せた、名物の水まんじゅう食べて涼んで走れよガッキー。",
     "performance": {
       "15": {
         "summary": {
@@ -702,7 +709,7 @@
     "address": "大府市森岡町",
     "start_date": "2012/10/17",
     "elevation": 32.0,
-    "comment": "",
+    "comment": "関大の八尾君には全く叶わないけど悪天時は防御の要。西風吹かない晴天時は海風が早いので早めに勝負したい。",
     "performance": {
       "15": {
         "summary": {
@@ -747,7 +754,7 @@
     "address": "揖斐郡揖斐川町三輪",
     "start_date": "1978/11/14",
     "elevation": 45.0,
-    "comment": "",
+    "comment": "北西風はもちろん風が淀んだ日の午後の重戦車のような走りも持ち味。日本海プチ高気圧でトップとるシステムは今も健在なのか確かめたい。",
     "performance": {
       "15": {
         "summary": {
@@ -3052,7 +3059,7 @@
     "address": "広島市中区上八丁堀　広島地方気象台",
     "start_date": "1988/01/01",
     "elevation": 4.0,
-    "comment": "",
+    "comment": "吹いて欲しいのは北風、トリッキーな夏型になったら出番はある。",
     "performance": {},
     "personal_best": [
       {
@@ -3074,7 +3081,7 @@
     "address": "大竹市立戸",
     "start_date": "1979/01/16",
     "elevation": 1.0,
-    "comment": "",
+    "comment": "隣の岩国君や広島君と連動しないじゃじゃ馬選手、2日でいいから好調維持タノム。",
     "performance": {
       "15": {
         "summary": {
@@ -3113,7 +3120,7 @@
     "address": "山県郡安芸太田町加計字神田",
     "start_date": "1978/11/24",
     "elevation": 210.0,
-    "comment": "",
+    "comment": "最低20℃からでも40℃を狙えるロマンの塊、山間選手の憧れのカッケー男だ。",
     "performance": {
       "15": {
         "summary": {
@@ -3203,7 +3210,7 @@
     "address": "三次市三次町",
     "start_date": "1978/11/22",
     "elevation": 159.0,
-    "comment": "",
+    "comment": "近年急激に力をつけてきた内陸選手、最強のコック・サンジが高温王の一員になれるか。",
     "performance": {
       "15": {
         "summary": {
@@ -3293,7 +3300,7 @@
     "address": "高梁市落合町近似",
     "start_date": "1979/01/10",
     "elevation": 60.0,
-    "comment": "",
+    "comment": "悪天で水攻めにさえ遭わなければ鉄壁の城、エース区間は任せた。",
     "performance": {
       "15": {
         "summary": {
@@ -3344,7 +3351,7 @@
     "address": "三豊市財田町財田上",
     "start_date": "1978/01/11",
     "elevation": 65.0,
-    "comment": "",
+    "comment": "西風が止まった瞬間に猛ダッシュする財田マジックは全国ランキングクラス。",
     "performance": {
       "15": {
         "summary": {
@@ -3448,7 +3455,7 @@
     "address": "綾歌郡綾川町滝宮字山田",
     "start_date": "1978/01/11",
     "elevation": 60.0,
-    "comment": "",
+    "comment": "海風に弱いが失速は少ない、天満宮つながりで太宰府君にあやかりたい。",
     "performance": {
       "15": {
         "summary": {
@@ -3507,7 +3514,7 @@
     "address": "福山市松永町　福山特別地域気象観測所",
     "start_date": "1975/12/16",
     "elevation": 2.0,
-    "comment": "",
+    "comment": "北東風に活躍の場は限られるが防御力もなかなか、合格の走りでバラの花を。",
     "performance": {
       "15": {
         "summary": {
@@ -4394,7 +4401,7 @@
     "address": "真庭市中島",
     "start_date": "1978/11/17",
     "elevation": 144.0,
-    "comment": "",
+    "comment": "復活した1994年猛暑のレジェンド、安定晴天型になったらいつでも行ける。",
     "performance": {
       "15": {
         "summary": {
