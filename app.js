@@ -2725,7 +2725,10 @@ async function displayIntramuralRanking(teamId) {
         // 5. リアルタイムの選手ステータスを決定するための情報を準備
         // todayLeg: 本日実際に走っている区間番号（currentLeg は翌日以降の区間番号）
         const currentLeg = realtimeTeamData.todayLeg ?? realtimeTeamData.currentLeg;
-        const activeRunners = ekidenConfigTeamData.runners.map(r => r.name);
+        // 選手マスタは文字列配列とオブジェクト配列の両形式に対応する。
+        const activeRunners = ekidenConfigTeamData.runners.map(r =>
+            typeof r === 'string' ? r : r.name
+        );
         const substitutedOutRunners = realtimeTeamData.substituted_out || [];
 
         // 6. テーブルを生成
