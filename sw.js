@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ekiden-sokuhou-cache-v12';
+const CACHE_NAME = 'ekiden-sokuhou-cache-v13';
 // オフライン時に利用できるようにキャッシュするファイルのリスト
 const urlsToCache = [
   './', // ルートURL
@@ -83,6 +83,18 @@ self.addEventListener('fetch', (event) => {
           return cachedResponse || fetchedResponsePromise;
         });
       })
+    );
+    return;
+  }
+
+  // JS/CSSはネットワークを優先し、更新版が古いキャッシュに固定されないようにする。
+  if (request.destination === 'script' || request.destination === 'style') {
+    event.respondWith(
+      fetch(request).then((networkResponse) => {
+        const responseClone = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+        return networkResponse;
+      }).catch(() => caches.match(request))
     );
     return;
   }
