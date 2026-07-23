@@ -3181,7 +3181,15 @@ async function showPlayerProfileModal(rawRunnerName) {
         if (!profile) throw new Error('選手名鑑に情報が見つかりません。');
 
         const currentPerformanceData = allIndividualData[rawRunnerName];
-        const teamColor = teamColorMap.get(profile.team_name) || '#6c757d';
+        // 現在のエントリーを正として所属を解決する。プロフィールJSONが
+        // 古いキャッシュや生成結果を含んでいても、個人ページで誤った大学を表示しない。
+        const currentEntryTeam = ekidenDataCache?.teams?.find(team =>
+            [...(team.runners || []), ...(team.substitutes || [])].some(runner =>
+                (typeof runner === 'string' ? runner : runner?.name) === rawRunnerName
+            )
+        );
+        const displayTeamName = currentEntryTeam?.name || profile.team_name;
+        const teamColor = teamColorMap.get(displayTeamName) || '#6c757d';
 
         const createSectionTitle = (title) => `<h4 style="border-bottom-color: ${teamColor}; color: ${teamColor};">${title}</h4>`;
 
@@ -3267,7 +3275,7 @@ async function showPlayerProfileModal(rawRunnerName) {
         contentDiv.innerHTML = `
             <div class="profile-header" style="--team-color: ${teamColor}; --text-color: ${textColor}; background-color: var(--team-color); color: var(--text-color);">
                 <h3 class="profile-name">${profile.name}</h3>
-                <p class="profile-team" style="opacity: 0.9;">${profile.team_name}</p>
+                <p class="profile-team" style="opacity: 0.9;">${displayTeamName}</p>
             </div>
             <div class="profile-main-info-wrapper">
                 <div class="profile-image-container">
