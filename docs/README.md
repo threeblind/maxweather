@@ -31,8 +31,18 @@
     - **日中 (7時〜19時)**: `update_realtime.sh` が `generate_report.py` を実行。各選手の走行距離（=気温）を算出し、`realtime_report.json` などの速報ファイルを更新。同時に、5chスレッドから監督の最新コメントを取得し、速報コメントに反映させます。この際、`realtime_log.jsonl` に走行中選手の時系列データが追記されます（約10分間隔）。
     - **夜間 (19時〜翌7時)**: `update_manager_comments.sh` が `fetch_manager_comments.py` を実行。5chスレッドから監督たちの会話を取得し、`manager_comments.json` を生成します。
     - **日次確定**: `commit_daily.sh` が深夜に実行されます。このスクリプトは、その日の最終結果を `ekiden_state.json` に保存し、`individual_results.json` に区間順位を追加します。また、`update_all_records.py` を実行して全選手の最終気温を取得し、`daily_temperatures.json` と `intramural_rankings.json` を更新します。最後に、その日の `realtime_log.jsonl` を日付付きで `data/` ディレクトリにアーカイブします。
+        - 確定処理後の主要JSONは `data/daily_snapshots/YYYY-MM-DD/` に永続保存されます。保存日は実行時刻ではなく `realtime_report.json` の `updateTime` から決定されるため、処理が0時をまたいでも対象日を維持します。
+        - 各日付フォルダの `manifest.json` には取得日時、大会日、元データの更新時刻、ファイルサイズ、SHA-256が記録されます。
     - **AIによる記事生成**: `generate_daily_summary.py` が日次で実行され、その日のレース結果や監督コメントを元に、AIが解説記事 (`daily_summary.json`) を生成します。
     - これらのシェルスクリプトはcronジョブとして定期実行され、変更があった場合は自動でGitリポジトリにプッシュされます。
+
+過去日のダイジェストを再生成する場合は、保存済みの日次スナップショットを指定します。`AI_PROVIDER` に応じてOpenAIまたはGeminiが使われ、現在の履歴・物語状態は更新されません。
+
+```bash
+venv/bin/python scripts/run_historical_summary.py \
+  data/daily_snapshots/2026-07-23 \
+  --output data/daily_summary.json
+```
 
 2.  **画面表示 (フロントエンド)**
     - `app.js` が、リポジトリ上の各種JSONファイルを定期的にフェッチします（監督談話室を除く）。

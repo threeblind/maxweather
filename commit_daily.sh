@@ -34,6 +34,10 @@ echo "scripts/update_all_records.py を実行中..."
 echo "scripts/generate_report.py --commit を実行中..."
 "$PYTHON_CMD" scripts/generate_report.py --commit
 
+# 4. 確定データを日付付きスナップショットとして永続保存
+echo "scripts/save_daily_snapshot.py を実行中..."
+"$PYTHON_CMD" scripts/save_daily_snapshot.py
+
 if [[ "${EKIDEN_DISABLE_GIT_PUSH:-0}" == "1" ]]; then
     echo "テストモードのため、Git commit / push はスキップします。"
     echo "処理が正常に完了しました。"
@@ -41,7 +45,7 @@ if [[ "${EKIDEN_DISABLE_GIT_PUSH:-0}" == "1" ]]; then
     exit 0
 fi
 
-# 4. 本日のログファイルをアーカイブ
+# 5. 本日のログファイルをアーカイブ
 LOGS_DIR="logs"
 DATA_DIR="data"
 ARCHIVE_DIR="$DATA_DIR/archive"
@@ -57,17 +61,19 @@ else
     echo "本日のログファイル '$SOURCE_LOG_FILE' は見つかりませんでした。スキップします。"
 fi
 
-# 5. 変更されたファイルをステージング (パスを修正)
+# 6. 変更されたファイルをステージング (パスを修正)
 git add \
+  data/realtime_report.json \
   data/ekiden_state.json \
   data/individual_results.json \
   data/rank_history.json \
   data/leg_rank_history.json \
   data/runner_locations.json \
   data/daily_temperatures.json \
-  data/intramural_rankings.json
+  data/intramural_rankings.json \
+  data/daily_snapshots
 
-# 6. ステージングされた変更があるか確認し、コミットとプッシュを実行
+# 7. ステージングされた変更があるか確認し、コミットとプッシュを実行
 if ! git diff --cached --quiet; then
     echo "最終結果ファイルまたはログファイルに変更を検出しました。GitHubにプッシュします。"
     git commit -m "Finalize and archive daily data [bot] $(date +'%Y-%m-%d')"

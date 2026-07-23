@@ -1443,6 +1443,16 @@ def main():
         save_individual_results(individual_results, args.individual_state_file)
         if all_results:
             calculate_and_save_runner_locations(all_results)
+        # 日次スナップショットと翌朝の表示が日中最後の速報を参照しないよう、
+        # 23:55頃に計算した確定結果で realtime_report.json も更新する。
+        previous_comment = previous_report_data or {}
+        save_realtime_report(
+            all_results,
+            race_day,
+            previous_comment.get("breakingNewsComment", ""),
+            previous_comment.get("breakingNewsTimestamp", ""),
+            previous_comment.get("breakingNewsFullText", ""),
+        )
         print(f"\n--- [Commit Mode] 最終結果を保存しました ---")
     
     if not args.realtime and not args.commit:
