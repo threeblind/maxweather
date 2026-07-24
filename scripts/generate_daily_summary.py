@@ -683,6 +683,53 @@ class DailySummaryGenerator:
         return notes
 
     def build_system_prompt(self):
+        """config/summary_prompt_template.txt からプロンプトを読み込み、
+        プレースホルダーを実データで置換する。ファイルがない/読めない/未置換がある場合はエラー。"""
+        template_path = CONFIG_DIR / "summary_prompt_template.txt"
+        if not template_path.exists():
+            raise FileNotFoundError(
+                f"必須プロンプトテンプレートが見つかりません: {template_path}"
+            )
+
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                template = f.read()
+        except (IOError, OSError) as e:
+            raise IOError(
+                f"プロンプトテンプレートの読み込みに失敗しました: {template_path} - {e}"
+            )
+
+        # プレースホルダー置換
+        outline = self._load_outline_data()
+        ekiden_data = self.all_data.get("ekiden_data", {})
+
+        placeholders = {
+            "{tournament_title}": outline.get("title", "全国大学対抗高温駅伝"),
+            "{start_date}": (
+                outline.get("metadata", {}).get("startDate", "未設定")
+            ),
+            "{course_description}": self._format_course_description(outline),
+            "{team_prefecture_list}": self._format_team_prefecture_list(ekiden_data),
+            "{leg_configuration}": self._format_leg_configuration(
+                ekiden_data.get("leg_boundaries", [])
+            ),
+        }
+
+        result = template
+        for key, value in placeholders.items():
+            result = result.replace(key, str(value))
+
+        # 未置換プレースホルダーの検出→エラー
+        unreplaced = re.findall(r"\{[a-z_]+\}", result)
+        if unreplaced:
+            raise ValueError(
+                f"プロンプトテンプレートに未置換のプレースホルダーがあります: {unreplaced}"
+            )
+
+        return result
+
+    def _build_hardcoded_system_prompt(self):
+        """従来のハードコードされたシステムプロンプト"""
         return "\n".join([
             "あなたは「高温大学駅伝」の実況アナウンサー兼解説者です。",
             "出力は日本語のMarkdown記事です。",
@@ -705,6 +752,28 @@ class DailySummaryGenerator:
             "- 大げさな形容を連発せず、主導権、追走、混戦、次走者への展望を自然に描く",
             "- 具体的な大学名、選手名、区間を自然に織り込み、数値は必要な場面だけに絞る",
         ])
+
+    def _format_course_description(self, outline):
+        """コース説明を整形"""
+        course = outline.get("course", {})
+        if isinstance(course, dict):
+            desc = course.get("description", "")
+            if desc:
+                return desc
+        return "日本全国を巡る、アメダス観測地点をつないだ約1000kmの高温駅伝"
+
+    def _format_team_prefecture_list(self, ekiden_data):
+        """チームごとの担当都道府県一覧を整形"""
+        teams = ekiden_data.get("teams", [])
+        lines = []
+        for t in teams:
+            name = t.get("name", "?")
+            prefs = t.get("prefectures", "")
+            if prefs:
+                lines.append(f"- {name}: {prefs}")
+            else:
+                lines.append(f"- {name}")
+        return "\n".join(lines)
 
     def select_today_themes(self, metrics):
         """Python側でレース状況から複数の『ゾーン候補』を構造化して生成します。
