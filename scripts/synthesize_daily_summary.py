@@ -15,11 +15,16 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # プロジェクトルートのパス
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = PROJECT_ROOT / "config"
 DATA_DIR = PROJECT_ROOT / "data"
 HISTORY_DATA_DIR = PROJECT_ROOT / "history_data"
+
+# .env ファイルを読み込んでから環境変数を評価する
+load_dotenv(PROJECT_ROOT / ".env")
 
 # --- 環境変数設定 ---
 SYNTHESIS_PROVIDER = os.getenv("SUMMARY_SYNTHESIS_PROVIDER", "openai").strip().lower()
@@ -366,38 +371,21 @@ def _build_draft_prompt(all_data, provider, dry_run=False):
     except (FileNotFoundError, json.JSONDecodeError):
         gen.narrative_state = {}
 
-    # _build_prompt は race_day を引数に取る
-    report = all_data.get("realtime_report", {})
-    race_day = report.get("raceDay")
-    try:
-        race_day_int = int(race_day)
-    except (TypeError, ValueError):
-        race_day_int = 0
-
-    # _build_prompt は DaySummaryGenerator のメソッド
-    # 引数 (self, teams_sorted, lead_battle, seed_battle, additional_context)
-    # calculate_race_metrics を呼んで metrics を取得
-    gen_load_all_data = getattr(gen, "load_all_data", None)
     calc_metrics = getattr(gen, "calculate_race_metrics", None)
 
     prompt_text = None
     if calc_metrics:
         metrics = calc_metrics()
-        # _build_prompt は戻り値 (prompt, additional_context)
-        build_func = getattr(gen, "_build_prompt", None)
+        # build_user_prompt は metrics を受け取りプロンプト文字列を返す
+        build_func = getattr(gen, "build_user_prompt", None)
         if build_func:
-            teams_sorted = metrics.get("teams_sorted", [])
-            lead_battle = metrics.get("lead_battle")
-            seed_battle = metrics.get("seed_battle")
-            additional_context = metrics.get("additional_context", "")
-            prompt_result = build_func(teams_sorted, lead_battle, seed_battle, additional_context)
-            if isinstance(prompt_result, tuple):
-                prompt_text = prompt_result[0]
+            prompt_text = build_func(metrics)
 
     if not prompt_text:
         if dry_run:
             # dry-run 時のみ簡易プロンプトで続行
-            race_day_str = report.get("raceDay", "?")
+            report_dry = all_data.get("realtime_report", {})
+            race_day_str = report_dry.get("raceDay", "?")
             prompt_text = (
                 f"あなたは全国大学対抗高温駅伝の実況ライターです。"
                 f"以下のレースデータをもとに、{race_day_str}日目の記事を作成してください。\n\n"
