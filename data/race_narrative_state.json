@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "updated_day": 2,
+  "main_story": {
+    "type": "首位状況",
+    "summary": "首位状況",
+    "started_day": 2,
+    "last_updated_day": 2,
+    "teams": [
+      "名古屋大学",
+      "学連選抜"
+    ]
+  },
+  "ongoing_battles": [
+    {
+      "id": "lead_battle",
+      "kind": "lead",
+      "teams": [
+        "名古屋大学",
+        "学連選抜"
+      ],
+      "summary": "名古屋大学と学連選抜による首位争い",
+      "started_day": 2,
+      "last_updated_day": 2,
+      "last_observed_gap_km": 1.5,
+      "previous_gap_km": 1.5
+    }
+  ],
+  "momentum": [
+    {
+      "team": "四国大学",
+      "summary": "10位から7位へ急浮上",
+      "started_day": 2,
+      "last_updated_day": 2,
+      "previous_rank": 10,
+      "current_rank": 7,
+      "diff": 3
+    },
+    {
+      "team": "立命館大学",
+      "summary": "11位から8位へ急浮上",
+      "started_day": 2,
+      "last_updated_day": 2,
+      "previous_rank": 11,
+      "current_rank": 8,
+      "diff": 3
+    },
+    {
+      "team": "鹿児島大学",
+      "summary": "13位から10位へ急浮上",
+      "started_day": 2,
+      "last_updated_day": 2,
+      "previous_rank": 13,
+      "current_rank": 10,
+      "diff": 3
+    }
+  ],
+  "runner_threads": [
+    {
+      "runner": "美濃",
+      "team": "名古屋大学",
+      "summary": "本日最速 40.2km の快走",
+      "started_day": 2,
+      "last_updated_day": 2
+    }
+  ],
+  "resolved_stories": []
+}
