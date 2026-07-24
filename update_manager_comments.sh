@@ -3,6 +3,11 @@
 # スクリプトが失敗した場合に即座に終了するように設定
 set -euo pipefail
 
+# --- スクリプト本体 ---
+
+# スクリプトの実行場所をプロジェクトディレクトリに移動
+cd "$(dirname "$0")"
+
 # --- 設定 ---
 # Pythonの実行可能ファイルを解決します。ローカルではvenv、CIではPATH上のpythonを使います。
 if [[ -x "venv/bin/python" ]]; then
@@ -11,11 +16,6 @@ else
     PYTHON_CMD="${PYTHON_CMD:-python}"
 fi
 GIT_BRANCH="main"
-
-# --- スクリプト本体 ---
-
-# スクリプトの実行場所をプロジェクトディレクトリに移動
-cd "$(dirname "$0")"
 
 echo "--- $(date +'%Y-%m-%d %H:%M:%S') ---"
 echo "監督談話室のコメント更新を開始します..."
