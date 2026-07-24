@@ -1376,19 +1376,35 @@ class DailySummaryGenerator:
             if t.endswith('大学'):
                 valid_teams_fuzzy.add(t[:-2])
 
+        def runner_name(entry):
+            """文字列形式・辞書形式のrunner設定を共通の名前へ正規化する。"""
+            if isinstance(entry, str):
+                return entry.strip()
+            if isinstance(entry, dict):
+                name = entry.get('name')
+                return name.strip() if isinstance(name, str) else None
+            return None
+
+        def normalize_runner_name(name):
+            """記事中の敬称・区間番号・地域括弧を除去して照合用にする。"""
+            normalized = re.sub(r'^(?:\d+)', '', str(name)).strip()
+            normalized = re.sub(r'(?:君|選手)$', '', normalized).strip()
+            normalized = re.sub(r'（.+）', '', normalized).strip()
+            return normalized
+
         valid_runners = set()
         for t in ekiden_data.get('teams', []):
             for member_type in ['runners', 'substitutes', 'substituted_out']:
-                valid_runners.update(
-                    p.get('name') for p in t.get(member_type, []) if isinstance(p, dict) and p.get('name')
-                )
-        plain_runners = {re.sub(r'（.+）', '', name).strip() for name in valid_runners if name}
-        plain_runners = {re.sub(r'^\d+', '', name).strip() for name in plain_runners}
-        valid_runners.update(plain_runners)
+                for entry in t.get(member_type, []):
+                    name = runner_name(entry)
+                    if name:
+                        valid_runners.add(name)
 
-        valid_runners_fuzzy = set(valid_runners)
-        for name in valid_runners:
-            valid_runners_fuzzy.add(name.replace('選手', '').replace('君', '').strip())
+        valid_runners_fuzzy = {
+            normalized
+            for name in valid_runners
+            if (normalized := normalize_runner_name(name))
+        }
 
         warnings = []
 
@@ -1410,8 +1426,7 @@ class DailySummaryGenerator:
         runner_candidates = re.findall(r'([\u4e00-\u9faf\u30a0-\u30ff]{2,}(?:君|選手))(?:[がはのを受けに]|$)', plain_article)
         exclude_prefixes = ["注目", "両", "各", "全", "有力", "先頭", "出場", "現役", "若手", "エース", "後続", "同", "新", "元", "実況", "解説", "日本人", "新鋭", "他"]
         for cand in runner_candidates:
-            clean_cand = cand.replace('君', '').replace('選手', '').strip()
-            clean_cand = re.sub(r'^\d+', '', clean_cand).strip()
+            clean_cand = normalize_runner_name(cand)
             if not clean_cand or len(clean_cand) < 2:
                 continue
             if any(clean_cand.startswith(prefix) for prefix in exclude_prefixes) or clean_cand in exclude_prefixes:
@@ -1422,7 +1437,33 @@ class DailySummaryGenerator:
         # 3. 危険語（「逆転」「浮上」「優勝」等）の文脈整合性チェック
         rank_changes = metrics.get('rank_changes', {})
 
+        # 可能性・未確定・目標表現（警告対象外）
+        possibility_patterns = [
+            r'の機会を伺',
+            r'を狙',
+            r'の余地',
+            r'なるか',
+            r'の可能性',
+            r'できる位置',
+            r'を目指',
+            r'を期待',
+            r'が期待',
+            r'見込み',
+            r'チャンス',
+        ]
+
+        # 断定・完了表現（検証対象）
+        assertive_patterns = [
+            r'逆転し(?:た|て|まし|を果たし)',
+            r'逆転を果たし',
+            r'(?:\d+)位に浮上し',
+            r'浮上を決め',
+            r'ジャンプアップ(?:し|を果たし)',
+            r'ランクアップ(?:し|を果たし)',
+        ]
+
         keywords = ["逆転", "浮上", "ジャンプアップ"]
+        has_assertive_rank_kw = False
         for kw in keywords:
             pos = 0
             while True:
@@ -1434,6 +1475,20 @@ class DailySummaryGenerator:
                 end = min(len(plain_article), idx + len(kw) + 30)
                 window = plain_article[start:end]
 
+                # 可能性表現ならスキップ
+                if any(re.search(p, window) for p in possibility_patterns):
+                    pos = idx + len(kw)
+                    continue
+
+                # 断定表現かどうか
+                is_assertive = any(re.search(p, window) for p in assertive_patterns)
+                if not is_assertive:
+                    pos = idx + len(kw)
+                    continue
+
+                has_assertive_rank_kw = True
+
+                # 断定表現→大学特定→rank_changes照合
                 found_teams = []
                 for team in valid_teams:
                     short_team = team.replace('大学', '大')
@@ -1441,18 +1496,26 @@ class DailySummaryGenerator:
                     if team in window or short_team in window or stem_team in window:
                         found_teams.append(team)
 
-                for team in found_teams:
-                    change = rank_changes.get(team)
-                    if change:
-                        if change['diff'] <= 0:
-                            warnings.append(f"順位が上昇していないチーム '{team}' に関連して 『{kw}』 という表現が使われています。(周辺テキスト: '...{window}...')")
+                if not found_teams:
+                    warnings.append(
+                        f"順位変動の断定表現（{kw}）の周辺に大学名が特定できません: '...{window}...'"
+                    )
+                else:
+                    for team in found_teams:
+                        change = rank_changes.get(team)
+                        if change and change['diff'] <= 0:
+                            warnings.append(
+                                f"順位が上昇していないチーム '{team}' に関連して"
+                                f" 『{kw}』の断定表現が使われています。"
+                                f" (周辺テキスト: '...{window}...')"
+                            )
 
                 pos = idx + len(kw)
 
-        # 4. 全体的な危険語の使用制限
-        has_rank_up = any(change['diff'] > 0 for change in rank_changes.values())
-        if ("逆転" in plain_article or "浮上" in plain_article) and not has_rank_up:
-            warnings.append("記事内に『逆転』または『浮上』の表記がありますが、本日の順位データに順位上昇校がありません。")
+        # 4. 全体的な危険語の使用制限（断定表現に限定）
+        has_rank_up = any(change['diff'] > 0 for change in rank_changes.values()) if rank_changes else False
+        if has_assertive_rank_kw and not has_rank_up:
+            warnings.append("記事内に順位変動の断定表現（逆転/浮上/ジャンプアップ）がありますが、本日の順位データに順位上昇校がありません。")
 
         # 5. 「優勝」の不適切な使用制限
         sentences = re.split(r'[。！\n]', plain_article)
@@ -1531,6 +1594,7 @@ class DailySummaryGenerator:
 
 
         if warnings:
+            warnings = sorted(set(warnings))
             print("⚠️ 【検証警告】生成された記事に整合性の懸念があります:")
             for w in warnings:
                 print(f"  - {w}")
