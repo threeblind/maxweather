@@ -110,6 +110,45 @@ def test_template_missing_raises_error_v2(tmp_path, monkeypatch):
     assert raised, "FileNotFoundError が発生すべき"
 
 
+# --- テスト7: テンプレートにトークン例があり直接名がない ---
+def test_template_uses_tokens_not_direct_names():
+    """テンプレートの本文出力例に {{TEAM:...}}/{{RUNNER:...}} があり、
+    日本語正式名称が直接出力例として含まれない"""
+    import generate_daily_summary as gds
+    template_path = gds.CONFIG_DIR / "summary_prompt_template.txt"
+    template = template_path.read_text(encoding="utf-8")
+
+    # 執筆例セクションにトークンがあること
+    assert "{{TEAM:nagoya}}" in template, "例にチームトークンが必要"
+    assert "{{RUNNER:nagoya}}" in template, "例に走者トークンが必要"
+
+    # 出力契約セクションがあること
+    assert "出力契約" in template
+    assert "{{TEAM:team_id}} のみ" in template
+
+
+# --- テスト8: 文字数目標が約2000文字になっている ---
+def test_character_count_is_2000():
+    import generate_daily_summary as gds
+    gen = gds.DailySummaryGenerator.__new__(gds.DailySummaryGenerator)
+    gen.all_data = {
+        "ekiden_data": {"teams": []},
+        "realtime_report": {"teams": [], "raceDay": 1, "updateTime": ""},
+        "rank_history": {"teams": []},
+        "individual_results": {},
+        "manager_comments": [],
+        "player_story_context": {},
+        "team_story_context": {},
+        "leg_story_context": {},
+    }
+    gen.narrative_state = {}
+    gen.dry_run = True
+    metrics = gen.calculate_race_metrics()
+    prompt = gen.build_user_prompt(metrics)
+    assert "約2,000文字" in prompt or "2,000字" in prompt
+    assert "1,800" in prompt and "2,200" in prompt
+    assert "1400" not in prompt
+    assert "2600" not in prompt
 if __name__ == "__main__":
     tests = [
         ("template_loads_and_replaces_all", test_template_loads_and_replaces_all),
@@ -117,6 +156,7 @@ if __name__ == "__main__":
         ("leg_config_included", test_leg_config_included),
         ("unreplaced_placeholder_raises_error", test_unreplaced_placeholder_raises_error),
         ("template_missing_raises_error_v2", test_template_missing_raises_error_v2),
+        ("template_uses_tokens_not_direct_names", test_template_uses_tokens_not_direct_names),
     ]
     passed = 0
     failed = 0

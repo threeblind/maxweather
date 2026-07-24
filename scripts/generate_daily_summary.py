@@ -419,6 +419,548 @@ class DailySummaryGenerator:
             article_text = re.sub(f'(?<!\\*\\*)\\d*({re.escape(name)}選手)(?!\\*\\*)', r'**\1**', article_text)
         return article_text
 
+    @staticmethod
+    def parse_structured_ai_response(raw_text):
+        """OpenAIからの応答をJSONとしてパースし、article + claims を抽出する。
+
+        Args:
+            raw_text: AIからの生応答文字列
+
+        Returns:
+            dict: {"article": str, "claims": list}
+
+        Raises:
+            ValueError: JSONパース失敗、article欠落/空、claims非list
+        """
+        text = raw_text.strip()
+
+        # json code fence 対応
+        if text.startswith("```json"):
+            end = text.find("```", 3)
+            if end == -1:
+                raise ValueError("json code fence が閉じていません")
+            text = text[7:end].strip()
+        elif text.startswith("```"):
+            end = text.find("```", 3)
+            if end != -1:
+                text = text[3:end].strip()
+
+        # 先頭・末尾の説明文をチェック（JSONで始まっていなければ拒否）
+        if not text.startswith("{"):
+            raise ValueError(
+                "応答がJSON objectで始まっていません。"
+                "先頭・末尾に説明文がある可能性があります。"
+            )
+
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"JSONパースエラー: {e}") from e
+
+        if not isinstance(parsed, dict):
+            raise ValueError(f"JSON objectではありません: type={type(parsed).__name__}")
+
+        article = parsed.get("article", "")
+        if not isinstance(article, str) or not article.strip():
+            raise ValueError("articleが空文字列または欠落しています")
+
+        claims = parsed.get("claims", [])
+        if not isinstance(claims, list):
+            raise ValueError(f"claimsがlistではありません: type={type(claims).__name__}")
+
+        return {"article": article.strip(), "claims": claims}
+
+    @staticmethod
+    def build_team_id_mapping(all_data):
+        """チーム正式名→ASCII ID のマッピングを生成する。
+
+        Returns:
+            dict[str, dict]: {team_id: {team: ..., id: ..., runner: ...}}
+        """
+        ekiden_data = all_data.get("ekiden_data", {})
+        report = all_data.get("realtime_report", {})
+        teams_raw = report.get("teams", [])
+        if isinstance(teams_raw, dict):
+            teams_raw = list(teams_raw.values())
+
+        # ekiden_data から team_name→short_name の対応を取得
+        short_names = {}
+        for t in ekiden_data.get("teams", []):
+            name = t.get("name", "")
+            sn = t.get("short_name", "")
+            if name:
+                short_names[name] = sn
+
+        mapping = {}
+        used_ids = set()
+
+        def make_id(name, team_id=None):
+            """チーム名からASCII IDを生成"""
+            # short_name → romaji 変換
+            romaji_map = {
+                "名大": "nagoya", "上武": "johbu", "関大": "kansai",
+                "山学": "yamanashi", "立命": "ritsumei", "広経": "hiroshima_keizai",
+                "福岡": "fukuoka", "学連": "gakuren", "鳥取": "tottori",
+                "三重": "mie", "日大": "nihon", "熊学": "kumamoto_gakuen",
+                "金沢": "kanazawa", "東北": "tohoku", "四国": "shikoku",
+                "福島": "fukushima", "鹿大": "kagoshima", "琉球": "ryukyu",
+            }
+            sn = short_names.get(name, "")
+            if sn in romaji_map:
+                return romaji_map[sn]
+            # fallback: team.id（数値）をASCII IDとして使用
+            if team_id is not None:
+                return f"team_{team_id}"
+            # 最終フォールバック
+            import hashlib
+            return "team_" + hashlib.md5(name.encode()).hexdigest()[:8]
+
+        for t in teams_raw:
+            name = t.get("name", "")
+            if not name:
+                continue
+            # 区間記録連合（shadow confederation）は除外
+            if t.get("is_shadow_confederation"):
+                continue
+            tid = make_id(name, t.get("id"))
+            if tid in used_ids:
+                # 重複時のフォールバック
+                tid = f"{tid}_{t.get('id', 'x')}"
+            used_ids.add(tid)
+            mapping[tid] = {
+                "team": name,
+                "id": str(t.get("id", "")),
+                "runner": (t.get("runner") or "").strip(),
+            }
+
+        return mapping
+
+    @staticmethod
+    def format_team_id_mapping_text(mapping):
+        """チームIDマッピングをプロンプト埋め込み用テキストに整形"""
+        lines = ["【チームID一覧】"]
+        for tid in sorted(mapping.keys()):
+            info = mapping[tid]
+            lines.append(f"  team_id={tid} → {info['team']}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def build_claims_output_instruction():
+        """OpenAIにJSONのみを返させる出力指示を生成する"""
+        return (
+            "上記の解説記事を、以下のJSONフォーマットで出力してください。\n"
+            "JSON以外の説明文・前置きは一切出力せず、JSONのみを返してください。\n"
+            "```json\n"
+            "{\n"
+            '  "article": "ここにMarkdown形式・トークン使用の完全な解説記事",\n'
+            '  "claims": [\n'
+            "    {\n"
+            '      "team_id": "ASCII ID（例: nihon）",\n'
+            '      "claim_type": "rank_change",\n'
+            '      "evidence": "根拠の説明",\n'
+            '      "previous_rank": 3,\n'
+            '      "current_rank": 2,\n'
+            '      "direction": "up"\n'
+            "    },\n"
+            "    {\n"
+            '      "team_id": "ASCII ID",\n'
+            '      "claim_type": "rank_change",\n'
+            '      "evidence": "根拠",\n'
+            '      "previous_rank": 5,\n'
+            '      "current_rank": 8,\n'
+            '      "direction": "down"\n'
+            "    },\n"
+            "    {\n"
+            '      "team_id": "ASCII ID",\n'
+            '      "claim_type": "rank_change",\n'
+            '      "evidence": "根拠",\n'
+            '      "previous_rank": 1,\n'
+            '      "current_rank": 1,\n'
+            '      "direction": "same"\n'
+            "    },\n"
+            "    {\n"
+            '      "team_id": "ASCII ID",\n'
+            '      "claim_type": "distance",\n'
+            '      "evidence": "根拠の説明",\n'
+            '      "distance_kind": "todayDistance",\n'
+            '      "value": 40.8\n'
+            "    },\n"
+            "    {\n"
+            '      "team_id": "ASCII ID",\n'
+            '      "claim_type": "runner",\n'
+            '      "evidence": "根拠の説明",\n'
+            '      "runner": "走者名（先頭数字なし）"\n'
+            "    },\n"
+            "    {\n"
+            '      "team_id": "ASCII ID",\n'
+            '      "claim_type": "battle",\n'
+            '      "evidence": "根拠の説明",\n'
+            '      "opponent_team_id": "相手のASCII ID",\n'
+            '      "gap_km": 1.2\n'
+            "    }\n"
+            "  ]\n"
+            "}\n"
+            "```\n"
+            "注意:\n"
+            "- direction は必ず up / down / same のいずれか。none/unchanged/下降/その他は禁止。\n"
+            "- claims配列には、実際に記事本文に含まれている事実だけを含めてください。\n"
+            "- 不要なclaimを追加したり、記事にない事実をでっち上げたりしないでください。\n"
+        )
+
+
+# OpenAI Structured Outputs用JSON Schema（strict mode対応、全フィールドrequired/null許容）
+
+    DAILY_SUMMARY_JSON_SCHEMA = {        "type": "object",        "properties": {            "article": {"type": "string"},            "claims": {                "type": "array",                "items": {                    "type": "object",                    "properties": {                        "team_id": {"anyOf": [{"type": "string"}, {"type": "null"}]},                        "claim_type": {                            "anyOf": [                                {"type": "string", "enum": ["rank_change", "distance", "runner", "battle"]},                                {"type": "null"},                            ]                        },                        "evidence": {"anyOf": [{"type": "string"}, {"type": "null"}]},                        "previous_rank": {"anyOf": [{"type": "number"}, {"type": "null"}]},                        "current_rank": {"anyOf": [{"type": "number"}, {"type": "null"}]},                        "direction": {                            "anyOf": [                                {"type": "string", "enum": ["up", "down", "same"]},                                {"type": "null"},                            ]                        },                        "distance_kind": {"anyOf": [{"type": "string"}, {"type": "null"}]},                        "value": {"anyOf": [{"type": "number"}, {"type": "null"}]},                        "runner": {"anyOf": [{"type": "string"}, {"type": "null"}]},                        "opponent_team_id": {"anyOf": [{"type": "string"}, {"type": "null"}]},                        "gap_km": {"anyOf": [{"type": "number"}, {"type": "null"}]},                    },                    "additionalProperties": False,                    "required": [                        "team_id", "claim_type", "evidence",                        "previous_rank", "current_rank", "direction",                        "distance_kind", "value", "runner",                        "opponent_team_id", "gap_km",                    ],                },            },        },        "additionalProperties": False,        "required": ["article", "claims"],    }        
+    @staticmethod
+    def build_token_output_instruction():
+        """AIに TEAM/RUNNER トークンを使わせる出力指示"""
+        return (
+            "【重要】記事中で大学名や選手名を直接書かないでください。\n"
+            "上記【チームID一覧】の ASCII ID のみを使い、以下のトークンを使用してください。\n"
+            "- チーム名を書く場合: {{TEAM:team_id}}\n"
+            "- 走者名を書く場合: {{RUNNER:team_id}}\n"
+            "例: 「{{TEAM:nihon}}の{{RUNNER:nihon}}選手が快走！」\n"
+            "\n"
+            "絶対に守ること:\n"
+            "- team_id にはASCII ID（nihon, nagoya 等）のみを使用し、日本語の正式名称は使わないでください。\n"
+            "- article本文には大学名や選手名を直接記述しないでください。\n"
+            "- 順位表や事実データ内の正式名称をそのまま記事に引用せず、必ずトークンを使ってください。\n"
+            "- claims.evidenceには検証用として通常名称を含めても構いませんが、article本文には含めないでください。\n"
+            "- token展開後に正式名称と敬称（君）をPython側が付与します。\n"
+            "- 区間名や都道府県名など、チーム/走者ではない固有名詞は通常の文字列で構いません。\n"
+        )
+
+    @staticmethod
+    def validate_article_tokens(article_text, all_data):
+        """記事本文に大学名・走者名が直接書かれていないか検証する。
+
+        既知の正式名が直接書かれていた場合はwarningとして返す（保存は継続可能）。
+        未知の固有名は呼び出し元の validate_generated_article でfatal判定される。
+
+        Args:
+            article_text: トークン展開前の記事文字列
+            all_data: 全レースデータ
+
+        Returns:
+            list[dict]: warningリスト。各要素は {"type": str, "name": str}。
+                        空リスト = 検出なし（正常）。
+        """
+        warnings = []
+        if not isinstance(all_data, dict):
+            all_data = {}
+        report = all_data.get("realtime_report", {})
+        teams_raw = report.get("teams", [])
+        if isinstance(teams_raw, dict):
+            teams_raw = list(teams_raw.values())
+
+        # 正本チーム名を収集（空・短すぎるものは除外、shadowは除外）
+        team_names = set()
+        for t in teams_raw:
+            if t.get("is_shadow_confederation"):
+                continue
+            name = (t.get("name") or "").strip()
+            if name and len(name) >= 2:
+                team_names.add(name)
+
+        # 正本走者名を収集（先頭数字除去、3文字以上、ゴール除外）
+        runner_names = set()
+        for t in teams_raw:
+            runner = (t.get("runner") or "").strip()
+            if not runner:
+                continue
+            runner = re.sub(r"^\d+", "", runner).strip()
+            if runner and len(runner) >= 3 and runner != "ゴール":
+                runner_names.add(runner)
+
+        # 既知チーム名の直接記述 → warning（保存継続）
+        for team_name in sorted(team_names, key=len, reverse=True):
+            if team_name in article_text:
+                warnings.append({"type": "direct_team_name", "name": team_name})
+
+        # 既知走者名の直接記述 → warning（保存継続）
+        for runner_name in sorted(runner_names, key=len, reverse=True):
+            if runner_name in article_text:
+                warnings.append({"type": "direct_runner_name", "name": runner_name})
+
+        return warnings
+
+    @staticmethod
+    def render_article_tokens(article_text, all_data):
+        """記事中の TEAM/RUNNER トークンを正本データで展開する。
+
+        Args:
+            article_text: トークンを含む記事文字列
+            all_data: 全レースデータ
+
+        Returns:
+            str: 全トークンが展開された記事
+
+        Raises:
+            ValueError: 未知ID/不正トークン/未展開トークン残存
+        """
+        if not isinstance(all_data, dict):
+            all_data = {}
+        report = all_data.get("realtime_report", {})
+        teams_raw = report.get("teams", [])
+        if isinstance(teams_raw, dict):
+            teams_raw = list(teams_raw.values())
+
+        # 正本チーム index: id / name / mapping team_id の全てで引けるように
+        teams_index = {}
+        for t in teams_raw:
+            for key in (str(t.get("id") or ""), str(t.get("name", ""))):
+                if key.strip():
+                    teams_index[key.strip()] = t
+
+        # チームIDマッピングからも team_id → team を追加
+        try:
+            mapping = DailySummaryGenerator.build_team_id_mapping(all_data)
+            for tid, info in mapping.items():
+                teams_index[tid] = teams_index.get(info.get("id", "")) or teams_index.get(info.get("team", ""))
+        except Exception:
+            # マッピング構築に失敗しても継続（従来のid/name検索は維持）
+            pass
+
+        token_pattern = re.compile(r"\{\{([A-Za-z0-9_-]+):([A-Za-z0-9_\-]+)\}\}")
+
+        def replacer(m):
+            token_type = m.group(1).upper()
+            team_id = m.group(2)
+            team = teams_index.get(team_id)
+            if not team:
+                raise ValueError(
+                    f"トークン内の team_id='{team_id}' が正本に存在しません"
+                )
+            if token_type == "TEAM":
+                return team.get("name", team_id)
+            elif token_type == "RUNNER":
+                runner = (team.get("runner") or "").strip()
+                runner = re.sub(r"^\d+", "", runner).strip()
+                return runner if runner else "ゴール"
+            else:
+                raise ValueError(f"未対応のトークン種別です: {token_type}")
+
+        result = token_pattern.sub(replacer, article_text)
+
+        # 未展開トークンの検出
+        remaining = re.findall(r"\{\{[A-Za-z0-9_-]+:[A-Za-z0-9_\-]+\}\}", result)
+        if remaining:
+            raise ValueError(f"展開されていないトークンが残っています: {remaining[:5]}")
+
+        return result
+
+    def validate_claims(self, claims, all_data):
+        """claims を正本データ（realtime_report.teams）と照合して検証する。
+
+        Args:
+            claims: AIから出力された claims リスト
+            all_data: 全レースデータ dict
+
+        Returns:
+            list[dict]: 検証済み claims（入力のコピー、破壊しない）
+
+        Raises:
+            ValueError: 検証失敗時
+        """
+        if not isinstance(all_data, dict):
+            all_data = {}
+        report = all_data.get("realtime_report", {})
+        teams_raw = report.get("teams", [])
+        if isinstance(teams_raw, dict):
+            teams_raw = list(teams_raw.values())
+
+        # 正本チーム一覧: id or 名前をキーに
+        teams_index = {}
+        for t in teams_raw:
+            tid = t.get("id") or t.get("name", "").strip()
+            if tid:
+                teams_index[str(tid)] = t
+            # 名前でも引けるように
+            name = t.get("name", "").strip()
+            if name:
+                teams_index[name] = t
+
+        # チームIDマッピングからも team_id → team を追加
+        try:
+            _mapping = self.build_team_id_mapping(all_data)
+            for _tid, _info in _mapping.items():
+                _team = teams_index.get(_info.get("id", "")) or teams_index.get(_info.get("team", ""))
+                if _team:
+                    teams_index[_tid] = _team
+        except Exception:
+            pass
+
+        rank_history = all_data.get("rank_history", {})
+        race_day = report.get("raceDay")
+        try:
+            day_idx = int(race_day) - 1
+        except (TypeError, ValueError):
+            day_idx = 0
+
+        VALID_CLAIM_TYPES = {"rank_change", "distance", "runner", "battle"}
+        validated = []
+
+        if not isinstance(claims, list):
+            raise ValueError(f"claimsがlistではありません: type={type(claims).__name__}")
+
+        for i, claim in enumerate(claims):
+            if not isinstance(claim, dict):
+                raise ValueError(f"claims[{i}] がdictではありません: type={type(claim).__name__}")
+
+            team_id = claim.get("team_id")
+            claim_type = claim.get("claim_type")
+            evidence = claim.get("evidence")
+
+            if not isinstance(team_id, str) or not team_id.strip():
+                raise ValueError(f"claims[{i}]: team_id が空または文字列ではありません")
+            if not isinstance(claim_type, str) or not claim_type.strip():
+                raise ValueError(f"claims[{i}]: claim_type が空または文字列ではありません")
+            if not isinstance(evidence, str) or not evidence.strip():
+                raise ValueError(f"claims[{i}]: evidence が空または文字列ではありません")
+
+            if claim_type not in VALID_CLAIM_TYPES:
+                raise ValueError(
+                    f"claims[{i}]: 不明な claim_type='{claim_type}' "
+                    f"(許可: {', '.join(sorted(VALID_CLAIM_TYPES))})"
+                )
+
+            # team_id の存在確認
+            team = teams_index.get(team_id)
+            if not team:
+                raise ValueError(
+                    f"claims[{i}]: 未知の team_id='{team_id}'"
+                )
+
+            if claim_type == "rank_change":
+                self._validate_rank_change(claim, team, i, teams_index, rank_history, day_idx)
+            elif claim_type == "distance":
+                self._validate_distance(claim, team, i)
+            elif claim_type == "runner":
+                self._validate_runner(claim, team, i)
+            elif claim_type == "battle":
+                self._validate_battle(claim, team, i, teams_index)
+
+            validated.append(dict(claim))
+
+        return validated
+
+    def _validate_rank_change(self, claim, team, i, teams_index, rank_history, day_idx):
+        """rank_change claim の検証"""
+        prev_r = claim.get("previous_rank")
+        curr_r = claim.get("current_rank")
+        direction = claim.get("direction")
+
+        if prev_r is None or not isinstance(prev_r, (int, float)):
+            raise ValueError(f"claims[{i}]: rank_change.previous_rank がありません/数値ではありません")
+        if curr_r is None or not isinstance(curr_r, (int, float)):
+            raise ValueError(f"claims[{i}]: rank_change.current_rank がありません/数値ではありません")
+        if not isinstance(direction, str) or direction not in ("up", "down", "same"):
+            raise ValueError(f"claims[{i}]: rank_change.direction が不正です: {direction}")
+
+        # current_rank を正本と照合
+        actual_curr = team.get("overallRank")
+        if actual_curr is not None and int(curr_r) != int(actual_curr):
+            raise ValueError(
+                f"claims[{i}]: current_rank={curr_r} が正本値={actual_curr} と一致しません"
+            )
+
+        # previous_rank を照合
+        actual_prev = team.get("previousRank")
+        if actual_prev is None:
+            # rank_history から補完
+            hist = None
+            for ht in rank_history.get("teams", []):
+                if ht.get("name") == team.get("name"):
+                    hist = ht
+                    break
+            if hist and day_idx > 0:
+                prev_ranks = hist.get("ranks", [])
+                if len(prev_ranks) >= day_idx:
+                    actual_prev = prev_ranks[day_idx - 1]
+            if actual_prev is None:
+                raise ValueError(
+                    f"claims[{i}]: previous_rank の正本がありません "
+                    f"(previousRankなし、rank_historyからも取得不可)"
+                )
+
+        if int(prev_r) != int(actual_prev):
+            raise ValueError(
+                f"claims[{i}]: previous_rank={prev_r} が正本値={actual_prev} と一致しません"
+            )
+
+        # direction の再計算
+        prev_r_int, curr_r_int = int(prev_r), int(curr_r)
+        expected_dir = "up" if curr_r_int < prev_r_int else ("down" if curr_r_int > prev_r_int else "same")
+        if direction != expected_dir:
+            raise ValueError(
+                f"claims[{i}]: direction='{direction}' ですが、"
+                f"実際は {prev_r_int}→{curr_r_int}={expected_dir} です"
+            )
+
+    def _validate_distance(self, claim, team, i):
+        """distance claim の検証"""
+        dist_kind = claim.get("distance_kind")
+        value = claim.get("value")
+
+        if dist_kind not in ("todayDistance", "totalDistance"):
+            raise ValueError(
+                f"claims[{i}]: distance.distance_kind='{dist_kind}' が不正です"
+            )
+        if value is None or not isinstance(value, (int, float)):
+            raise ValueError(f"claims[{i}]: distance.value が数値ではありません")
+
+        actual = team.get(dist_kind, 0)
+        if abs(float(value) - float(actual)) > 0.1:
+            raise ValueError(
+                f"claims[{i}]: distance.value={value} が正本値={actual} と乖離しています "
+                f"(差={abs(float(value)-float(actual)):.2f} > 0.1)"
+            )
+
+    def _validate_runner(self, claim, team, i):
+        """runner claim の検証"""
+        runner = claim.get("runner", "").strip()
+        if not runner:
+            raise ValueError(f"claims[{i}]: runner が空です")
+
+        # 正本の runner を正規化（先頭数字除去）
+        actual_runner = (team.get("runner") or "").strip()
+        actual_clean = re.sub(r"^\d+", "", actual_runner).strip()
+
+        # claim側も先頭数字を除去して比較
+        claim_clean = re.sub(r"^\d+", "", runner).strip()
+
+        if claim_clean != actual_clean:
+            raise ValueError(
+                f"claims[{i}]: runner='{runner}' が正本='{actual_runner}' と一致しません"
+            )
+
+    def _validate_battle(self, claim, team, i, teams_index):
+        """battle claim の検証"""
+        opponent_id = claim.get("opponent_team_id")
+        if not opponent_id or not isinstance(opponent_id, str):
+            raise ValueError(f"claims[{i}]: battle.opponent_team_id がありません/文字列ではありません")
+
+        opponent = teams_index.get(opponent_id)
+        if not opponent:
+            raise ValueError(f"claims[{i}]: 未知の opponent_team_id='{opponent_id}'")
+
+        team_id = claim.get("team_id", "")
+        if str(opponent_id) == str(team_id):
+            raise ValueError(f"claims[{i}]: opponent_team_id が自身({team_id})と同じです")
+
+        # gap_km があれば照合
+        gap = claim.get("gap_km")
+        if gap is not None:
+            if not isinstance(gap, (int, float)):
+                raise ValueError(f"claims[{i}]: battle.gap_km が数値ではありません")
+            team_total = team.get("totalDistance", 0)
+            opp_total = opponent.get("totalDistance", 0)
+            actual_gap = abs(float(team_total) - float(opp_total))
+            if abs(float(gap) - actual_gap) > 0.1:
+                raise ValueError(
+                    f"claims[{i}]: gap_km={gap} が正本差={actual_gap:.1f} と乖離しています"
+                )
+
     def _get_regular_teams(self):
         realtime_data = self.all_data.get('realtime_report', {})
         return [team for team in realtime_data.get('teams', []) if not team.get('is_shadow_confederation')]
@@ -750,7 +1292,7 @@ class DailySummaryGenerator:
             "- テレビのスポーツハイライトのように、興奮と緊迫感を出す",
             "- 各トピックは短い実況調の一文で始め、選手やチームの役割とレース展開を中心に解説する",
             "- 大げさな形容を連発せず、主導権、追走、混戦、次走者への展望を自然に描く",
-            "- 具体的な大学名、選手名、区間を自然に織り込み、数値は必要な場面だけに絞る",
+            "- チーム/走者/区間はトークン制約を守って自然に織り込み、数値は必要な場面だけに絞る",
         ])
 
     def _format_course_description(self, outline):
@@ -1309,9 +1851,10 @@ class DailySummaryGenerator:
             "- 当日フィニッシュしたチームは、必ず総合順位を確認してから表現すること。総合2位以下なら『2位でフィニッシュ』のように順位を明記し、『先頭』『首位』『優勝』とは書かないこと。",
             "- 走行中チームの首位・シードライン・追い上げは、誰が主導し、誰が追い、どの集団が競っているかを中心に描写すること。距離差は接戦・独走の根拠として不可欠な場合だけ使うこと。",
             "- 入力中の距離・距離差は分析用の資料であり、記事ですべて紹介する必要はない。順位表を文章に変換しただけの記述は禁止する。",
-            "- 大学名は、必ず提供された「本日の総合順位」テーブルにある正式名称（例: **名古屋大学**、**上武大学**）と完全に一致させること。選手名には必ず「君」付けすること（例:**上武大学**の**佐野君**）。",
-            "- 「位」などの順位を表す文字や数値を大学名と結合させないこと（悪い例: 「10位上武大学」や「位上武大学」。良い例: 「10位の**上武大学**」や「10位に位置する**上武大学**」のように、助詞を挟むなどして明確に区別し、大学名のみを太字にすること）。",
-            "- 選手名の先頭に数字がある場合（例: 1甲佐）、出力時は数字を削除して名前のみ（甲佐君）にすること。",
+            "- 本文中のチーム名は必ず {{TEAM:team_id}}、走者名は必ず {{RUNNER:team_id}} を使うこと。team_idは直後に提示するASCII ID一覧の値だけを使うこと。",
+            "- 本文に日本語の大学名・選手名を直接記述しないこと。トークン展開後にPython側が正式名称と「君」を付与する。",
+            "- claims.evidenceや取材メモを参照する際は正式名称を読んでもよいが、article本文へコピーしないこと。",
+            "- 区間名・都道府県名などチーム/走者ではない固有名詞は通常文字列でよい。",
             "",
             "# 今日のテーマ候補ゾーン",
             themes_text or "- 特になし",
@@ -1396,7 +1939,7 @@ class DailySummaryGenerator:
         prompt_parts.append(
             "\n---\n"
             "# 出力フォーマットと文体\n"
-            "- 全体の文字数は1400〜2600字程度（小見出し数に応じて可変）。\n"
+            "- 全体の文字数は約2,000文字（1,800〜2,200字、記事全体）。小見出し数に応じて可変。\n"
             "- 1行目はタイトル（『# 』を使用）。\n"
             "- 2行目以降は、レース全体を象徴するメイン見出し（『### 』）を1つ、その下に各トピックの小見出し（『#### 』）を2〜4つ書くこと（箇条書きは多用しない）。\n"
             "- 小見出しの数は2〜4件で可変とする（大きな争点が少ない日は2件、複数の独立した争点がある日は3〜4件）。件数を満たすための水増しは禁止する。\n"
@@ -1431,7 +1974,11 @@ class DailySummaryGenerator:
 
     def validate_generated_article(self, article_text, metrics):
         """生成された記事の内容について簡易的な事実検証を行います。
-        検証に問題がある場合は警告を出力し、Falseを返します。"""
+
+        戻り値は (can_save, warnings, fatal_errors) のタプル。
+        can_save: fatal_errorsが空ならTrue（warningsのみなら保存可）
+        warnings: 注意警告リスト（保存は継続可能）
+        fatal_errors: 致命的エラーリスト（空なら保存可能）"""
         ekiden_data = self.all_data.get('ekiden_data', {})
 
         # Markdown太字装飾（**）を前処理で除去したプレーンテキストを生成
@@ -1476,6 +2023,7 @@ class DailySummaryGenerator:
         }
 
         warnings = []
+        fatal_errors = []
 
         # 2. 本文全体から大学名・選手名と思われる箇所を抽出して照合 (非太字も含む、装飾除去済みテキストを使用)
         team_candidates = re.findall(r'([\u4e00-\u9faf\u30a0-\u30ff]{2,}(?:大学|大))(?:[がはのを受けに]|$)', plain_article)
@@ -1483,14 +2031,14 @@ class DailySummaryGenerator:
             clean_cand = cand.strip()
             # 「位」や「首位」「順位」などの接頭辞が大学名の先頭に付着している場合は除去する
             clean_cand = re.sub(r'^(?:首|暫定|順)?位', '', clean_cand)
-            if clean_cand in ["大会", "大差", "最大", "重大", "東大", "京大", "全国大学"] or not clean_cand:
+            if clean_cand in ["大会", "大差", "最大", "重大", "東大", "京大", "全国大学", "今日最大", "本日最大"] or not clean_cand:
                 continue
             if clean_cand.endswith('大') and len(clean_cand) <= 2:
                 continue
             if clean_cand not in valid_teams_fuzzy:
                 stem = clean_cand[:-1] if clean_cand.endswith('大') else clean_cand[:-2]
                 if stem not in valid_teams_fuzzy:
-                    warnings.append(f"マスタに存在しない大学名と思われる表記: {cand}")
+                    fatal_errors.append(f"マスタに存在しない大学名と思われる表記: {cand}")
 
         runner_candidates = re.findall(r'([\u4e00-\u9faf\u30a0-\u30ff]{2,}(?:君|選手))(?:[がはのを受けに]|$)', plain_article)
         exclude_prefixes = ["注目", "両", "各", "全", "有力", "先頭", "出場", "現役", "若手", "エース", "後続", "同", "新", "元", "実況", "解説", "日本人", "新鋭", "他"]
@@ -1501,7 +2049,7 @@ class DailySummaryGenerator:
             if any(clean_cand.startswith(prefix) for prefix in exclude_prefixes) or clean_cand in exclude_prefixes:
                 continue
             if clean_cand not in valid_runners_fuzzy:
-                warnings.append(f"マスタに存在しない選手名と思われる表記: {cand}")
+                fatal_errors.append(f"マスタに存在しない選手名と思われる表記: {cand}")
 
         # 3. 危険語（「逆転」「浮上」「優勝」等）の文脈整合性チェック
         rank_changes = metrics.get('rank_changes', {})
@@ -1558,12 +2106,34 @@ class DailySummaryGenerator:
                 has_assertive_rank_kw = True
 
                 # 断定表現→大学特定→rank_changes照合
-                found_teams = []
+                # 前後30文字からチーム候補を抽出
+                team_candidates_in_window = []
                 for team in valid_teams:
                     short_team = team.replace('大学', '大')
                     stem_team = team[:-2] if team.endswith('大学') else team
                     if team in window or short_team in window or stem_team in window:
-                        found_teams.append(team)
+                        team_candidates_in_window.append(team)
+
+                # 複数候補がある場合、キーワードに最も近いチームを優先
+                if len(team_candidates_in_window) > 1:
+                    # 各候補のキーワードからの距離を計算し、最も近いものを採用
+                    min_distance = len(window)
+                    found_teams = []
+                    for team in team_candidates_in_window:
+                        for variant in (team, team.replace('大学', '大'),
+                                        team[:-2] if team.endswith('大学') else team):
+                            ti = window.find(variant)
+                            if ti != -1:
+                                dist = abs(ti - (idx - start))
+                                if dist < min_distance:
+                                    min_distance = dist
+                                    found_teams = [team]
+                                elif dist == min_distance:
+                                    if team not in found_teams:
+                                        found_teams.append(team)
+                                break
+                else:
+                    found_teams = team_candidates_in_window
 
                 if not found_teams:
                     warnings.append(
@@ -1573,7 +2143,7 @@ class DailySummaryGenerator:
                     for team in found_teams:
                         change = rank_changes.get(team)
                         if change and change['diff'] <= 0:
-                            warnings.append(
+                            fatal_errors.append(
                                 f"順位が上昇していないチーム '{team}' に関連して"
                                 f" 『{kw}』の断定表現が使われています。"
                                 f" (周辺テキスト: '...{window}...')"
@@ -1584,7 +2154,7 @@ class DailySummaryGenerator:
         # 4. 全体的な危険語の使用制限（断定表現に限定）
         has_rank_up = any(change['diff'] > 0 for change in rank_changes.values()) if rank_changes else False
         if has_assertive_rank_kw and not has_rank_up:
-            warnings.append("記事内に順位変動の断定表現（逆転/浮上/ジャンプアップ）がありますが、本日の順位データに順位上昇校がありません。")
+            fatal_errors.append("記事内に順位変動の断定表現（逆転/浮上/ジャンプアップ）がありますが、本日の順位データに順位上昇校がありません。")
 
         # 5. 「優勝」の不適切な使用制限
         sentences = re.split(r'[。！\n]', plain_article)
@@ -1606,7 +2176,10 @@ class DailySummaryGenerator:
                 r"(?:優勝|制覇|連覇)した実績",
                 r"前回王者",
                 r"(?:連覇|優勝)経験",
-                r"歴代(?:優勝|王者)"
+                r"歴代(?:優勝|王者)",
+                r"第\d+回[、,].*?(?:優勝|王者|頂点|制した)",  # 第14回、第15回を制した
+                r"連覇(?:校|チーム|の|を)",                  # 連覇校、連覇チーム
+                r"(?:第\d+回|過去|前回|前年度).*?制した",     # 第14回を制した
             ]
             for hp in history_patterns:
                 if re.search(hp, s):
@@ -1645,7 +2218,7 @@ class DailySummaryGenerator:
                     break
 
             if not matched_team:
-                warnings.append(f"優勝校として特定された大学 '{clean_team}' がマスタに登録されていません。(文: '{s}')")
+                fatal_errors.append(f"優勝校として特定された大学 '{clean_team}' がマスタに登録されていません。(文: '{s}')")
                 continue
 
             realtime_teams = self.all_data.get('realtime_report', {}).get('teams', [])
@@ -1659,18 +2232,31 @@ class DailySummaryGenerator:
                     is_valid_champion = True
 
             if not is_valid_champion:
-                warnings.append(f"総合1位ゴールしていないチーム '{matched_team}' が優勝したと記述されています。(文: '{s}')")
+                fatal_errors.append(f"総合1位ゴールしていないチーム '{matched_team}' が優勝したと記述されています。(文: '{s}')")
 
+
+        if fatal_errors:
+            fatal_errors = sorted(set(fatal_errors))
+            print("❌ 【致命的エラー】保存停止:")
+            for e in fatal_errors:
+                print(f"  - {e}")
+            if warnings:
+                warnings = sorted(set(warnings))
+                print("⚠️ 【注意警告】:")
+                for w in warnings:
+                    print(f"  - {w}")
+            return False, warnings, fatal_errors
 
         if warnings:
             warnings = sorted(set(warnings))
-            print("⚠️ 【検証警告】生成された記事に整合性の懸念があります:")
+            print("⚠️ 【注意警告】:")
             for w in warnings:
                 print(f"  - {w}")
-            return False
+            print("保存は継続します。")
+            return True, warnings, fatal_errors
 
         print("✅ 生成記事の簡易事実検証をパスしました。")
-        return True
+        return True, warnings, fatal_errors
 
 
     def update_narrative_state(self, metrics, selected_themes):
@@ -1922,6 +2508,14 @@ class DailySummaryGenerator:
 
         system_prompt = self.build_system_prompt()
         user_prompt = self.build_user_prompt(metrics)
+        # JSON構造化出力指示を追加（claimsデータ収集のため）
+        user_prompt += "\n\n" + self.build_claims_output_instruction()
+        # トークン出力指示を追加（TEAM/RUNNER展開のため）
+        user_prompt += "\n\n" + self.build_token_output_instruction()
+
+        # チームIDマッピングを追加（tokenで使うASCII ID）
+        team_mapping = self.build_team_id_mapping(self.all_data)
+        user_prompt += "\n\n" + self.format_team_id_mapping_text(team_mapping)
 
         print("------------------------------------")
         print("OpenAIへのsystem prompt:")
@@ -1958,15 +2552,68 @@ class DailySummaryGenerator:
                 response = self.client.responses.create(
                     model=self.model_name,
                     instructions=system_prompt,
-                    input=user_prompt
+                    input=user_prompt,
+                    text={
+                        "format": {
+                            "type": "json_schema",
+                            "name": "daily_summary",
+                            "strict": True,
+                            "schema": self.DAILY_SUMMARY_JSON_SCHEMA
+                        }
+                    }
                 )
                 raw_article_text = response.output_text.strip()
+
+            # 構造化JSON応答をパース（article抽出、claimsはログ出力）
+            try:
+                parsed = self.parse_structured_ai_response(raw_article_text)
+                article_text_raw = parsed["article"]
+                claims = parsed["claims"]
+                if claims:
+                    print(f"  📋 claims数: {len(claims)}")
+                    for c in claims:
+                        print(f"    - team={c.get('team_id','?')} type={c.get('claim_type','?')}")
+                else:
+                    print("  📋 claims: なし")
+            except ValueError as e:
+                print(f"❌ 構造化応答のパースに失敗しました: {e}")
+                print("   本日はJSON出力指示に応答しなかったため記事を保存せず終了します。")
+                return
+
+            # claims を正本データと照合（Step2）
+            if claims:
+                try:
+                    self.validate_claims(claims, self.all_data)
+                    print(f"  ✅ claims検証成功 ({len(claims)}件)")
+                except ValueError as e:
+                    print(f"❌ claims検証失敗: {e}")
+                    print("   記事を保存せず終了します。")
+                    return
+
+            # 直接記述されたチーム名/走者名を検出（Step4） — 既知名は許可（警告表示のみ）、保存継続
+            token_warnings = self.validate_article_tokens(article_text_raw, self.all_data)
+            if token_warnings:
+                for w in token_warnings:
+                    print(f"  ⚠️ 直接名検出（既知名·許可）: {w['type']}「{w['name']}」")
+                print("  ⚠️ 既知正式名のため保存を継続します。")
+            else:
+                print("  ✅ 直接名検出なし")
+
+            # トークン展開（TEAM/RUNNER → 正式名称）
+            try:
+                article_text_raw = self.render_article_tokens(article_text_raw, self.all_data)
+                print("  ✅ トークン展開成功")
+            except ValueError as e:
+                print(f"❌ トークン展開エラー: {e}")
+                print("   記事を保存せず終了します。")
+                return
+
             print("記事をMarkdownでフォーマットしています...")
-            article_text = self.format_article_with_markdown(raw_article_text)
+            article_text = self.format_article_with_markdown(article_text_raw)
             print(f"✅ {self.provider}による解説記事の生成に成功しました。")
 
             # 生成された記事のバリデーションを実行
-            validation_success = self.validate_generated_article(article_text, metrics)
+            can_save, validation_warnings, validation_fatal_errors = self.validate_generated_article(article_text, metrics)
 
             prompt_payload = json.dumps(
                 {"system": system_prompt, "user": user_prompt},
@@ -1975,7 +2622,12 @@ class DailySummaryGenerator:
             )
 
             # 検証が成功した場合にのみ、物語状態を更新して保存する
-            if validation_success:
+            # fatal_errors がある場合は保存停止、warningsのみなら保存継続
+            if can_save:
+                if validation_warnings:
+                    print("⚠️ 注意警告はあるが保存を継続します。")
+                else:
+                    print("✅ 検証成功、保存を継続します。")
                 print("物語状態を更新しています...")
                 selected_themes = self.select_today_themes(metrics)
                 self.update_narrative_state(metrics, selected_themes)
@@ -1995,7 +2647,7 @@ class DailySummaryGenerator:
                 except IOError as e:
                     print(f"エラー: ファイルへの書き込みに失敗しました: {e}")
             else:
-                print("⚠️ バリデーション警告があるため、ファイル保存、履歴保存および物語状態の更新をすべてスキップします。")
+                print("❌ 致命的エラーのため、ファイル保存、履歴保存および物語状態の更新をすべてスキップします。")
         except Exception as e:
             print(f"❌ {self.provider} API呼び出し中にエラーが発生しました: {e}")
             print("⚠️ APIエラーのため、ファイル保存および物語状態の更新をスキップします。")

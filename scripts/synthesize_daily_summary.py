@@ -255,19 +255,22 @@ def validate_article(article_text, all_data):
         "race_day": report.get("raceDay"),
     }
 
-    # validate_generated_article は警告があれば print、True/False を返す
+    # validate_generated_article は (can_save, warnings, fatal_errors) を返す
     import io
     from contextlib import redirect_stdout
 
     f = io.StringIO()
     with redirect_stdout(f):
-        success = gen.validate_generated_article(article_text, metrics)
+        can_save, valid_warnings, valid_fatal_errors = gen.validate_generated_article(article_text, metrics)
 
     warnings_output = f.getvalue()
-    if "検証警告" in warnings_output:
+    if "致命的エラー" in warnings_output:
         print(warnings_output)
         return False
-    return success
+    if "注意警告" in warnings_output:
+        print(warnings_output)
+        # warningsのみなら保存継続（validate_article の呼び出し元次第）
+    return can_save
 
 
 
