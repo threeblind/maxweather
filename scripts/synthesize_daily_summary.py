@@ -110,7 +110,7 @@ def format_race_facts(all_data):
     teams_data = report.get("teams", [])
     if isinstance(teams_data, dict):
         teams_data = teams_data.values()
-    teams_sorted = sorted(teams_data, key=lambda t: t.get("overallRank", 999))
+    teams_sorted = sorted(teams_data, key=lambda t: t.get("overallRank") if isinstance(t.get("overallRank"), (int, float)) else 999)
 
     for t in teams_sorted:
         runner = t.get("runner", "")

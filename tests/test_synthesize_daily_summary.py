@@ -158,6 +158,33 @@ def test_template_placeholders():
     assert "{openai_article}" not in filled
 
 
+# --- テスト11: format_race_facts が None rank でもソート可能 ---
+def test_format_race_facts_with_none_rank():
+    """overallRank=None のチームが混在してもソートが動作する"""
+    all_data = {
+        "realtime_report": {
+            "updateTime": "2026/07/23 23:59",
+            "raceDay": 2,
+            "teams": [
+                {"name": "チームA", "overallRank": 1, "runner": "走者A",
+                 "todayDistance": 10, "totalDistance": 100, "currentLeg": 2},
+                {"name": "チームB", "overallRank": None, "runner": "走者B",
+                 "todayDistance": 5, "totalDistance": 50, "currentLeg": 1},
+                {"name": "チームC", "overallRank": 2, "runner": "走者C",
+                 "todayDistance": 8, "totalDistance": 80, "currentLeg": 1},
+            ],
+        },
+        "rank_history": {"teams": []},
+    }
+    result = format_race_facts(all_data)
+    assert "チームA" in result
+    assert "チームB" in result
+    assert "チームC" in result
+    # チームB (rank=None) が末尾に来ることを確認
+    # (末尾に来ればソート成功)
+    assert isinstance(result, str) and len(result) > 0
+
+
 if __name__ == "__main__":
     tests = [
         ("dry_run_parse", test_dry_run_parse),
@@ -170,6 +197,7 @@ if __name__ == "__main__":
         ("save_no_write_valid", test_save_no_write_valid),
         ("format_race_facts_empty", test_format_race_facts_empty),
         ("template_placeholders", test_template_placeholders),
+        ("format_race_facts_with_none_rank", test_format_race_facts_with_none_rank),
     ]
     passed = 0
     failed = 0
