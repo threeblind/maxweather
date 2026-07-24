@@ -76,6 +76,7 @@ def main():
     # --- 2. データの前処理 ---
     # 地点名で検索しやすいように辞書に変換
     stations_map = {s['name']: s for s in amedas_stations}
+    stations_by_code = {s['code']: s for s in amedas_stations}
     
     # 選手名で区間賞履歴を検索しやすいように辞書に変換
     personal_best_map = {}
@@ -165,15 +166,30 @@ def main():
         # 選手名とコメントを一緒に扱うように変更
         all_runners_with_comments = team.get('runners', []) + team.get('substitutes', [])
 
-        # 選手名でコメントを引けるように辞書を作成
-        runner_comment_map = {runner.get('name'): runner.get('comment', '') for runner in all_runners_with_comments if runner.get('name')}
+        # 選手名でコメントを引けるように辞書を作成（station_code対応）
+        runner_comment_map = {}
+        for r in all_runners_with_comments:
+            rname = r.get('name') if isinstance(r, dict) else r
+            rcomment = r.get('comment', '') if isinstance(r, dict) else ''
+            if rname:
+                runner_comment_map[rname] = rcomment
 
-        # 選手名のセットを作成（重複除外）
-        all_runner_names = set(runner_comment_map.keys())
+        for runner_obj in all_runners_with_comments:
+            runner_name = runner_obj.get('name') if isinstance(runner_obj, dict) else runner_obj
+            if not runner_name:
+                continue
 
-        for runner_name in all_runner_names:
-
-            station_info = stations_map.get(runner_name)
+            station_info = None
+            has_station_code = False
+            if isinstance(runner_obj, dict) and runner_obj.get('station_code'):
+                has_station_code = True
+                code = runner_obj['station_code']
+                station_info = stations_by_code.get(code)
+                if not station_info:
+                    print(f"警告: 選手 '{runner_name}' の観測所コード {code} が見つかりません。スキップします。")
+                    continue
+            if not has_station_code:
+                station_info = stations_map.get(runner_name)
             if not station_info:
                 print(f"警告: 選手 '{runner_name}' のアメダス情報が見つかりません。スキップします。")
                 continue

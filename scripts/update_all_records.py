@@ -123,27 +123,61 @@ def update_all_records():
     load_base_data()
 
     today_str = datetime.now().strftime('%Y-%m-%d')
-    all_runners_to_fetch = set()
+    runner_fetch_list = []  # [(team_id, runner_name, station_code_or_None)]
+    stations_by_code = {s['code']: s for s in stations_data}
+    seen_entries = set()
     for team in ekiden_data['teams']:
-        # 選手名とコメントを一緒に扱うように変更
+        team_id = team.get('id')
         all_team_members_with_comments = team.get('runners', []) + team.get('substitutes', []) + team.get('substituted_out', [])
         for runner_obj in all_team_members_with_comments:
             if isinstance(runner_obj, dict) and 'name' in runner_obj:
-                all_runners_to_fetch.add(runner_obj['name'])
-            elif isinstance(runner_obj, str): # 互換性のため
-                 all_runners_to_fetch.add(runner_obj)
+                name = runner_obj['name']
+                code = runner_obj.get('station_code')
+                key = (team_id, name)
+                if key not in seen_entries:
+                    seen_entries.add(key)
+                    runner_fetch_list.append((team_id, name, code))
+            elif isinstance(runner_obj, str):
+                if (team_id, runner_obj) not in seen_entries:
+                    seen_entries.add((team_id, runner_obj))
+                    runner_fetch_list.append((team_id, runner_obj, None))
 
-    fetched_temps_cache = {}
-    print(f"全 {len(all_runners_to_fetch)} 選手の最終気温データを取得します...")
-    for i, runner_name in enumerate(sorted(list(all_runners_to_fetch))):
-        station = find_station_by_name(runner_name)
+    # 同名で異なる station_code のチェック（片方だけありも含む）
+    name_code_map = {}  # name -> station_code or None
+    for team_id, name, code in runner_fetch_list:
+        if name in name_code_map:
+            prev = name_code_map[name]
+            if code != prev:
+                if code is None or prev is None:
+                    print(f"エラー: 同名 '{name}' で station_code あり/なしが混在 (code={code}, prev={prev})。処理を中断します。")
+                else:
+                    print(f"エラー: 同名 '{name}' に異なる station_code ({prev} vs {code}) があります。処理を中断します。")
+                return
+        else:
+            name_code_map[name] = code
+
+    fetched_temps_cache = {}  # (team_id, runner_name) -> temp_result
+    print(f"全 {len(runner_fetch_list)} 選手の最終気温データを取得します...")
+    for i, (team_id, runner_name, station_code) in enumerate(runner_fetch_list):
+        station = None
+        if station_code:
+            station = stations_by_code.get(station_code)
+            if not station:
+                print(f"エラー: 選手 '{runner_name}' の観測所コード {station_code} が見つかりません。スキップします。")
+                fetched_temps_cache[(team_id, runner_name)] = {'temperature': None, 'error': f'コード {station_code} 不明'}
+                print(f"  ({i+1}/{len(runner_fetch_list)}) {runner_name:<10}: コード不明")
+                time.sleep(0.5)
+                continue
+        else:
+            # station_code なしの runner は名前で検索（ダミー対応、本来は全員にコード推奨）
+            station = next((s for s in stations_data if s['name'] == runner_name), None)
         if station:
             temp_result = fetch_max_temperature(station['pref_code'], station['code'])
         else:
             temp_result = {'temperature': None, 'error': '地点不明'}
         
-        fetched_temps_cache[runner_name] = temp_result
-        print(f"  ({i+1}/{len(all_runners_to_fetch)}) {runner_name:<10}: {temp_result.get('temperature', '取得失敗')}")
+        fetched_temps_cache[(team_id, runner_name)] = temp_result
+        print(f"  ({i+1}/{len(runner_fetch_list)}) {runner_name:<10}: {temp_result.get('temperature', '取得失敗')}")
         time.sleep(0.5) # サーバー負荷軽減のため0.5秒待機
 
     # --- daily_temperatures.json の更新 ---
@@ -161,9 +195,9 @@ def update_all_records():
         ekiden_state = []
 
     daily_temperatures[today_str] = {}
-    for runner_name, result in fetched_temps_cache.items():
+    for (cache_team_id, cache_runner_name), result in fetched_temps_cache.items():
         if result.get('temperature') is not None:
-            daily_temperatures[today_str][runner_name] = result['temperature']
+            daily_temperatures[today_str][cache_runner_name] = result['temperature']
 
     # 出力先ディレクトリが存在しない場合は作成
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -190,7 +224,7 @@ def update_all_records():
         
         # 1. 交代で外れた選手 (交代済)
         for runner_name in substituted_out_runners:
-            temp_result = fetched_temps_cache.get(runner_name)
+            temp_result = fetched_temps_cache.get((team_data['id'], runner_name))
             if temp_result and temp_result.get('temperature') is not None:
                 daily_results.append({
                     "runner_name": runner_name,
@@ -200,7 +234,7 @@ def update_all_records():
 
         # 2. 現在の正規走者 (走行済/走行中/走行前)
         for index, runner_name in enumerate(active_runners):
-            temp_result = fetched_temps_cache.get(runner_name)
+            temp_result = fetched_temps_cache.get((team_data['id'], runner_name))
             if temp_result and temp_result.get('temperature') is not None:
                 runner_leg = index + 1
                 if runner_leg < current_leg:
@@ -217,7 +251,7 @@ def update_all_records():
 
         # 3. 現在の補欠走者 (補欠)
         for runner_name in substitute_runners:
-            temp_result = fetched_temps_cache.get(runner_name)
+            temp_result = fetched_temps_cache.get((team_data['id'], runner_name))
             if temp_result and temp_result.get('temperature') is not None:
                 daily_results.append({
                     "runner_name": runner_name,

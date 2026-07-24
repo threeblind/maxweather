@@ -66,6 +66,7 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 
 # --- グローバル変数 ---
 stations_data = []
+stations_by_code = {}  # code -> station
 all_teams_data = [] # 正規チームとシャドーチームを結合したデータ
 ekiden_data = {}
 story_settings = {}
@@ -110,10 +111,11 @@ def normalize_runner_entries(team_data):
 
 def load_all_data():
     """必要なJSONファイルをすべて読み込む"""
-    global stations_data, all_teams_data, ekiden_data, story_settings, past_results, leg_award_history, tournament_records, leg_best_records, intramural_rankings
+    global stations_data, stations_by_code, all_teams_data, ekiden_data, story_settings, past_results, leg_award_history, tournament_records, leg_best_records, intramural_rankings
     try:
         with open(AMEDAS_STATIONS_FILE, 'r', encoding='utf-8') as f:
             stations_data = json.load(f)
+        stations_by_code = {s['code']: s for s in stations_data}
         with open(EKIDEN_DATA_FILE, 'r', encoding='utf-8') as f:
             ekiden_data = json.load(f)
         if TEST_MODE:
@@ -1095,7 +1097,19 @@ def main():
 
         if runner_index < len(team_data.get('runners', [])):
             runner_name = team_data['runners'][runner_index]['name']
-            station = find_station_by_name(runner_name)
+            runner_obj = team_data['runners'][runner_index]
+            station = None
+            should_skip = False
+            if isinstance(runner_obj, dict) and runner_obj.get('station_code'):
+                code = runner_obj['station_code']
+                station = stations_by_code.get(code)
+                if not station:
+                    print(f"エラー: 選手 '{runner_name}' の観測所コード {code} が stations_by_code に見つかりません")
+                    max_temp_result = {'temperature': 0, 'error': f'コード {code} 不明'}
+                    current_temp_for_log = None
+                    should_skip = True
+            if not station and not should_skip:
+                station = find_station_by_name(runner_name)
             if station:
                 max_temp_result = fetch_max_temperature(station['pref_code'], station['code'])
                 current_temp_result = fetch_current_temperature(station['pref_code'], station['code'])
