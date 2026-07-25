@@ -261,7 +261,7 @@ def check_git_status(result: CheckResult):
         changes = [ln for ln in r.stdout.strip().split('\n') if ln.strip()]
         other_changes = []
         for line in changes:
-            path = line[3:].strip()
+            path = line[2:].lstrip()
             if not any(path.startswith(t) for t in COMMIT_TARGETS) and 'summary_ai_responses' not in path:
                 other_changes.append(line)
 
