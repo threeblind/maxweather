@@ -3129,7 +3129,8 @@ async function renderProfileCharts(rawRunnerName, raceDay) {
                         font: { weight: 'bold' },
                         formatter: (value, context) => {
                             const record = sortedRecords[context.dataIndex];
-                            return record.legRank ? `${value.toFixed(1)}km (${record.legRank}位)` : `${value.toFixed(1)}km`;
+                            const rankStr = record.dailyRank ? `${record.dailyRank}位` : (record.legRank ? `${record.legRank}位` : '');
+                            return rankStr ? `${value.toFixed(1)}km (${rankStr})` : `${value.toFixed(1)}km`;
                         }
                     }
                 },

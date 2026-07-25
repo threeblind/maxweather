@@ -1266,6 +1266,18 @@ def main():
             record['legAverageStatus'] = 'final' if is_final_today else 'provisional'
             record['legRankStatus'] = 'final' if is_final_today else 'provisional'
 
+        # 日別順位 (dailyRank): 同日・同一区間内の距離順位 (competition ranking)
+        entries.sort(key=lambda e: e['record'].get('distance', 0) or 0, reverse=True)
+        last_dist, current_rank = None, 0
+        for i, entry in enumerate(entries):
+            record = entry['record']
+            dist = record.get('distance', 0) or 0
+            if dist != last_dist:
+                current_rank = i + 1
+                last_dist = dist
+            record['dailyRank'] = current_rank
+            record['dailyRankStatus'] = record.get('legRankStatus', 'provisional')
+
     # --- Step 2: 区間記録連合の結果を計算 ---
     shadow_team_results = []
     print("\nStep 2: 区間記録連合の走行結果を計算中...")

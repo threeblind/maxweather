@@ -125,6 +125,28 @@ def main():
         for leg, distances in legs.items():
             distances.sort(reverse=True)
 
+    # --- 3.2. 大会ごと・区間ごと・日ごとの全記録を収集し、日別順位計算の準備 ---
+    all_daily_performances = {}  # {edition: {leg: {day: [dist1, dist2, ...]}}}
+    for edition, results in performance_data.items():
+        all_daily_performances[edition] = {}
+        for runner_name, runner_data in results.items():
+            for record in runner_data.get('records', []):
+                leg = record.get('leg')
+                day = record.get('day')
+                distance = record.get('distance')
+                if leg and day is not None and distance is not None:
+                    if leg not in all_daily_performances[edition]:
+                        all_daily_performances[edition][leg] = {}
+                    if day not in all_daily_performances[edition][leg]:
+                        all_daily_performances[edition][leg][day] = []
+                    all_daily_performances[edition][leg][day].append(distance)
+
+    # 各区間・各日の記録を降順にソート
+    for edition, legs in all_daily_performances.items():
+        for leg, days in legs.items():
+            for day, distances in days.items():
+                distances.sort(reverse=True)
+
     # --- 3.5. 大会ごと・区間ごとの「選手別平均走行距離」ランキングを作成 ---
     leg_average_rankings = {} # {edition: {leg: [{'runner_name': str, 'avg_dist': float}, ...]}}
     for edition, results in performance_data.items():
@@ -231,6 +253,18 @@ def main():
                                 record['legRank'] = rank
                             except ValueError:
                                 record['legRank'] = None # 万が一見つからない場合
+
+                        # 日別順位 (dailyRank): 同日・同一区間内の距離順位
+                        day = record.get('day')
+                        if leg and day is not None and distance is not None:
+                            if (edition in all_daily_performances and leg in all_daily_performances[edition]
+                                    and day in all_daily_performances[edition][leg]):
+                                day_distances = all_daily_performances[edition][leg][day]
+                                try:
+                                    day_rank = day_distances.index(distance) + 1
+                                    record['dailyRank'] = day_rank
+                                except ValueError:
+                                    record['dailyRank'] = None
 
                     total_distance = runner_perf.get('totalDistance', 0)
                     average_distance = total_distance / len(records) if records else 0
