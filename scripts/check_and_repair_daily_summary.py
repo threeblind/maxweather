@@ -29,10 +29,18 @@ CONFIG_DIR = PROJECT_DIR / 'config'
 SCRIPTS_DIR = PROJECT_DIR / 'scripts'
 
 SUMMARY_FILE = DATA_DIR / 'daily_summary.json'
-INDIVIDUAL_RESULTS_FILE = DATA_DIR / 'individual_results.json'
+SNAPSHOT_DIR = DATA_DIR / 'daily_snapshots'
 SUMMARY_CHECK_LOG = LOGS_DIR / 'summary_check.log'
 LOCK_FILE = LOGS_DIR / 'summary_check.lock'
 AI_RESPONSE_DIR = LOGS_DIR / 'summary_ai_responses'
+
+def resolve_results_path(target_date):
+    """対象日のスナップショットから individual_results.json のパスを返す。
+    スナップショットが存在しない場合は None を返す（安全停止用）。"""
+    snap = SNAPSHOT_DIR / target_date / 'individual_results.json'
+    if snap.exists():
+        return snap
+    return None
 
 # コミット対象ファイル
 COMMIT_TARGETS = [
@@ -292,12 +300,16 @@ def check_git_status(result: CheckResult):
 # 4. 決定論的修復（39.km → 実データ値）
 # ============================================================
 
-def build_daily_distance_map():
+def build_daily_distance_map(target_date):
     """
     individual_results.json から (leg, day) → [distance, ...] のマップを構築。
+    対象日のスナップショットを使用する。
     39.km 修復の参照用。
     """
-    err, data = load_json(INDIVIDUAL_RESULTS_FILE, 'individual_results')
+    results_path = resolve_results_path(target_date)
+    if results_path is None:
+        return None, f'snapshot が見つかりません: {target_date}'
+    err, data = load_json(results_path, 'individual_results')
     if err:
         return None, err
     dist_map = defaultdict(list)  # (leg, day) -> [dist, dist, ...]
@@ -326,7 +338,7 @@ def deterministic_repair(result: CheckResult, summary_data):
     if not broken_spots:
         return False
 
-    dist_map, err = build_daily_distance_map()
+    dist_map, err = build_daily_distance_map(result.target_date)
     if err or dist_map is None:
         result.step('deterministic_repair', 'WARN',
                      f'修復不可（individual_results 読み込み失敗: {err}）')
@@ -461,7 +473,7 @@ def _resolve_race_day(target_date: str):
 
 def _validate_article_against_source(article: str, target_date: str):
     """
-    記事内の距離数値を individual_results.json の実データと照合する。
+    記事内の距離数値をスナップショットの実データと照合する。
     照合は対象日（race day）の記録のみで行う。
 
     戻り値: (合格, [エラー理由])
@@ -470,8 +482,11 @@ def _validate_article_against_source(article: str, target_date: str):
     """
     errors = []
 
-    # individual_results.json 読み込み
-    err, results = load_json(INDIVIDUAL_RESULTS_FILE, 'individual_results')
+    # スナップショットから individual_results.json を読み込み
+    results_path = resolve_results_path(target_date)
+    if results_path is None:
+        return False, [f'対象日 {target_date} のスナップショットが見つかりません（安全停止）']
+    err, results = load_json(results_path, 'individual_results')
     if err:
         return False, [f'元データ読み込み不可: {err}']
 

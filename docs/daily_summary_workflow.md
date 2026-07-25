@@ -111,7 +111,8 @@ git push origin main
 | パス | 役割 | 更新者 |
 |------|------|--------|
 | `data/daily_summary.json` | 日次ダイジェスト記事（date + article） | AI → スクリプト → AI秘書 |
-| `data/individual_results.json` | 各走者の記録データ（検証用マスタ） | データ取得バッチ |
+| `data/daily_snapshots/*/individual_results.json` | 各日の確定記録スナップショット（検証用マスタ） | 毎日23:59に作成 |
+| `data/individual_results.json` | 最新記録データ（ライブ。検証にはスナップショットを使用） | データ取得バッチ |
 | `config/ekiden_data.json` | チーム名・区間マスタ | 手動管理 |
 | `config/outline.json` | 大会概要（startDate等） | 手動管理 |
 | `logs/cron_summary.log` | 日次データ取得バッチのログ | データ取得バッチ |
