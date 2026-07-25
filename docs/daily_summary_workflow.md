@@ -1,24 +1,39 @@
 # 日次ダイジェスト 自動確認・編集・公開ワークフロー
 
-## 3層構造
+## ループ構造（最大3回）
+
+```
+00:10 cron
+  │
+  ├─ 第1層: ./scripts/check_and_repair_daily_summary.sh --no-push
+  │  機械チェック + git add
+  │  ├─ FAIL → 修正して再実行
+  │  └─ PASS
+  │
+  ├─ 第2層: AI秘書
+  │  事実確認・文章推敲
+  │  daily_summary.jsonを更新
+  │
+  ├─ 第3層: ./scripts/check_and_repair_daily_summary.sh
+  │  全チェック + commit/push
+  │  ├─ 記事FAIL → 第2層へ戻る（最大3回）
+  │  ├─ Git/環境FAIL → 停止・報告
+  │  └─ PASS → 完了報告
+  │
+  └─ 最大3回で打ち切り
+```
 
 ### 第1層: スクリプト（機械チェック + git add）
-
-```bash
-./scripts/check_and_repair_daily_summary.sh --no-push
-```
 
 チェック内容:
 - JSON構文
 - 日付一致
 - 壊れた距離表記（39.km, nullkm, NaNkm）
-- 未置換テンプレート（{{TEAM:1}}等）
-- snapshotとの距離照合（daily_snapshots/<対象日>/individual_results.json）
+- 未置換テンプレート
+- snapshotとの距離照合
 - 存在しないチーム名
 - git状態（COMMIT_TARGETS以外の変更はFAIL）
-- AI応答の復旧（logs/summary_ai_responses/）
-
-ここではcommit/pushしない。合格ならgit addまで。
+- AI応答の復旧
 
 ### 第2層: AI秘書の内容確認・推敲
 
@@ -29,53 +44,22 @@
 4. チーム・選手の対応
 5. 文章の自然さ
 
-事実誤認があればsnapshotを根拠に修正。
-推測で数値を補完しない。
-
-問題なければスタイル編集（実況アナウンサー調）。
-事実（数値・チーム名・順位・区間・日付）は絶対に変更しない。
-
 ### 第3層: 最終再検証（ループ）
 
-```bash
-./scripts/check_and_repair_daily_summary.sh
-```
+結果に応じて分岐:
+- **PASS** → 完了報告
+- **記事FAIL**（壊れた数字・距離不一致等） → 第2層に戻って修正、再実行（最大3回）
+- **Git/環境FAIL**（無関係な変更等） → 停止・報告。第2層に戻らない
 
-通常モード（オプションなし）で実行。全チェック通過 + commit/pushまで自動実行。
-
-**FAIL → ログ確認 → 第2層に戻って修正 → 第3層再実行 → 合格するまでループ**
-
-編集ミスがあっても止まらない。直して再実行を繰り返す。
-
----
-
-## コミット対象ファイル（COMMIT_TARGETS）
+### コミット対象ファイル（COMMIT_TARGETS）
 
 ```python
-COMMIT_TARGETS = [
-    'data/daily_summary.json',
-    'data/article_history.json',
-    'data/race_narrative_state.json',
-]
+['data/daily_summary.json', 'data/article_history.json', 'data/race_narrative_state.json']
 ```
 
-これら以外のファイルに変更があると、スクリプトがFAILになり中止。
 realtime_log.jsonl は対象外。
 
----
-
-## エラーハンドリング
-
-| 状況 | 動作 |
-|------|------|
-| ✅ 全チェック合格 | 第2層→第3層へ |
-| 🔧 AI応答ありだが保存失敗 | 救出試行→第1層再実行 |
-| ❌ AI応答なし | 記事を作らない。報告のみ |
-| 💀 第3層でFAIL | 編集ミスが原因。修正して再実行 |
-
----
-
-## ファイル構成
+### ファイル構成
 
 | パス | 役割 |
 |------|------|
