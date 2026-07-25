@@ -2445,7 +2445,8 @@ async function displayDailySummary() {
             const normalizedArticle = articleWithoutTitle.replace(/^\*\*■\s*(.+?)\*\*$/gm, '### $1');
 
             // 選手名の先頭に付与されてしまった数字（例: 1甲佐君 -> 甲佐君）を取り除く安全策
-            const safeArticle = normalizedArticle.replace(/(?<!\d)(?<!第)\d+([^\d位区日時間]+?)(君|選手)/g, '$1$2');
+            // (?!\.\d) で小数距離（40.6km等）の数字を除外
+            const safeArticle = normalizedArticle.replace(/(?<!\d)(?<!第)\d+(?!\.\d)([^\d、。\.位区日時間]+?)(君|選手)/g, '$1$2');
 
             // 記事をセクション（見出し＋本文）ごとに解析し、適切なHTMLタグに変換
             const sections = safeArticle.split(/^(?=#)/m); // 行頭の#で見出しセクションを分割
