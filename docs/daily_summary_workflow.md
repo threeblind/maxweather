@@ -59,6 +59,42 @@
 
 realtime_log.jsonl は対象外。
 
+---
+
+## cron job 登録情報
+
+| 項目 | 設定値 |
+|------|--------|
+| 名前 | `daily-summary-check` |
+| ジョブID | `5e84630cdbbc` |
+| スケジュール | `10 0 * * *`（毎日 00:10 JST） |
+| 作業ディレクトリ | `/Users/t28k2/prj/weather` |
+| 有効ツール | terminal, file（最小構成） |
+| 配信先 | origin（Slack依頼元スレッド） |
+| 状態 | scheduled（有効） |
+| 初回実行 | 2026-07-27T00:10:00+09:00 |
+
+### cron prompt（AI秘書への指示文）
+
+cronジョブには以下の指示が登録されている。実行時にこの指示に従って動作する。
+
+```
+日次ダイジェストの確認・修復・編集を行い、commit/pushまで持っていってください。
+最大3回まで修正ループ。Git/環境エラーは即停止。
+
+基本方針: できる限り失敗させない。AI未応答なら無理に記事を作らない。
+
+第1層: ./scripts/check_and_repair_daily_summary.sh --no-push
+  → 機械チェック + git add
+第2層: AI秘書が事実確認・推敲 → daily_summary.json更新
+第3層: ./scripts/check_and_repair_daily_summary.sh
+  → 全チェック + commit/push
+  → 記事FAIL → 第2層へ戻る（最大3回）
+  → Git/環境FAIL → 停止・報告
+
+制約: 事実変更禁止、推測禁止、.env/.DS_Store/realtime_log.jsonl除外
+```
+
 ### ファイル構成
 
 | パス | 役割 |
