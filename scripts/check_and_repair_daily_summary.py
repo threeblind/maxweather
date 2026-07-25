@@ -42,7 +42,7 @@ def resolve_results_path(target_date):
         return snap
     return None
 
-# コミット対象ファイル
+# コミット対象ファイル（これら以外の変更は FAIL）
 COMMIT_TARGETS = [
     'data/daily_summary.json',
     'data/article_history.json',
