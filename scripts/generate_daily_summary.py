@@ -2,6 +2,8 @@ import json
 import os
 import argparse
 import re
+import hashlib
+import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 from dotenv import load_dotenv
@@ -26,6 +28,92 @@ PLAYER_STORY_CONTEXT_FILE = CONFIG_DIR / 'player_story_context.json'
 TEAM_STORY_CONTEXT_FILE = CONFIG_DIR / 'team_story_context.json'
 LEG_STORY_CONTEXT_FILE = CONFIG_DIR / 'leg_story_context.json'
 NARRATIVE_STATE_FILE = DATA_DIR / 'race_narrative_state.json'
+
+# --- AI応答保存用 ---
+AI_RESPONSE_DIR = LOGS_DIR / 'summary_ai_responses'
+
+
+def _save_ai_raw_response(raw_text, provider, model_name, race_date, output_file):
+    """
+    AIの生応答をファイルに保存する。
+    戻り値: (filepath, error_message)
+    エラー時は warning を出力し、None を返す（本体処理に影響させない）。
+    """
+    saved_at = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    # ファイル名: YYYYMMDD_HHMMSS_<UUID短縮>_<provider>.json
+    # UUIDにより同時刻・同内容でも上書きを防ぐ
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    unique_id = uuid.uuid4().hex[:8]
+    filename = f"{ts}_{unique_id}_{provider}.json"
+    filepath = AI_RESPONSE_DIR / filename
+
+    data = {
+        "saved_at": saved_at,
+        "provider": provider,
+        "model": model_name,
+        "race_date": race_date,
+        "output_file": str(output_file),
+        "raw_response": raw_text,
+        "status": "received",
+        "failure_stage": None,
+        "failure_message": None
+    }
+
+    # 原子的保存: mkdir + temp → os.replace
+    tmp_path = filepath.with_suffix('.tmp')
+    try:
+        AI_RESPONSE_DIR.mkdir(parents=True, exist_ok=True)
+        tmp_path.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False),
+            encoding='utf-8'
+        )
+        tmp_path.replace(filepath)
+        return str(filepath), None
+    except IOError as e:
+        msg = f"警告: AI応答の保存に失敗しました ({filepath}): {e}"
+        print(msg)
+        if tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+        return None, msg
+
+
+def _update_ai_response_status(filepath, status, failure_stage=None, failure_message=None):
+    """
+    保存済みのAI応答ファイルのステータスを更新する。
+    更新失敗は warning ログのみ（本体処理に影響させない）。
+    """
+    if not filepath:
+        return
+
+    path = Path(filepath)
+    if not path.exists():
+        return
+
+    try:
+        data = json.loads(path.read_text(encoding='utf-8'))
+        data['status'] = status
+        if failure_stage is not None:
+            data['failure_stage'] = failure_stage
+        if failure_message is not None:
+            data['failure_message'] = failure_message
+        # saved_at は初回保存時を維持、更新日時を追加
+        now_iso = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+        data['updated_at'] = now_iso
+
+        tmp_path = path.with_suffix('.tmp')
+        tmp_path.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False),
+            encoding='utf-8'
+        )
+        tmp_path.replace(path)
+    except Exception as e:
+        print(f"警告: AI応答ファイル '{filepath}' の更新に失敗しました: {e}")
+
+
+def _delete_ai_response_file(filepath):
+    """成功時の不要ファイルを削除する（ディスク肥大防止）。削除失敗は無視。"""
+    if filepath:
+        Path(filepath).unlink(missing_ok=True)
 
 class DailySummaryGenerator:
     """
@@ -2564,6 +2652,17 @@ class DailySummaryGenerator:
                 )
                 raw_article_text = response.output_text.strip()
 
+            # --- AI生応答を即時保存（後続のどの段階で失敗しても残る） ---
+            race_date = self.all_data.get('realtime_report', {}).get('updateTime', '').split(' ')[0]
+            ai_response_file, save_err = _save_ai_raw_response(
+                raw_article_text, self.provider, self.model_name,
+                race_date, str(OUTPUT_FILE)
+            )
+            if ai_response_file:
+                print(f"  📝 AI応答を保存: {ai_response_file}")
+            else:
+                print(save_err)
+
             # 構造化JSON応答をパース（article抽出、claimsはログ出力）
             try:
                 parsed = self.parse_structured_ai_response(raw_article_text)
@@ -2577,6 +2676,7 @@ class DailySummaryGenerator:
                     print("  📋 claims: なし")
             except ValueError as e:
                 print(f"❌ 構造化応答のパースに失敗しました: {e}")
+                _update_ai_response_status(ai_response_file, 'failed', 'parse', str(e))
                 print("   本日はJSON出力指示に応答しなかったため記事を保存せず終了します。")
                 return
 
@@ -2587,6 +2687,7 @@ class DailySummaryGenerator:
                     print(f"  ✅ claims検証成功 ({len(claims)}件)")
                 except ValueError as e:
                     print(f"❌ claims検証失敗: {e}")
+                    _update_ai_response_status(ai_response_file, 'failed', 'claims', str(e))
                     print("   記事を保存せず終了します。")
                     return
 
@@ -2605,6 +2706,7 @@ class DailySummaryGenerator:
                 print("  ✅ トークン展開成功")
             except ValueError as e:
                 print(f"❌ トークン展開エラー: {e}")
+                _update_ai_response_status(ai_response_file, 'failed', 'token', str(e))
                 print("   記事を保存せず終了します。")
                 return
 
@@ -2628,6 +2730,11 @@ class DailySummaryGenerator:
                     print("⚠️ 注意警告はあるが保存を継続します。")
                 else:
                     print("✅ 検証成功、保存を継続します。")
+
+                # 成功: AI応答ファイルは削除（ディスク肥大防止: 失敗時のみ残す設計）
+                _update_ai_response_status(ai_response_file, 'succeeded')
+                _delete_ai_response_file(ai_response_file)
+
                 print("物語状態を更新しています...")
                 selected_themes = self.select_today_themes(metrics)
                 self.update_narrative_state(metrics, selected_themes)
@@ -2648,6 +2755,8 @@ class DailySummaryGenerator:
                     print(f"エラー: ファイルへの書き込みに失敗しました: {e}")
             else:
                 print("❌ 致命的エラーのため、ファイル保存、履歴保存および物語状態の更新をすべてスキップします。")
+                _update_ai_response_status(ai_response_file, 'failed', 'article_validation',
+                    '; '.join(validation_fatal_errors) if validation_fatal_errors else '致命的エラー')
         except Exception as e:
             print(f"❌ {self.provider} API呼び出し中にエラーが発生しました: {e}")
             print("⚠️ APIエラーのため、ファイル保存および物語状態の更新をスキップします。")

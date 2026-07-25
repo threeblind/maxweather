@@ -42,17 +42,27 @@ if [[ "${EKIDEN_DISABLE_GIT_PUSH:-0}" == "1" ]]; then
     exit 0
 fi
 
-# 3. daily_summary.json, article_history.json, または race_narrative_state.json に変更があったか確認し、変更があればPush
+# 3. daily_summary.json, article_history.json, race_narrative_state.json,
+#    または logs/summary_ai_responses/ 下の失敗応答に変更があったか確認
 SUMMARY_FILE="data/daily_summary.json"
 HISTORY_FILE="data/article_history.json"
 STATE_FILE="data/race_narrative_state.json"
+AI_FAIL_DIR="logs/summary_ai_responses"
 
 # `git status --porcelain` を使って、対象ファイルに変更があるかを確認
-if [[ -n $(git status --porcelain "$SUMMARY_FILE" "$HISTORY_FILE" "$STATE_FILE") ]]; then
-    echo "$SUMMARY_FILE または $STATE_FILE に変更を検出しました。GitHubにプッシュします。"
+AI_CHANGED=false
+if [[ -d "$AI_FAIL_DIR" ]] && [[ -n $(git status --porcelain -- "$AI_FAIL_DIR"/ 2>/dev/null) ]]; then
+    AI_CHANGED=true
+fi
+
+if [[ -n $(git status --porcelain "$SUMMARY_FILE" "$HISTORY_FILE" "$STATE_FILE") ]] || [[ "$AI_CHANGED" == true ]]; then
+    echo "$SUMMARY_FILE または $STATE_FILE または AI応答ファイルに変更を検出しました。GitHubにプッシュします。"
     
     # 対象ファイルすべてをコミット対象にする
     git add "$SUMMARY_FILE" "$HISTORY_FILE" "$STATE_FILE"
+    if [[ -d "$AI_FAIL_DIR" ]]; then
+        git add -- "$AI_FAIL_DIR"/
+    fi
     
     COMMIT_MSG="Generate daily summary article [bot] $(date +'%Y-%m-%d')"
     echo "コミットを実行します: $COMMIT_MSG"
