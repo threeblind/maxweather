@@ -1502,7 +1502,6 @@ def main():
             str(REALTIME_REPORT_FILE),
         ]
         backups = {}
-        import shutil
         for fp in commit_files:
             fp_str = str(fp)
             if Path(fp_str).exists():
