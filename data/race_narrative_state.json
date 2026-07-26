@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
-  "updated_day": 2,
+  "updated_day": 4,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 2,
+    "last_updated_day": 4,
     "teams": [
       "名古屋大学",
-      "学連選抜"
+      "山梨学院大学"
     ]
   },
   "ongoing_battles": [
@@ -17,52 +17,50 @@
       "kind": "lead",
       "teams": [
         "名古屋大学",
-        "学連選抜"
+        "山梨学院大学"
       ],
-      "summary": "名古屋大学と学連選抜による首位争い",
-      "started_day": 2,
-      "last_updated_day": 2,
-      "last_observed_gap_km": 1.5,
-      "previous_gap_km": 1.5
+      "summary": "名古屋大学と山梨学院大学による首位争い",
+      "started_day": 4,
+      "last_updated_day": 4,
+      "last_observed_gap_km": 3.8000000000000114,
+      "previous_gap_km": 3.8000000000000114
     }
   ],
-  "momentum": [
-    {
-      "team": "四国大学",
-      "summary": "10位から7位へ急浮上",
-      "started_day": 2,
-      "last_updated_day": 2,
-      "previous_rank": 10,
-      "current_rank": 7,
-      "diff": 3
-    },
-    {
-      "team": "立命館大学",
-      "summary": "11位から8位へ急浮上",
-      "started_day": 2,
-      "last_updated_day": 2,
-      "previous_rank": 11,
-      "current_rank": 8,
-      "diff": 3
-    },
-    {
-      "team": "鹿児島大学",
-      "summary": "13位から10位へ急浮上",
-      "started_day": 2,
-      "last_updated_day": 2,
-      "previous_rank": 13,
-      "current_rank": 10,
-      "diff": 3
-    }
-  ],
+  "momentum": [],
   "runner_threads": [
     {
-      "runner": "美濃",
+      "runner": "名古屋",
       "team": "名古屋大学",
-      "summary": "本日最速 40.2km の快走",
-      "started_day": 2,
-      "last_updated_day": 2
+      "summary": "本日最速 38.2km の快走",
+      "started_day": 4,
+      "last_updated_day": 4
     }
   ],
-  "resolved_stories": []
+  "resolved_stories": [
+    {
+      "summary": "首位攻防交代：名古屋大学, 学連選抜の争いから名古屋大学と山梨学院大学の争いへ移行 (前回観測時の差 1.5km)",
+      "resolved_day": 4,
+      "reason": "首位交代"
+    },
+    {
+      "summary": "勢い落ち着く：四国大学の急浮上（本日8位）",
+      "resolved_day": 4,
+      "reason": "勢い低下"
+    },
+    {
+      "summary": "勢い落ち着く：立命館大学の急浮上（本日9位）",
+      "resolved_day": 4,
+      "reason": "勢い低下"
+    },
+    {
+      "summary": "勢い落ち着く：鹿児島大学の急浮上（本日7位）",
+      "resolved_day": 4,
+      "reason": "勢い低下"
+    },
+    {
+      "summary": "選手交代：名古屋大学の美濃君から新走者へタスキ",
+      "resolved_day": 4,
+      "reason": "区間交代"
+    }
+  ]
 }
