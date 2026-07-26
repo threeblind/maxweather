@@ -16,6 +16,7 @@ LEG_AWARD_HISTORY_FILE = HISTORY_DATA_DIR / 'leg_award_history.json'
 OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 
 OUTPUT_FILE = CONFIG_DIR / 'player_profiles.json'
+PLAYER_COMMENTS_FILE = CONFIG_DIR / 'player_comments.json'
 
 CURRENT_EDITION = 16
 
@@ -72,6 +73,15 @@ def main():
     if not ekiden_data or not amedas_stations:
         print("エラー: 'ekiden_data.json' または 'amedas_stations.json' が読み込めませんでした。処理を中断します。")
         return
+
+    # --- 1.5. コメント正本と既存プロファイルを読み込み ---
+    # player_comments.json が存在すれば最優先（コメント管理の正本）
+    # 存在しない場合は初回生成として動作（コメントは空）
+    player_comments = load_json(PLAYER_COMMENTS_FILE, {}) or {}
+    # 既存の player_profiles.json からコメントを引き継ぐ（player_comments の次優先）
+    existing_profiles = load_json(OUTPUT_FILE, {}) or {}
+    print(f"   player_comments.json: {len(player_comments)}件")
+    print(f"   既存プロファイル: {len(existing_profiles)}件")
 
     # --- 2. データの前処理 ---
     # 地点名で検索しやすいように辞書に変換
@@ -220,18 +230,26 @@ def main():
             prefecture_name = get_prefecture_name(station_info.get('pref_code'))
 
             # 基本情報の構築
+            code = station_info.get('code', '')
             profile = {
                 "name": runner_name,
-                "code": station_info.get('code'),
+                "code": code,
                 "prefecture": prefecture_name,
                 "team_id": team_id,
                 "team_name": team_name,
-                "image_url": f"amedas/jpg/{station_info.get('code')}.jpg",
+                "image_url": f"amedas/jpg/{code}.jpg",
                 "address": station_info.get('address'),
                 "start_date": station_info.get('start_date'),
                 "elevation": station_info.get('elevation'),
-                # チームの紹介文ではなく、選手個人のコメントを使用
-                "comment": runner_comment_map.get(runner_name, '')
+                # コメント優先順位:
+                #   1. player_comments.json（正本）
+                #   2. 既存 player_profiles.json の非空 comment
+                #   3. ekiden_data runner オブジェクトの comment フィールド
+                "comment": (
+                    player_comments.get(code, {}).get('comment', '')
+                    or existing_profiles.get(runner_name, {}).get('comment', '')
+                    or runner_comment_map.get(runner_name, '')
+                )
             }
 
             # 大会ごとのパフォーマンス情報の構築

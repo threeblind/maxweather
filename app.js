@@ -2,7 +2,7 @@ let stationsData = [];
 let allIndividualData = {}; // 選手個人の全記録を保持するグローバル変数
 let playerProfiles = {}; // 選手名鑑データを保持
 let playerSongs = {}; // 選手の登場曲データを保持
-let teamComments = {}; // チーム別の選手コメント上書き
+let playerComments = {}; // config/player_comments.json 正本（station_code キー）
 let lastRealtimeData = null; // 最新のrealtime_report.jsonを保持する
 let ekidenDataCache = null; // ekiden_data.jsonをキャッシュする
 let intramuralDataCache = null; // 学内ランキングデータを保持する
@@ -22,6 +22,8 @@ let coursePathData = null; // course_path.json の全ポイントデータ（座
 let rankTimelineEvents = [];
 let rankTimelineFilter = 'all';
 let isRankTimelineExpanded = false;
+let timelineFetchInProgress = false;
+let lastTimelineDataTimestamp = null;
 const SHADOW_TEAM_ID = 99; // マジックナンバー99を排除するための定数
 let lastForegroundRefreshAt = 0;
 let pullToRefreshState = {
@@ -133,17 +135,66 @@ async function loadPlayerSongs() {
     }
 }
 
-async function loadTeamComments() {
+// 旧 loadTeamComments / teamComments は player_comments.json 一元管理に移行済み。
+// 移行元 config/team_comments.json は移行スクリプト scripts/migrate_player_comments.py のみが参照する。
+
+// 選手コメントの正本を読み込む（config/player_comments.json, station_code キー）
+async function loadPlayerComments() {
     try {
-        const response = await fetch('config/team_comments.json');
-        if (response.ok) teamComments = await response.json();
+        const response = await fetch(`config/player_comments.json?_=${Date.now()}`, { cache: 'no-store' });
+        if (response.ok) playerComments = await response.json();
     } catch (error) {
-        console.error('チーム別コメントの読み込みに失敗:', error);
+        console.error('選手コメントの読み込みに失敗:', error);
     }
 }
 
-function getTeamComment(teamId, runnerName, profile) {
-    return teamComments[String(teamId)]?.[runnerName] || (profile.team_id === teamId ? profile.comment : '');
+/**
+ * 選手名から station_code を解決し、player_comments からコメントを取得する。
+ * 優先順位: player_comments.json > profile.comment > ekiden_data runner comment
+ * station_code 解決順: playerProfiles[runnerName].code -> ekiden_data runner object -> amedas stations
+ * @param {string} runnerName - 選手名
+ * @param {object} profile - playerProfiles のエントリ（省略可）
+ * @returns {string} コメント（なければ空文字）
+ */
+function getPlayerComment(runnerName, profile = {}) {
+    // 1. profile.code から player_comments を検索（最優先）
+    if (profile.code && playerComments[profile.code]?.comment) {
+        return playerComments[profile.code].comment;
+    }
+    // 2. ekiden_data から station_code を探し、player_comments を検索
+    if (ekidenDataCache) {
+        for (const team of ekidenDataCache.teams || []) {
+            for (const r of [...(team.runners || []), ...(team.substitutes || [])]) {
+                if (typeof r === 'object' && r.name === runnerName && r.station_code) {
+                    if (playerComments[r.station_code]?.comment) {
+                        return playerComments[r.station_code].comment;
+                    }
+                }
+            }
+        }
+    }
+    // 3. amedas stations の名前一致で解決して player_comments を検索
+    if (typeof findStationByName === 'function') {
+        const station = findStationByName(runnerName);
+        if (station && playerComments[station.code]?.comment) {
+            return playerComments[station.code].comment;
+        }
+    }
+    // 4. profile.comment をフォールバック
+    if (profile.comment) {
+        return profile.comment;
+    }
+    // 5. ekiden_data runner object のコメントをフォールバック
+    if (ekidenDataCache) {
+        for (const team of ekidenDataCache.teams || []) {
+            for (const r of [...(team.runners || []), ...(team.substitutes || [])]) {
+                if (typeof r === 'object' && r.name === runnerName && r.comment) {
+                    return r.comment;
+                }
+            }
+        }
+    }
+    return '';
 }
 
 function renderPlayerSong(name) {
@@ -2021,8 +2072,7 @@ async function refreshRealtimeData() {
         updateRunnerMarkers(runnerLocations, ekidenDataCache);
         checkFavoriteTeamRankNotifications(realtimeData).catch(err => console.error('Failed to check favorite notifications', err));
 
-        // タイムラインを更新
-        loadRankTimeline({ force: true }).catch(err => console.error('Failed to load timeline on refresh', err));
+        // タイムライン更新は fetchEkidenData() 経由で行う（ここでは呼ばない）
 
     } catch (error) {
         console.error('Error during realtime data refresh:', error);
@@ -2263,7 +2313,8 @@ const fetchEkidenData = async () => {
         await setupResponsiveSelectors();
 
         // タイムラインを更新 (非同期かつエラー分離)
-        loadRankTimeline().catch(err => console.error('Failed to load timeline in fetchEkidenData', err));
+        // force=true で常に再取得（初回・画面復帰・更新ボタンでrealtime_log.jsonlを再読み込み）
+        loadRankTimeline({ force: true }).catch(err => console.error('Failed to load timeline in fetchEkidenData', err));
 
     } catch (error) {
         console.error('Error fetching ekiden data:', error);
@@ -3198,10 +3249,11 @@ async function showPlayerProfileModal(rawRunnerName) {
 
         const createSectionTitle = (title) => `<h4 style="border-bottom-color: ${teamColor}; color: ${teamColor};">${title}</h4>`;
 
-        // コメントが存在する場合のみ blockquote を生成
-        const commentHtml = profile.comment
+        // コメントが存在する場合のみ blockquote を生成（player_comments 正本、なければ profile.comment 補助）
+        const playerCommentText = getPlayerComment(rawRunnerName, profile) || profile.comment || '';
+        const commentHtml = playerCommentText
             ? `<blockquote class="profile-comment" style="border-left-color: ${teamColor}; margin-top: 0.5rem; padding: 0.5rem 0.8rem;">
-                   "${profile.comment}"
+                   "${playerCommentText}"
                </blockquote>`
             : '';
         const songHtml = renderPlayerSong(rawRunnerName);
@@ -3400,7 +3452,7 @@ function displayTeamDetails(teamId) {
         const isSubstitutedIn = typeof runnerObj === 'object' && runnerObj.is_substitute_in === true;
         const runnerLeg = index + 1;
         const profile = playerProfiles[runnerName] || {};
-        const teamComment = getTeamComment(teamConfig.id, runnerName, profile);
+        const teamComment = getPlayerComment(runnerName, profile);
         const formattedRunnerName = formatRunnerName(runnerName);
         const runnerImage = profile.image_url || 'https://via.placeholder.com/60';
         // コメントが存在する場合のみpタグを生成
@@ -3473,7 +3525,7 @@ function displayTeamDetails(teamId) {
     const substituteEntriesHtml = (teamConfig.substitutes || []).map(sub => {
         const runnerName = typeof sub === 'string' ? sub : sub.name;
         const profile = playerProfiles[runnerName] || {};
-        const teamComment = getTeamComment(teamConfig.id, runnerName, profile);
+        const teamComment = getPlayerComment(runnerName, profile);
         const formattedRunnerName = formatRunnerName(runnerName);
         const runnerImage = profile.image_url || 'https://via.placeholder.com/60';
         // コメントが存在する場合のみpタグを生成
@@ -3598,7 +3650,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     loadStationsData();
     loadPlayerProfiles();
     loadPlayerSongs();
-    loadTeamComments();
+    loadPlayerComments(); // 選手コメント正本（旧 team_comments から移行済み）
     loadSearchHistory(); // アメダス検索履歴の読み込み
     // loadRanking(); // 全国ランキングは公開用 index.html には無いためコメントアウト
 
@@ -3655,7 +3707,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // 3. 順位変動タイムラインの初期化とデータロード
     initRankTimeline();
-    loadRankTimeline().catch(err => console.error('Failed to load timeline on startup', err));
+    // タイムラインの初回データ読み込みは fetchEkidenData()（3622行）内の loadRankTimeline({force:true}) で完了済み
     // 3. レスポンシブセレクターをセットアップ
     await setupResponsiveSelectors();
     const defaultIntramuralTeamId = 1;
@@ -5081,7 +5133,17 @@ async function loadRankTimeline({ force = false } = {}) {
         return;
     }
 
+    // インフライトガード: 同時実行を防止
+    if (timelineFetchInProgress) {
+        console.log('loadRankTimeline: 前回の取得が進行中のためスキップ');
+        if (rankTimelineEvents.length > 0) {
+            renderRankTimeline();
+        }
+        return;
+    }
+
     try {
+        timelineFetchInProgress = true;
         const response = await fetch(`data/realtime_log.jsonl?_=${Date.now()}`, { cache: 'no-store' });
         
         // 404は「開始前またはログ未生成」として扱う
@@ -5148,9 +5210,20 @@ async function loadRankTimeline({ force = false } = {}) {
         // 描画
         renderRankTimeline();
 
-        // 更新時刻の表示 (日本時間形式)
-        const now = new Date();
-        updateTimeEl.textContent = `${now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}更新`;
+        // 更新時刻の表示: データの最新ログタイムスタンプを使用（ブラウザ時刻ではない）
+        if (records.length > 0) {
+            const timestamps = records.filter(r => r.timestamp).map(r => r.timestamp);
+            if (timestamps.length > 0) {
+                const latestTs = timestamps.sort().pop();
+                lastTimelineDataTimestamp = latestTs;
+                const d = new Date(latestTs);
+                updateTimeEl.textContent = `${d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}時点`;
+            } else {
+                updateTimeEl.textContent = '';
+            }
+        } else {
+            updateTimeEl.textContent = '';
+        }
 
     } catch (error) {
         console.error('Error loading rank timeline:', error);
@@ -5166,6 +5239,8 @@ async function loadRankTimeline({ force = false } = {}) {
             document.getElementById('rank-timeline-list').innerHTML = '';
             toggleBtn.hidden = true;
         }
+    } finally {
+        timelineFetchInProgress = false;
     }
 }
 
