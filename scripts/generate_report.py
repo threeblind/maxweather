@@ -1060,6 +1060,23 @@ def main():
 
     team_info_map = {t['id']: t for t in all_teams_data}
 
+    # --- Commitモード: daily_temperatures.json を読み込み、確定値を使用する ---
+    cached_temps = {}
+    race_day_date = (start_date + timedelta(days=race_day - 1)).strftime('%Y-%m-%d')
+    if args.commit:
+        try:
+            with open(DATA_DIR / 'daily_temperatures.json', 'r', encoding='utf-8') as f:
+                all_temps = json.load(f)
+            day_temps = all_temps.get(race_day_date, {})
+            if not day_temps:
+                print(f'❌ daily_temperatures.json に対象日 {race_day_date} のデータがありません')
+                sys.exit(1)
+            cached_temps = day_temps
+            print(f'  📝 daily_temperatures.json から確定値を使用 ({len(day_temps)}件)')
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f'❌ daily_temperatures.json の読み込みに失敗: {e}')
+            sys.exit(1)
+
     # --- Step 1: 正規チームの結果を計算 ---
     regular_team_results = []
     shadow_team_states = []
@@ -1111,10 +1128,23 @@ def main():
             if not station and not should_skip:
                 station = find_station_by_name(runner_name)
             if station:
-                max_temp_result = fetch_max_temperature(station['pref_code'], station['code'])
-                current_temp_result = fetch_current_temperature(station['pref_code'], station['code'])
-                current_temp_for_log = current_temp_result.get('temperature')
+                if args.commit:
+                    # Commitモード: daily_temperatures.json の確定値を使用
+                    temp = cached_temps.get(runner_name)
+                    if temp is None or (isinstance(temp, (int, float)) and temp == 0):
+                        print(f'❌ Commit失敗: {runner_name} の気温確定値が daily_temperatures.json にありません（値={temp!r}）')
+                        sys.exit(1)
+                    max_temp_result = {'temperature': temp, 'error': None}
+                    current_temp_for_log = temp
+                else:
+                    # Realtime/通常モード: 外部サイトから取得
+                    max_temp_result = fetch_max_temperature(station['pref_code'], station['code'])
+                    current_temp_result = fetch_current_temperature(station['pref_code'], station['code'])
+                    current_temp_for_log = current_temp_result.get('temperature')
             else:
+                if args.commit:
+                    print(f'❌ Commit失敗: {runner_name} の観測所情報が見つかりません')
+                    sys.exit(1)
                 max_temp_result = {'temperature': 0, 'error': '地点不明'}
 
             today_distance = max_temp_result.get('temperature') or 0.0
@@ -1462,23 +1492,64 @@ def main():
         print(f"\n--- [Realtime Mode] 各種速報ファイルを保存しました ---")
 
     if args.commit:
-        # コミットモードでは、`current_state`（その日の開始時点の状態）を比較対象として渡す
-        save_ekiden_state(all_results, args.state_file, race_day)
-        update_rank_history(all_results, race_day, args.history_file)
-        update_leg_rank_history(all_results, current_state, LEG_RANK_HISTORY_FILE, is_commit_mode=True)
-        save_individual_results(individual_results, args.individual_state_file)
-        if all_results:
-            calculate_and_save_runner_locations(all_results)
-        # 日次スナップショットと翌朝の表示が日中最後の速報を参照しないよう、
-        # 23:55頃に計算した確定結果で realtime_report.json も更新する。
-        previous_comment = previous_report_data or {}
-        save_realtime_report(
-            all_results,
-            race_day,
-            previous_comment.get("breakingNewsComment", ""),
-            previous_comment.get("breakingNewsTimestamp", ""),
-            previous_comment.get("breakingNewsFullText", ""),
-        )
+        # コミットモード: 既存ファイルをバックアップ→保存→検証→不合格時復元
+        commit_files = [
+            args.state_file,
+            args.individual_state_file,
+            args.history_file,
+            str(LEG_RANK_HISTORY_FILE),
+            str(DATA_DIR / 'runner_locations.json'),
+            str(REALTIME_REPORT_FILE),
+        ]
+        backups = {}
+        import shutil
+        for fp in commit_files:
+            fp_str = str(fp)
+            if Path(fp_str).exists():
+                backups[fp_str] = fp_str + '.bak'
+                shutil.copy2(fp_str, backups[fp_str])
+
+        try:
+            save_ekiden_state(all_results, args.state_file, race_day)
+            update_rank_history(all_results, race_day, args.history_file)
+            update_leg_rank_history(all_results, current_state, LEG_RANK_HISTORY_FILE, is_commit_mode=True)
+            save_individual_results(individual_results, args.individual_state_file)
+            if all_results:
+                calculate_and_save_runner_locations(all_results)
+            previous_comment = previous_report_data or {}
+            save_realtime_report(
+                all_results, race_day,
+                previous_comment.get("breakingNewsComment", ""),
+                previous_comment.get("breakingNewsTimestamp", ""),
+                previous_comment.get("breakingNewsFullText", ""),
+            )
+
+            # 整合性検証
+            print("状態ファイルの整合性を検証中...")
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, "scripts/validate_race_state.py"],
+                capture_output=False, cwd=Path(__file__).resolve().parent.parent
+            )
+            if result.returncode != 0:
+                print("❌ 状態ファイルの不整合を検出。バックアップから復元します。")
+                for orig, bak in backups.items():
+                    if Path(bak).exists():
+                        shutil.move(bak, orig)
+                sys.exit(1)
+
+            # 検証合格: バックアップ削除
+            for bak in backups.values():
+                Path(bak).unlink(missing_ok=True)
+            print("✅ 状態ファイルの整合性確認完了")
+
+        except BaseException:
+            # 例外時もバックアップ復元
+            for orig, bak in backups.items():
+                if Path(bak).exists():
+                    shutil.move(bak, orig)
+            raise
+
         print(f"\n--- [Commit Mode] 最終結果を保存しました ---")
     
     if not args.realtime and not args.commit:

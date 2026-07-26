@@ -34,6 +34,13 @@ echo "scripts/update_all_records.py を実行中..."
 echo "scripts/generate_report.py --commit を実行中..."
 "$PYTHON_CMD" scripts/generate_report.py --commit
 
+# 3.5. 状態ファイルの整合性を検証（不整合時は以降の保存を中止）
+echo "scripts/validate_race_state.py を実行中..."
+if ! "$PYTHON_CMD" scripts/validate_race_state.py; then
+    echo "❌ 状態ファイルの不整合を検出しました。スナップショット保存・アーカイブ・コミットを中止します。"
+    exit 1
+fi
+
 # 4. 確定データを日付付きスナップショットとして永続保存
 echo "scripts/save_daily_snapshot.py を実行中..."
 "$PYTHON_CMD" scripts/save_daily_snapshot.py
