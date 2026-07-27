@@ -43,7 +43,18 @@ fi
 
 # 4. 確定データを日付付きスナップショットとして永続保存
 echo "scripts/save_daily_snapshot.py を実行中..."
-"$PYTHON_CMD" scripts/save_daily_snapshot.py
+SNAPSHOT_DIR=$("$PYTHON_CMD" scripts/save_daily_snapshot.py --print-path)
+SNAPSHOT_DATE=$(basename "$SNAPSHOT_DIR")
+echo "スナップショット: $SNAPSHOT_DIR"
+
+# 4.5. 沿道様向け速報表を生成（set -e で失敗時は commit/push を中止）
+echo "scripts/generate_alongroad_report.py --date $SNAPSHOT_DATE --save を実行中..."
+"$PYTHON_CMD" scripts/generate_alongroad_report.py --date "$SNAPSHOT_DATE" --save
+
+# 4.6. manifest.json に alongroad_report.txt を追加
+"$PYTHON_CMD" scripts/save_daily_snapshot.py \
+  --add-to-manifest alongroad_report.txt \
+  --manifest-dir "$SNAPSHOT_DIR"
 
 if [[ "${EKIDEN_DISABLE_GIT_PUSH:-0}" == "1" ]]; then
     echo "テストモードのため、Git commit / push はスキップします。"

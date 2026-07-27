@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import shutil
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -130,16 +131,57 @@ def main():
         type=lambda value: datetime.strptime(value, "%Y-%m-%d").date(),
         help="保存日を明示します。省略時は realtime_report.json の updateTime を使います。",
     )
+    parser.add_argument(
+        "--print-path",
+        action="store_true",
+        help="保存後にスナップショットディレクトリのパスのみ出力します（機械可読用）。",
+    )
+    parser.add_argument(
+        "--add-to-manifest",
+        type=str,
+        help="既存の manifest.json にファイルを追加します（--manifest-dirと併用）。",
+    )
+    parser.add_argument(
+        "--manifest-dir",
+        type=Path,
+        help="--add-to-manifest で更新する manifest.json があるディレクトリ。",
+    )
     args = parser.parse_args()
+
+    if args.add_to_manifest:
+        if not args.manifest_dir:
+            print("エラー: --add-to-manifest には --manifest-dir も指定してください。", file=sys.stderr)
+            return 1
+        manifest_path = args.manifest_dir / "manifest.json"
+        if not manifest_path.exists():
+            print(f"エラー: manifest.json が見つかりません: {manifest_path}", file=sys.stderr)
+            return 1
+        with open(manifest_path, encoding="utf-8") as f:
+            manifest = json.load(f)
+        file_path = args.manifest_dir / args.add_to_manifest
+        if not file_path.exists():
+            print(f"エラー: 追加するファイルが見つかりません: {file_path}", file=sys.stderr)
+            return 1
+        manifest.setdefault("files", {})[args.add_to_manifest] = {
+            "bytes": file_path.stat().st_size,
+            "sha256": sha256(file_path),
+        }
+        atomic_write_json(manifest_path, manifest)
+        print(f"✅ manifest.json に {args.add_to_manifest} を追加しました。")
+        return 0
 
     destination, manifest = save_daily_snapshot(
         args.source_dir, args.output_dir, args.date
     )
-    print(
-        f"✅ 日次確定スナップショットを '{destination}' に保存しました"
-        f"（{len(manifest['files'])}ファイル）。"
-    )
+
+    if args.print_path:
+        print(destination)
+    else:
+        print(
+            f"✅ 日次確定スナップショットを '{destination}' に保存しました"
+            f"（{len(manifest['files'])}ファイル）。"
+        )
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
