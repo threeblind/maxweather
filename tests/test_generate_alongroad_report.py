@@ -237,15 +237,13 @@ def test_shadow_excluded():
 
 
 def test_heading_format():
-    """見出しが全角月日『７月２７日　5日目　結果』形式（raceDayは半角）"""
+    """見出しが全角『７月２７日　５日目　結果』形式"""
     teams = [{"id": 1, "name": "名古屋大学", "short_name": "名大",
               "runner": "1美濃", "todayDistance": 30.0, "todayRank": 1,
               "totalDistance": 100.0, "overallRank": 1, "previousRank": 1,
               "nextRunner": ""}]
     result = _run_with_temp_snapshot('2026-07-27', teams)
-    # 2026-07-27 → raceDay=5 → 開始日2026-07-23 → 見出しは７月２７日　5日目
-    assert '７月２７日' in result, f'heading format: {result[:100]}'
-    assert '5日目　結果】' in result, f'heading format: {result[:100]}'
+    assert '７月２７日　５日目' in result, f'heading: {result[:100]}'
     assert '速報' not in result
 
 

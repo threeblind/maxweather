@@ -123,7 +123,8 @@ def generate_report(target_date):
         return str(n).translate(str.maketrans('0123456789', '０１２３４５６７８９'))
     month_fw = to_fullwidth(race_calendar_date.month)
     day_fw = to_fullwidth(race_calendar_date.day)
-    heading = f'【{month_fw}月{day_fw}日　{race_day}日目　結果】'
+    race_day_fw = to_fullwidth(race_day)
+    heading = f'【{month_fw}月{day_fw}日　{race_day_fw}日目　結果】'
 
     short_name_map = build_short_name_map(ekiden)
 
