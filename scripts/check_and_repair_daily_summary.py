@@ -230,6 +230,27 @@ def check_daily_summary(result: CheckResult, summary_data):
         result.step('distance_range', 'PASS', '距離値妥当')
 
 
+# リレー記述のパターン: {チーム}...{走者A}から{走者B}へタスキ
+RELAY_PATTERN = re.compile(
+    r'(?P<runner_a>[^\s、。]+?)から(?P<runner_b>[^\s、。]+?)へタスキ'
+)
+
+def check_runner_relay_consistency(result: CheckResult, summary_data):
+    """
+    記事内のタスキリレー記述で、同じ走者名が「AからAへ」と
+    両側に出現していないかチェックする。
+    これは明らかな誤り（異なる選手間のリレーのはず）を検出する。
+    """
+    article = summary_data.get('article', '')
+    matches = RELAY_PATTERN.findall(article)
+    dupes = [(a, b) for a, b in matches if a == b]
+    if dupes:
+        result.step('runner_relay_same_name', 'FAIL',
+                     f'タスキリレーで同一走者名が両側に出現: {dupes}')
+    else:
+        result.step('runner_relay_same_name', 'PASS', 'リレー記述に同一名なし')
+
+
 def check_article_consistency(result: CheckResult, summary_data):
     """記事の基本整合性チェック"""
     article = summary_data.get('article', '')
@@ -743,6 +764,7 @@ def main(argv=None):
             print('\n--- 3. Deterministic checks ---')
             check_daily_summary(result, summary_data)
             check_article_consistency(result, summary_data)
+            check_runner_relay_consistency(result, summary_data)
 
             # --- 4. git 状態 ---
             print('\n--- 4. git 状態確認 ---')
