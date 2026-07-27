@@ -272,6 +272,106 @@ def check_article_consistency(result: CheckResult, summary_data):
         result.step('article_length', 'PASS', f'{len(article)}文字')
 
 
+def check_coach_comment_attribution(result: CheckResult, summary_data):
+    """監督コメントの帰属チェック: 記事中の引用が正しいチームに紐づいているか検証"""
+    article = summary_data.get('article', '')
+    if not article:
+        return
+
+    # 監督コメント一覧をスナップショットから取得
+    today = result.target_date
+    comments_path = SNAPSHOT_DIR / today / 'manager_comments.json'
+    if not comments_path.exists():
+        result.step('coach_comment', 'INFO', 'スナップショットのmanager_commentsなし')
+        return
+
+    err, comments_data = load_json(str(comments_path), 'manager_comments')
+    if err or not comments_data:
+        result.step('coach_comment', 'INFO', 'manager_comments読込不可')
+        return
+
+    # team → [comment_fragments] のマッピングを構築
+    team_comments = {}
+
+    for entry in comments_data:
+        html = entry.get('content_html', '')
+        # HTMLタグ除去→連続空白除去
+        text = re.sub(r'<[^>]+>', '', html).strip()
+        text = re.sub(r'\s+', '', text)
+
+        # 「大学名　区間情報…」で分割（複数大学が1エントリに含まれるため）
+        sections = re.split(r'(?=[\u4e00-\u9faf]{2,4}(?:大学|大)　)', text)
+        for section in sections:
+            section = section.strip()
+            if not section:
+                continue
+            m = re.match(r'^([\u4e00-\u9faf]{2,4}(?:大学|大))', section)
+            if not m:
+                continue
+            team = m.group(1)
+            # ヘッダー（大学名＋区間情報＋距離）をスキップしてコメント本体を抽出
+            body = section[m.end():]
+            # 最初の15文字は区間・走者・距離情報なのでスキップ
+            comment_body = body[15:] if len(body) > 15 else ''
+            # 意味のあるフレーズ（10文字以上の連続）を抽出
+            phrases = re.findall(
+                r'[\u4e00-\u9faf\u3040-\u309f\u30a0-\u30ff0-9]{10,}',
+                comment_body
+            )
+            if phrases:
+                team_comments.setdefault(team, []).extend(phrases)
+
+    if not team_comments:
+        result.step('coach_comment', 'INFO', 'パース可能な監督コメントなし')
+        return
+
+    # 記事中の引用を抽出
+    article_quotes = re.findall(r'「([^」]{5,})」', article)
+    if not article_quotes:
+        result.step('coach_comment', 'PASS', '記事に引用なし')
+        return
+
+    violations = []
+    for qtext in article_quotes:
+        # どのチームの監督コメントと一致するか
+        source_team = None
+        for team, phrases in team_comments.items():
+            if any(phrase in qtext or qtext in phrase for phrase in phrases):
+                source_team = team
+                break
+        if not source_team:
+            continue  # 既知の監督コメントにない引用はスキップ
+
+        # 引用の前後200文字以内に、引用元チームが出現するか
+        quote_idx = article.find(f'「{qtext}」')
+        if quote_idx < 0:
+            continue
+
+        before = article[max(0, quote_idx - 200):quote_idx]
+        after = article[quote_idx + len(qtext) + 2:quote_idx + len(qtext) + 2 + 200]
+        context = before + after
+
+        # 文脈中の大学名（太字→プレーン）
+        context_teams = set(re.findall(r'\*\*([^*]+?)\*\*', context)) or \
+                        set(re.findall(r'[\u4e00-\u9faf]{2,4}(?:大学|大)', context))
+
+        # 引用元チームが文脈に含まれているか
+        if source_team not in context_teams:
+            partial = any(source_team in t or t in source_team for t in context_teams)
+            if not partial:
+                violations.append(
+                    f"'{source_team}'監督のコメント「{qtext[:30]}…」が"
+                    f"不適切な文脈（{', '.join(sorted(context_teams)) or '不明'}）で使用されています"
+                )
+
+    if violations:
+        for v in violations:
+            result.step('coach_comment_attribution', 'FAIL', v)
+    else:
+        result.step('coach_comment_attribution', 'PASS', '監督コメントの帰属に問題なし')
+
+
+
 # ============================================================
 # 3. git 状態確認
 # ============================================================
@@ -765,6 +865,7 @@ def main(argv=None):
             check_daily_summary(result, summary_data)
             check_article_consistency(result, summary_data)
             check_runner_relay_consistency(result, summary_data)
+            check_coach_comment_attribution(result, summary_data)
 
             # --- 4. git 状態 ---
             print('\n--- 4. git 状態確認 ---')
