@@ -147,12 +147,13 @@ def generate_report(target_date):
             display_name = short_name or team_name
 
         runner_raw = t.get('runner', '')
-        runner_name = strip_leg_number(runner_raw)
+        runner_name_search = strip_leg_number(runner_raw)  # 補完検索用（区番号除去）
+        runner_display = runner_raw  # 表示は区番号付きのまま
 
         # 本日距離: 欠損/0 の場合は individual_results から補完
         today_dist = t.get('todayDistance', 0) or 0
-        if today_dist == 0 and runner_name:
-            ind_info = ind.get(runner_name, {})
+        if today_dist == 0 and runner_name_search:
+            ind_info = ind.get(runner_name_search, {})
             for rec in ind_info.get('records', []):
                 if rec.get('day') == race_day:
                     d = rec.get('distance', 0) or 0
@@ -162,22 +163,22 @@ def generate_report(target_date):
 
         today_dist_str = f'{today_dist:.1f}' if today_dist > 0 else '--'
 
-        today_rank = t.get('todayRank', '')
-        today_rank_str = f'{today_rank:>2d}' if today_rank is not None and today_rank != '' else '--'
+        today_rank = t.get('todayRank')
+        today_rank_str = f'{int(today_rank):02d}' if today_rank is not None and str(today_rank).strip() else '--'
 
         total_dist = t.get('totalDistance', 0) or 0
         total_dist_str = f'{total_dist:.1f}'
 
         overall_rank = t.get('overallRank', 0) or 0
-        prev_rank = t.get('previousRank', '')
-        if prev_rank is not None and prev_rank != '':
-            rank_str = f'{overall_rank:>2d}({prev_rank:>2d})'
+        prev_rank = t.get('previousRank')
+        if prev_rank is not None and str(prev_rank).strip():
+            rank_str = f'{int(overall_rank):02d}({int(prev_rank):02d})'
         else:
-            rank_str = f'{overall_rank:>2d}'
+            rank_str = f'{int(overall_rank):02d}'
 
         next_runner = t.get('nextRunner', '') or ''
 
-        line = f'{display_name:8s} {runner_name:8s} {today_dist_str:>6s} {today_rank_str:>3s} {total_dist_str:>7s} {rank_str:>4s} {next_runner:8s}'
+        line = f'{display_name:8s} {runner_display:8s} {today_dist_str:>6s} {today_rank_str:>3s} {total_dist_str:>7s} {rank_str:>4s} {next_runner:8s}'
         lines.append(line)
 
         # 10位と11位の間に罫線

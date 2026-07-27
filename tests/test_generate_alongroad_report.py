@@ -172,7 +172,8 @@ def test_today_distance_2digits():
         "nextRunner": "",
     }]
     result = _run_with_temp_snapshot('2026-07-27', teams)
-    assert '12(10)' in result  # 総合順位12、前日10位
+    # 02d: overall=12 → '12', prev=10 → '10'
+    assert '12(10)' in result, f'02d format: {result}'
     assert '35.5' in result
 
 
@@ -286,6 +287,30 @@ def test_footer_notes():
     assert '※選手名の前の数字は担当区' in result
 
 
+def test_zero_padded_ranks():
+    """順位がゼロ埋め2桁（01〜）"""
+    teams = [{"id": 1, "name": "名古屋大学", "short_name": "名大",
+              "runner": "1美濃", "todayDistance": 35.0, "todayRank": 1,
+              "totalDistance": 100.0, "overallRank": 1, "previousRank": 2,
+              "nextRunner": ""},
+             {"id": 2, "name": "山梨学院大学", "short_name": "山学",
+              "runner": "1佐久間", "todayDistance": 34.0, "todayRank": 2,
+              "totalDistance": 90.0, "overallRank": 10, "previousRank": 11,
+              "nextRunner": ""}]
+    result = _run_with_temp_snapshot('2026-07-27', teams)
+    assert '01' in result, f'ゼロ埋めなし: {result}'
+
+
+def test_runner_with_leg_number():
+    """走者表示に区番号を含む（例: 2名古屋）"""
+    teams = [{"id": 1, "name": "名古屋大学", "short_name": "名大",
+              "runner": "2名古屋", "todayDistance": 35.0, "todayRank": 1,
+              "totalDistance": 100.0, "overallRank": 1, "previousRank": 1,
+              "nextRunner": ""}]
+    result = _run_with_temp_snapshot('2026-07-27', teams)
+    assert '2名古屋' in result, f'区番号なし: {result}'
+
+
 # ============================================================
 
 if __name__ == '__main__':
@@ -302,6 +327,8 @@ if __name__ == '__main__':
         ("shadow_excluded", test_shadow_excluded),
         ("heading_format", test_heading_format),
         ("footer_notes", test_footer_notes),
+        ("zero_padded_ranks", test_zero_padded_ranks),
+        ("runner_with_leg_number", test_runner_with_leg_number),
     ]
     passed = 0
     failed = 0
