@@ -1,8 +1,8 @@
 {
-  "updateTime": "2026/07/27 14:45",
+  "updateTime": "2026/07/27 14:55",
   "raceDay": 5,
-  "breakingNewsComment": "【猛暑】福岡大学の久留米選手(39.3km)が39kmを超える走りをみせています！素晴らしい走りです！",
-  "breakingNewsTimestamp": "2026-07-27T13:55:13.542947+09:00",
+  "breakingNewsComment": "【シード権争い】10位鳥取大学と11位立命館大学が熾烈な争い！",
+  "breakingNewsTimestamp": "2026-07-27T14:55:11.294661+09:00",
   "breakingNewsFullText": "",
   "teams": [
     {
@@ -196,6 +196,25 @@
       "currentRunnerLegStartDay": 4
     },
     {
+      "id": 5,
+      "name": "立命館大学",
+      "short_name": "立命",
+      "currentLeg": 2,
+      "todayLeg": 2,
+      "runner": "2京田辺",
+      "todayDistance": 34.1,
+      "todayRank": 12,
+      "totalDistance": 183.2,
+      "overallRank": 11,
+      "previousRank": 9,
+      "nextRunner": "3今津",
+      "error": null,
+      "finishDay": null,
+      "is_shadow_confederation": false,
+      "currentRunnerStartDistance": 111.0,
+      "currentRunnerLegStartDay": 4
+    },
+    {
       "id": 12,
       "name": "熊本学園大学",
       "short_name": "熊学",
@@ -212,25 +231,6 @@
       "finishDay": null,
       "is_shadow_confederation": false,
       "currentRunnerStartDistance": 109.1,
-      "currentRunnerLegStartDay": 4
-    },
-    {
-      "id": 5,
-      "name": "立命館大学",
-      "short_name": "立命",
-      "currentLeg": 2,
-      "todayLeg": 2,
-      "runner": "2京田辺",
-      "todayDistance": 34.0,
-      "todayRank": 12,
-      "totalDistance": 183.1,
-      "overallRank": 12,
-      "previousRank": 9,
-      "nextRunner": "3今津",
-      "error": null,
-      "finishDay": null,
-      "is_shadow_confederation": false,
-      "currentRunnerStartDistance": 111.0,
       "currentRunnerLegStartDay": 4
     },
     {
