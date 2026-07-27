@@ -26,3 +26,6 @@ ekiden_map.kml
 
 # 一時データ
 data/realtime_report_previous.json
+
+# watchdog 状態ファイル（10分毎に更新されるため常に差分が出る）
+.watchdog_state.json
