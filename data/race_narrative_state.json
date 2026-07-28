@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
-  "updated_day": 5,
+  "updated_day": 6,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 5,
+    "last_updated_day": 6,
     "teams": [
       "名古屋大学",
-      "学連選抜"
+      "関西大学"
     ]
   },
   "ongoing_battles": [
@@ -17,26 +17,16 @@
       "kind": "lead",
       "teams": [
         "名古屋大学",
-        "学連選抜"
+        "関西大学"
       ],
-      "summary": "名古屋大学と学連選抜による首位争い",
-      "started_day": 5,
-      "last_updated_day": 5,
-      "last_observed_gap_km": 4.299999999999983,
-      "previous_gap_km": 4.299999999999983
+      "summary": "名古屋大学と関西大学による首位争い",
+      "started_day": 6,
+      "last_updated_day": 6,
+      "last_observed_gap_km": 2.8000000000000114,
+      "previous_gap_km": 2.8000000000000114
     }
   ],
-  "momentum": [
-    {
-      "team": "福岡大学",
-      "summary": "12位から9位へ急浮上",
-      "started_day": 5,
-      "last_updated_day": 5,
-      "previous_rank": 12,
-      "current_rank": 9,
-      "diff": 3
-    }
-  ],
+  "momentum": [],
   "runner_threads": [
     {
       "runner": "名古屋",
@@ -51,19 +41,16 @@
       "summary": "本日最速 39.8km の快走",
       "started_day": 5,
       "last_updated_day": 5
+    },
+    {
+      "runner": "岩国",
+      "team": "鳥取大学",
+      "summary": "本日最速 38.7km の快走",
+      "started_day": 6,
+      "last_updated_day": 6
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "勢い落ち着く：四国大学の急浮上（本日8位）",
-      "resolved_day": 4,
-      "reason": "勢い低下"
-    },
-    {
-      "summary": "勢い落ち着く：立命館大学の急浮上（本日9位）",
-      "resolved_day": 4,
-      "reason": "勢い低下"
-    },
     {
       "summary": "勢い落ち着く：鹿児島大学の急浮上（本日7位）",
       "resolved_day": 4,
@@ -78,6 +65,16 @@
       "summary": "首位攻防交代：名古屋大学, 山梨学院大学の争いから名古屋大学と学連選抜の争いへ移行 (前回観測時の差 3.8km)",
       "resolved_day": 5,
       "reason": "首位交代"
+    },
+    {
+      "summary": "首位攻防交代：名古屋大学, 学連選抜の争いから名古屋大学と関西大学の争いへ移行 (前回観測時の差 4.3km)",
+      "resolved_day": 6,
+      "reason": "首位交代"
+    },
+    {
+      "summary": "勢い落ち着く：福岡大学の急浮上（本日8位）",
+      "resolved_day": 6,
+      "reason": "勢い低下"
     }
   ]
 }
