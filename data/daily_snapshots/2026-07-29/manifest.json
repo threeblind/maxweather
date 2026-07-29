@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "snapshotDate": "2026-07-29",
+  "capturedAt": "2026-07-29T23:59:56.933296+09:00",
+  "timezone": "Asia/Tokyo",
+  "sourceUpdateTime": "2026/07/29 23:59",
+  "raceDay": 7,
+  "files": {
+    "realtime_report.json": {
+      "bytes": 9484,
+      "sha256": "0d706b24d60adb08e1bf12e9e7c6c2b55c39fab3db64c5687814748d4dc9e10c"
+    },
+    "ekiden_state.json": {
+      "bytes": 4218,
+      "sha256": "1c716d260c17faa22f5c10f80a521772e9245e8cb851017637aae8c61ef76138"
+    },
+    "individual_results.json": {
+      "bytes": 63540,
+      "sha256": "e8c3827e98aebf5e3279aa0b4ecf281e68c8ec4cfced32c5fc88d9a301887237"
+    },
+    "rank_history.json": {
+      "bytes": 5808,
+      "sha256": "8514259251c9aef74da8b4ac00b536c04aca8ed0c5a69db6e4295c116c26477b"
+    },
+    "leg_rank_history.json": {
+      "bytes": 4270,
+      "sha256": "80ae3868128e4b6b4a326401674a06f6d45af2214e3df088ebbb4291200b0a01"
+    },
+    "runner_locations.json": {
+      "bytes": 5420,
+      "sha256": "306d45ca22cc45fbe2e86eb25ff9379fe713cb2176a3413079b676295007fb59"
+    },
+    "daily_temperatures.json": {
+      "bytes": 36859,
+      "sha256": "19d3eeb0ad4e9b5b138a4efde9d1ee050932cb3b0f8753d43db805f2bb37432c"
+    },
+    "intramural_rankings.json": {
+      "bytes": 31002,
+      "sha256": "a16af20b0240f38cb1d5a2ab371da89c45a236fbad4c75365ad314ab5cd5cd78"
+    },
+    "manager_comments.json": {
+      "bytes": 5226,
+      "sha256": "a1b03dbc6e3cb38f26c9c66e0e0e839ec840d2786e223d5d1493f21bb9786272"
+    },
+    "alongroad_report.txt": {
+      "bytes": 1505,
+      "sha256": "22632d8ec022526d6653001b8ca002032c7de80eb8e1a738f0bcfef4a6b40af6"
+    }
+  }
+}
