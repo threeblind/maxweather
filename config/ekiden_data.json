@@ -201,8 +201,9 @@
       "manager": "■駅弁監督（innocent world season7）",
       "color": "#A61B4A",
       "description": "",
-      "runners": ["高田", {"name": "山田（福島）", "station_code": "36836"}, "石川", "三条", "新津", "福島", "若松", "小出", "新潟", "梁川"],
-      "substitutes": ["長岡", "喜多方", "浪江", {"name": "大潟（新潟）", "station_code": "54586"}, "二本松"]
+      "runners": ["高田", {"name": "山田（福島）", "station_code": "36836"}, "長岡", "三条", "新津", "福島", "若松", "小出", "新潟", "梁川"],
+      "substitutes": ["喜多方", "浪江", {"name": "大潟（新潟）", "station_code": "54586"}, "二本松"],
+      "substituted_out": ["石川"]
     },
     {
       "id": 17,
