@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "updated_day": 7,
+  "updated_day": 8,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 7,
+    "last_updated_day": 8,
     "teams": [
       "名古屋大学",
       "四国大学"
@@ -21,31 +21,12 @@
       ],
       "summary": "名古屋大学と四国大学による首位争い",
       "started_day": 7,
-      "last_updated_day": 7,
-      "last_observed_gap_km": 1.099999999999966,
-      "previous_gap_km": 1.099999999999966
+      "last_updated_day": 8,
+      "last_observed_gap_km": 0.0,
+      "previous_gap_km": 0.0
     }
   ],
-  "momentum": [
-    {
-      "team": "鹿児島大学",
-      "summary": "7位から3位へ急浮上",
-      "started_day": 7,
-      "last_updated_day": 7,
-      "previous_rank": 7,
-      "current_rank": 3,
-      "diff": 4
-    },
-    {
-      "team": "四国大学",
-      "summary": "5位から2位へ急浮上",
-      "started_day": 7,
-      "last_updated_day": 7,
-      "previous_rank": 5,
-      "current_rank": 2,
-      "diff": 3
-    }
-  ],
+  "momentum": [],
   "runner_threads": [
     {
       "runner": "西都",
@@ -53,19 +34,16 @@
       "summary": "本日最速 38.0km の快走",
       "started_day": 7,
       "last_updated_day": 7
+    },
+    {
+      "runner": "御荘",
+      "team": "四国大学",
+      "summary": "本日最速 37.9km の快走",
+      "started_day": 8,
+      "last_updated_day": 8
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "勢い落ち着く：福岡大学の急浮上（本日8位）",
-      "resolved_day": 6,
-      "reason": "勢い低下"
-    },
-    {
-      "summary": "首位攻防交代：名古屋大学, 関西大学の争いから名古屋大学と四国大学の争いへ移行 (前回観測時の差 2.8km)",
-      "resolved_day": 7,
-      "reason": "首位交代"
-    },
     {
       "summary": "選手交代：名古屋大学の名古屋君から新走者へタスキ",
       "resolved_day": 7,
@@ -80,6 +58,16 @@
       "summary": "選手交代：鳥取大学の岩国君から新走者へタスキ",
       "resolved_day": 7,
       "reason": "区間交代"
+    },
+    {
+      "summary": "勢い落ち着く：鹿児島大学の急浮上（本日3位）",
+      "resolved_day": 8,
+      "reason": "勢い低下"
+    },
+    {
+      "summary": "勢い落ち着く：四国大学の急浮上（本日1位）",
+      "resolved_day": 8,
+      "reason": "勢い低下"
     }
   ]
 }
