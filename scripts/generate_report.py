@@ -76,6 +76,10 @@ leg_award_history = []
 tournament_records = []
 leg_best_records = {}
 intramural_rankings = {}
+# 通常チームの現行登録選手名 → teamId のマップ (shadow とは別管理)。
+# generate_report.py は選手名をキーに individual_results を管理するため、
+# shadow_team.json と同名の通常選手が teamId=99 に混入するのを防ぐ。
+current_runner_team_map = {}
 
 def load_start_date_from_outline():
     """outline.json の metadata.startDate を正本として大会開始日を取得する"""
@@ -110,9 +114,36 @@ def normalize_runner_entries(team_data):
         team_data[key] = normalized
     return team_data
 
+def build_current_runner_team_map(teams):
+    """
+    通常チームの現行登録選手 (runners/substitutes/substituted_out、文字列/dict両形式) から
+    runner_name → teamId のマップを構築する。シャドーチームは除外する。
+    通常チーム同士で同名が重複する場合は (None, メッセージ) を返す (設定エラー)。
+    戻り値: (map, error_message_or_None)
+    """
+    runner_team_map = {}
+    for team in teams:
+        if team.get('is_shadow_confederation'):
+            continue
+        team_id = team.get('id')
+        for key in ('runners', 'substitutes', 'substituted_out'):
+            for runner_obj in team.get(key, []):
+                runner_name = runner_obj.get('name') if isinstance(runner_obj, dict) else runner_obj
+                if not runner_name:
+                    continue
+                if runner_name in runner_team_map:
+                    prev_team_id = runner_team_map[runner_name]
+                    if prev_team_id != team_id:
+                        return None, (f"通常チームで選手名 '{runner_name}' が重複登録されています "
+                                      f"(teamId {prev_team_id} と {team_id})。設定を確認してください。")
+                else:
+                    runner_team_map[runner_name] = team_id
+    return runner_team_map, None
+
+
 def load_all_data():
     """必要なJSONファイルをすべて読み込む"""
-    global stations_data, stations_by_code, all_teams_data, ekiden_data, story_settings, past_results, leg_award_history, tournament_records, leg_best_records, intramural_rankings
+    global stations_data, stations_by_code, all_teams_data, ekiden_data, story_settings, past_results, leg_award_history, tournament_records, leg_best_records, intramural_rankings, current_runner_team_map
     try:
         with open(AMEDAS_STATIONS_FILE, 'r', encoding='utf-8') as f:
             stations_data = json.load(f)
@@ -126,6 +157,13 @@ def load_all_data():
                 with open(TEST_EKIDEN_DATA_FILE, 'r', encoding='utf-8') as tf:
                     ekiden_data = json.load(tf)
         ekiden_data['teams'] = [normalize_runner_entries(team) for team in ekiden_data.get('teams', [])]
+
+        # 通常チームの現行登録選手 (runners/substitutes/substituted_out) から runner_name → teamId を構築。
+        # 通常チーム同士で同名が重複する場合は設定エラーとして明示的に検出する。
+        current_runner_team_map, map_error = build_current_runner_team_map(ekiden_data.get('teams', []))
+        if map_error:
+            print(f"エラー: {map_error}")
+            sys.exit(1)
         
         # シャドーチームの定義を読み込む
         try:
@@ -493,8 +531,14 @@ def load_individual_results(file_path):
     if not os.path.exists(file_path):
         runners_state = {}
         for team in all_teams_data:
+            # シャドーチーム (is_shadow_confederation) の runners は個人記録DBに投入しない。
+            # 区間記録連合の過去記録は shadow_team.json を正とし、通常の個人記録DBへ同名キーで混在させない。
+            if team.get('is_shadow_confederation'):
+                continue
             for runner_obj in team.get('runners', []):
-                runner_name = runner_obj.get('name')
+                # 通常は load_all_data の normalize_runner_entries で dict 化済みだが、
+                # 文字列のまま渡された場合にも防御する。
+                runner_name = runner_obj.get('name') if isinstance(runner_obj, dict) else runner_obj
                 if not runner_name: continue
                 runners_state[runner_name] = {
                     "totalDistance": 0,
@@ -520,6 +564,16 @@ def load_individual_results(file_path):
         runner_data.setdefault("legSummaries", {})
         runner_data.setdefault("totalDistance", 0)
         runner_data.setdefault("teamId", None)
+
+    # 現行 config の通常登録選手は、既存 teamId が 99 (shadow) や別 ID でも現行 teamId へ正規化する。
+    # records / legSummaries / totalDistance は保持したまま自動修復する。
+    for runner_name, runner_data in runners_state.items():
+        if not isinstance(runner_data, dict):
+            continue
+        current_team_id = current_runner_team_map.get(runner_name)
+        if current_team_id is not None:
+            runner_data['teamId'] = current_team_id
+
     return runners_state
 
 def save_ekiden_state(state, file_path, race_day=None):
@@ -1428,6 +1482,10 @@ def main():
     if individual_results:
         leg_performance_map = defaultdict(list)
         for runner_name, runner_data in individual_results.items():
+            # shadow チーム (teamId=99) の記録は通常の区間平均・順位計算の対象外。
+            # 通常登録に戻した選手は load_individual_results で現行 teamId へ正規化済みなので対象に含まれる。
+            if runner_data.get('teamId') == 99:
+                continue
             leg_summaries = runner_data.get('legSummaries', {})
             for leg_key, summary in leg_summaries.items():
                 try:
