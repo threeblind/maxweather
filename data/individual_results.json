@@ -559,7 +559,7 @@
         "legRank": 5,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional",
-        "dailyRank": 5,
+        "dailyRank": 4,
         "dailyRankStatus": "provisional"
       }
     ],
@@ -773,7 +773,7 @@
         "legRank": 11,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional",
-        "dailyRank": 11,
+        "dailyRank": 10,
         "dailyRankStatus": "provisional"
       }
     ],
@@ -987,7 +987,7 @@
         "legRank": 6,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional",
-        "dailyRank": 6,
+        "dailyRank": 5,
         "dailyRankStatus": "provisional"
       }
     ],
@@ -1201,7 +1201,7 @@
         "legRank": 3,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional",
-        "dailyRank": 3,
+        "dailyRank": 2,
         "dailyRankStatus": "provisional"
       }
     ],
@@ -1415,7 +1415,7 @@
         "legRank": 6,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional",
-        "dailyRank": 6,
+        "dailyRank": 5,
         "dailyRankStatus": "provisional"
       }
     ],
@@ -1629,7 +1629,7 @@
         "legRank": 10,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional",
-        "dailyRank": 10,
+        "dailyRank": 9,
         "dailyRankStatus": "provisional"
       }
     ],
@@ -1843,7 +1843,7 @@
         "legRank": 4,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional",
-        "dailyRank": 4,
+        "dailyRank": 3,
         "dailyRankStatus": "provisional"
       }
     ],
@@ -2057,7 +2057,7 @@
         "legRank": 9,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional",
-        "dailyRank": 9,
+        "dailyRank": 8,
         "dailyRankStatus": "provisional"
       }
     ],
@@ -3091,7 +3091,7 @@
         "legRank": 6,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional",
-        "dailyRank": 6,
+        "dailyRank": 5,
         "dailyRankStatus": "provisional"
       }
     ],
@@ -3451,7 +3451,7 @@
         "legRank": 12,
         "legAverageStatus": "provisional",
         "legRankStatus": "provisional",
-        "dailyRank": 12,
+        "dailyRank": 11,
         "dailyRankStatus": "provisional"
       }
     ],
@@ -3765,6 +3765,35 @@
         "finalRank": 17,
         "finalDay": 9,
         "lastUpdatedDay": 9
+      }
+    }
+  },
+  "上": {
+    "totalDistance": 24.2,
+    "teamId": 12,
+    "records": [
+      {
+        "day": 10,
+        "leg": 4,
+        "distance": 24.2,
+        "legAverageDistance": 24.2,
+        "legRank": 12,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional",
+        "dailyRank": 11,
+        "dailyRankStatus": "provisional"
+      }
+    ],
+    "legSummaries": {
+      "4": {
+        "totalDistance": 24.2,
+        "days": 1,
+        "averageDistance": 24.2,
+        "rank": 12,
+        "status": "provisional",
+        "finalRank": null,
+        "finalDay": null,
+        "lastUpdatedDay": 10
       }
     }
   }
