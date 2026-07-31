@@ -1528,10 +1528,25 @@ def main():
             import subprocess
             result = subprocess.run(
                 [sys.executable, "scripts/validate_race_state.py"],
-                capture_output=False, cwd=Path(__file__).resolve().parent.parent
+                capture_output=True, text=True, cwd=Path(__file__).resolve().parent.parent
             )
+            if result.stdout:
+                print(result.stdout, end="")
+            if result.stderr:
+                print(result.stderr, end="", file=sys.stderr)
             if result.returncode != 0:
-                print("❌ 状態ファイルの不整合を検出。バックアップから復元します。")
+                print("❌ 状態ファイルの不整合を検出。診断成果物を保存してからバックアップから復元します。")
+                # 復元前に不整合状態の診断成果物を保存（復元動作は従来通り維持）
+                try:
+                    diag = subprocess.run(
+                        [sys.executable, "scripts/save_validation_diagnostics.py",
+                         "--output", result.stdout],
+                        cwd=Path(__file__).resolve().parent.parent
+                    )
+                    if diag.returncode != 0:
+                        print("⚠️ 診断成果物の保存に失敗しました", file=sys.stderr)
+                except OSError as e:
+                    print(f"⚠️ 診断成果物の保存に失敗しました: {e}", file=sys.stderr)
                 for orig, bak in backups.items():
                     if Path(bak).exists():
                         shutil.move(bak, orig)

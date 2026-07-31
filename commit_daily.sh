@@ -9,6 +9,7 @@ set -euo pipefail
 
 # --- 設定 ---
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+DATA_DIR="data"
 
 # --- スクリプト本体 ---
 
@@ -34,10 +35,15 @@ echo "scripts/update_all_records.py を実行中..."
 echo "scripts/generate_report.py --commit を実行中..."
 "$PYTHON_CMD" scripts/generate_report.py --commit
 
-# 3.5. 状態ファイルの整合性を検証（不整合時は以降の保存を中止）
+# 3.5. 状態ファイルの整合性を検証（不整合時は診断成果物を保存して以降の保存を中止）
 echo "scripts/validate_race_state.py を実行中..."
-if ! "$PYTHON_CMD" scripts/validate_race_state.py; then
-    echo "❌ 状態ファイルの不整合を検出しました。スナップショット保存・アーカイブ・コミットを中止します。"
+if ! VALIDATION_OUTPUT=$("$PYTHON_CMD" scripts/validate_race_state.py 2>&1); then
+    echo "$VALIDATION_OUTPUT"
+    echo "❌ 状態ファイルの不整合を検出しました。診断成果物を保存します..."
+    if ! "$PYTHON_CMD" scripts/save_validation_diagnostics.py --output "$VALIDATION_OUTPUT"; then
+        echo "⚠️ 診断成果物の保存に失敗しました（検証の失敗自体は継続）"
+    fi
+    echo "スナップショット保存・アーカイブ・コミットを中止します。"
     exit 1
 fi
 
@@ -63,33 +69,30 @@ if [[ "${EKIDEN_DISABLE_GIT_PUSH:-0}" == "1" ]]; then
     exit 0
 fi
 
-# 5. 本日のログファイルをアーカイブ
-LOGS_DIR="logs"
-DATA_DIR="data"
-ARCHIVE_DIR="$DATA_DIR/archive"
-mkdir -p "$ARCHIVE_DIR"
-
-SOURCE_LOG_FILE="$DATA_DIR/realtime_log.jsonl"
-if [ -f "$SOURCE_LOG_FILE" ]; then
-    TODAY=$(date +'%Y-%m-%d')
-    DEST_LOG_FILE="$ARCHIVE_DIR/realtime_log_${TODAY}.jsonl"
-    echo "'$SOURCE_LOG_FILE' を '$DEST_LOG_FILE' に移動します。"
-    git mv "$SOURCE_LOG_FILE" "$DEST_LOG_FILE"
-else
-    echo "本日のログファイル '$SOURCE_LOG_FILE' は見つかりませんでした。スキップします。"
+# 5. 本日のログファイルをアーカイブ（冪等。同日アーカイブが既にあれば同内容スキップ/不一致停止）
+echo "scripts/archive_realtime_log.sh を実行中..."
+if ! bash scripts/archive_realtime_log.sh "$DATA_DIR"; then
+    echo "❌ realtime_log のアーカイブに失敗しました。処理を中止します。"
+    exit 1
 fi
 
 # 6. 変更されたファイルをステージング (パスを修正)
-git add \
-  data/realtime_report.json \
-  data/ekiden_state.json \
-  data/individual_results.json \
-  data/rank_history.json \
-  data/leg_rank_history.json \
-  data/runner_locations.json \
-  data/daily_temperatures.json \
-  data/intramural_rankings.json \
+#    明示リストのみを対象とし、存在しないファイルはスキップする
+#    （未想定の変更を巻き込まないための安全策）
+STAGE_PATHS=(
+  data/realtime_report.json
+  data/ekiden_state.json
+  data/individual_results.json
+  data/rank_history.json
+  data/leg_rank_history.json
+  data/runner_locations.json
+  data/daily_temperatures.json
+  data/intramural_rankings.json
   data/daily_snapshots
+)
+for stage_path in "${STAGE_PATHS[@]}"; do
+  [ -e "$stage_path" ] && git add -- "$stage_path"
+done
 
 # 7. ステージングされた変更があるか確認し、コミットとプッシュを実行
 if ! git diff --cached --quiet; then
@@ -97,19 +100,37 @@ if ! git diff --cached --quiet; then
     git commit -m "Finalize and archive daily data [bot] $(date +'%Y-%m-%d')"
 
     # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash)
-    STASH_RESULT=$(git stash)
+    # 退避が必要な変更がある場合のみ実行する（ロケール非依存の判定）
+    STASHED=0
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        git stash push -q || { echo "エラー: 未コミット変更の退避(stash)に失敗しました。"; exit 1; }
+        STASHED=1
+    fi
 
     echo "リモートの変更を取り込んでいます (git pull --rebase)..."
     if ! git pull --rebase origin main; then
         echo "エラー: git pull --rebase に失敗しました。"
-        if [[ "$STASH_RESULT" != "No local changes to save" ]]; then git stash pop; fi
+        # 競合で中断した場合は rebase を中止して元の状態へ復帰させる
+        git rebase --abort 2>/dev/null || true
+        if [ "$STASHED" = "1" ]; then
+            git stash pop || echo "⚠️ 退避した変更の復元に失敗しました (git stash list で確認してください)"
+        fi
         exit 1
     fi
 
     echo "GitHubにプッシュしています..."
-    git push origin main
+    if ! git push origin main; then
+        echo "エラー: git push に失敗しました。"
+        # 退避した変更が stash に残ったままにならないよう復元する
+        if [ "$STASHED" = "1" ]; then
+            git stash pop || echo "⚠️ 退避した変更の復元に失敗しました (git stash list で確認してください)"
+        fi
+        exit 1
+    fi
 
-    if [[ "$STASH_RESULT" != "No local changes to save" ]]; then git stash pop; fi
+    if [ "$STASHED" = "1" ]; then
+        git stash pop || echo "⚠️ 退避した変更の復元に失敗しました (git stash list で確認してください)"
+    fi
 else
     echo "コミット対象の変更はありませんでした。"
 fi
