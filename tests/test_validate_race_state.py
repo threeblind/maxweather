@@ -147,7 +147,7 @@ def test_stale_state():
         ]}
     }
     rc = _validate_with_data(state, ind, ekiden)
-    assert rc == 1, f'expected=1 got={rc}'
+    assert rc == 2, f'expected=2 (W1 warning) got={rc}'
 
 
 def test_boundary_cross():
@@ -184,7 +184,7 @@ def test_unknown_team_id():
 
 
 def test_missing_team_id():
-    """teamId欠落 → FAIL"""
+    """teamId欠落(局所) → W4 warning (exit 2)"""
     ekiden = {
         "leg_boundaries": [100, 210],
         "teams": [{"id": 1, "name": "名古屋大学"}]
@@ -194,7 +194,7 @@ def test_missing_team_id():
         "美濃": {"records": [{"day": 1, "leg": 1, "distance": 40.0}]}
     }
     rc = _validate_with_data(state, ind, ekiden)
-    assert rc == 1, f'expected=1 got={rc}'
+    assert rc == 2, f'expected=2 (W4 warning) got={rc}'
 
 
 def test_invalid_json():
@@ -319,7 +319,7 @@ def test_shadow_team_name_match():
 # ============================================================
 
 def test_shadow_team_state_missing():
-    """shadow config はあるが ekiden_state に存在しない → FAIL"""
+    """shadow config はあるが ekiden_state に存在しない → W3 warning (exit 2)"""
     ekiden = {
         "leg_boundaries": DEFAULT_LEG_BOUNDARIES,
         "teams": [{"id": 1, "name": "名古屋大学"}]
@@ -331,7 +331,7 @@ def test_shadow_team_state_missing():
                                           {"day": 3, "leg": 1, "distance": 40.0}]},
     }
     rc = _validate_with_data(state, ind, ekiden, shadow_data=DEFAULT_SHADOW_CONFIG)
-    assert rc == 1, f'expected=1 got={rc}'
+    assert rc == 2, f'expected=2 (W3 warning) got={rc}'
 
 
 def test_shadow_team_bad_structure():
@@ -378,7 +378,7 @@ def test_shadow_team_bad_runner_record():
 
 
 def test_shadow_total_distance_decreased():
-    """shadow totalDistance が前回より減少 → FAIL"""
+    """shadow totalDistance が前回より減少 → W3 warning (exit 2)"""
     ekiden = {
         "leg_boundaries": DEFAULT_LEG_BOUNDARIES,
         "teams": [{"id": 1, "name": "名古屋大学"}]
@@ -394,11 +394,11 @@ def test_shadow_total_distance_decreased():
     }
     previous = [_shadow_state(250.0, 3)]  # 前回の方が大きい
     rc = _validate_with_data(state, ind, ekiden, shadow_data=DEFAULT_SHADOW_CONFIG, previous_state_list=previous)
-    assert rc == 1, f'expected=1 got={rc}'
+    assert rc == 2, f'expected=2 (W3 warning) got={rc}'
 
 
 def test_shadow_current_leg_mismatch():
-    """shadow currentLeg が totalDistance から期待される区間と不一致 → FAIL"""
+    """shadow currentLeg が totalDistance から期待される区間と不一致 → W3 warning (exit 2)"""
     ekiden = {
         "leg_boundaries": DEFAULT_LEG_BOUNDARIES,
         "teams": [{"id": 1, "name": "名古屋大学"}]
@@ -414,7 +414,7 @@ def test_shadow_current_leg_mismatch():
                                           {"day": 3, "leg": 1, "distance": 40.0}]},
     }
     rc = _validate_with_data(state, ind, ekiden, shadow_data=DEFAULT_SHADOW_CONFIG)
-    assert rc == 1, f'expected=1 got={rc}'
+    assert rc == 2, f'expected=2 (W3 warning) got={rc}'
 
 
 def test_shadow_missing_config_skips_checks():

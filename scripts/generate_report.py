@@ -1,5 +1,6 @@
 import json
 import os
+import copy
 from pathlib import Path
 from datetime import datetime, timedelta, time
 import requests
@@ -546,6 +547,164 @@ def save_individual_results(runners_state, file_path):
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(runners_state, f, indent=2, ensure_ascii=False)
 
+
+COMMIT_STATUS_FILE = DATA_DIR / 'commit_status.json'
+COMMIT_PUBLISHED_FILES = [
+    "data/ekiden_state.json",
+    "data/individual_results.json",
+    "data/rank_history.json",
+    "data/leg_rank_history.json",
+    "data/runner_locations.json",
+    "data/realtime_report.json",
+    "data/daily_temperatures.json",
+    "data/intramural_rankings.json",
+    "data/fetch_status.json",
+    "data/commit_status.json",
+]
+
+
+def parse_validation_result(stdout):
+    """validate_race_state.py の最終行 VALIDATION_RESULT {...} をパースして (issues, validated_teams) を返す。"""
+    if not stdout:
+        return [], []
+    for line in reversed(stdout.splitlines()):
+        line = line.strip()
+        if line.startswith('VALIDATION_RESULT '):
+            try:
+                payload = json.loads(line[len('VALIDATION_RESULT '):])
+                return payload.get('issues', []), payload.get('validated_teams', [])
+            except json.JSONDecodeError:
+                return [], []
+    return [], []
+
+
+def write_commit_status(status, validation_severity, issues, quarantined_teams, date_str, validated_teams=None):
+    """
+    data/commit_status.json を生成する。
+    status: ok / degraded / failed
+    validation_severity: 0=問題なし, 1=fatal, 2=warning
+    date_str: YYYY-MM-DD 形式の文字列
+    validated_teams: 実際に検証した全大学 [{team_id, team_name}]
+    生成失敗時は例外を送出する（呼び出し側で fatal 扱いにする）。
+    """
+    from time_utils import format_jst_datetime
+    now = now_jst()
+    commit_status = {
+        "schemaVersion": 1,
+        "date": date_str,
+        "status": status,
+        "generatedAt": format_jst_datetime(now),
+        "validationSeverity": validation_severity,
+        "validatedTeams": validated_teams if validated_teams is not None else [
+            {"team_id": i.get('team_id'), "team_name": i.get('team_name')} for i in issues if i.get('team_name')
+        ],
+        "quarantinedTeams": quarantined_teams,
+        "errors": [i.get('message') for i in issues],
+        "publishedFiles": COMMIT_PUBLISHED_FILES,
+    }
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    with open(COMMIT_STATUS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(commit_status, f, indent=2, ensure_ascii=False)
+        f.write('\n')
+    print(f"✅ commit_status.json を保存しました (status={status})")
+    return commit_status
+
+
+def restore_backups(backups):
+    """バックアップからファイルを復元する。"""
+    for orig, bak in backups.items():
+        if Path(bak).exists():
+            shutil.move(bak, orig)
+
+
+def apply_quarantine(all_results, individual_results, current_state, quarantined_teams,
+                     pre_commit_state, pre_commit_individual, team_info_map=None):
+    """
+    quarantine 対象チームを今回実行前のバックアップ値（チーム単位）に戻す。
+
+    - individual_results: quarantine チームの選手を実行前の値に復元
+    - current_state: quarantine チームのエントリを実行前の値に復元
+    - all_results: save_ekiden_state / rank_history / runner_locations / realtime_report は
+      all_results から表示・保存値を再構築するため、quarantine チームのエントリを
+      実行前 state (totalDistance / currentLeg / overallRank / finishDay /
+      currentRunnerStartDistance / currentRunnerLegStartDay) から完全に再構築する。
+
+    team_info_map: config の team_id → team 定義 (runner 名の解決用)。省略時は runner 名を
+    「(quarantine)」に置き換える。
+
+    戻り値: 更新後の (all_results, current_state)
+    """
+    if not quarantined_teams:
+        return all_results, current_state
+    q_ids = {q['team_id'] for q in quarantined_teams}
+    pre_state_by_id = {s['id']: s for s in pre_commit_state}
+
+    # individual_results: quarantine チームの選手を実行前の値に戻す
+    for runner_name, runner_data in list(individual_results.items()):
+        if runner_data.get('teamId') in q_ids:
+            pre = pre_commit_individual.get(runner_name)
+            if pre is not None:
+                individual_results[runner_name] = copy.deepcopy(pre)
+            else:
+                # 実行前になかった選手（今日新規作成された不完全データ）は削除
+                del individual_results[runner_name]
+
+    # state: quarantine チームのエントリを実行前の値に戻す
+    state_by_id = {s['id']: s for s in current_state}
+    for q in quarantined_teams:
+        pre = pre_state_by_id.get(q['team_id'])
+        if pre is not None:
+            state_by_id[q['team_id']] = copy.deepcopy(pre)
+    current_state = [state_by_id[s['id']] for s in current_state if s['id'] in state_by_id]
+
+    # all_results: quarantine チームのエントリを実行前 state から完全に再構築する
+    for i, result in enumerate(all_results):
+        if result.get('id') not in q_ids:
+            continue
+        pre = pre_state_by_id.get(result.get('id'))
+        if pre is None:
+            continue
+        pre_leg = pre.get('currentLeg', 1)
+        pre_total = pre.get('totalDistance', 0.0)
+        pre_start = pre.get('currentRunnerStartDistance', pre_total)
+        pre_start_day = pre.get('currentRunnerLegStartDay', 1)
+        pre_finish = pre.get('finishDay')
+
+        # 実行前の区間に対応するランナー名を解決
+        runner_name = '(quarantine)'
+        if team_info_map is not None:
+            team_data = team_info_map.get(result.get('id'))
+            if team_data:
+                runners = team_data.get('runners', [])
+                idx = pre_leg - 1
+                if 0 <= idx < len(runners):
+                    r = runners[idx]
+                    runner_name = r['name'] if isinstance(r, dict) else str(r)
+
+        all_results[i] = {
+            "id": pre.get('id', result.get('id')),
+            "name": pre.get('name', result.get('name')),
+            "runner": runner_name,
+            "currentLegNumber": pre_leg,
+            "newCurrentLeg": pre_leg,
+            "todayDistance": 0.0,
+            "todayRank": None,  # quarantine: 今日の日間順位は未確定 (shadow と同様 None)
+            "totalDistance": pre_total,
+            "overallRank": pre.get('overallRank', result.get('overallRank', 0)),
+            "previousRank": pre.get('overallRank', result.get('previousRank', 0)),
+            "rawTempResult": {'temperature': 0, 'error': 'quarantine'},
+            "finishDay": pre_finish,
+            "group_id": 1 if pre_finish is not None else 0,
+            "currentTempForLog": None,
+            "currentRunnerStartDistance": pre_start,
+            "currentRunnerLegStartDay": pre_start_day,
+            "nextRunnerStartDistance": pre_start,
+            "nextRunnerLegStartDay": pre_start_day,
+            "is_shadow_confederation": False,
+        }
+
+    return all_results, current_state
+
 def get_east_asian_width_count(text):
     """全角文字を2、半角文字を1として文字幅をカウント"""
     return sum(2 if unicodedata.east_asian_width(c) in 'FWA' else 1 for c in text)
@@ -1026,6 +1185,8 @@ def main():
     parser = argparse.ArgumentParser(description='高温大学駅伝のレポートを生成します。')
     parser.add_argument('--realtime', action='store_true', help='リアルタイム速報用のJSONを生成します。')
     parser.add_argument('--commit', action='store_true', help='本日の結果を状態ファイルに保存します。')
+    parser.add_argument('--best-effort', action='store_true', dest='best_effort',
+                        help='警告(degraded)でも確定・継続します (validator exit 2 を致命的にしません)。')
     parser.add_argument('--test-notification', action='store_true', help='定時順位通知を強制的に送信してテストします。')
     parser.add_argument('--force-snapshot', action='store_true', help='強制的にスナップショットを生成します。')
     parser.add_argument('--state-file', default=STATE_FILE, help=f'チームの状態ファイルパス (デフォルト: {STATE_FILE})')
@@ -1059,6 +1220,12 @@ def main():
     legs_completed_today = []  # list of (runner_name, leg_number)
 
     team_info_map = {t['id']: t for t in all_teams_data}
+
+    # --- best-effort 用: quarantine 管理 ---
+    # quarantine 対象チームは state / individual_results を今回実行前のバックアップ値で保持する。
+    quarantined_teams = []
+    pre_commit_individual = copy.deepcopy(individual_results)
+    pre_commit_state = copy.deepcopy(current_state)
 
     # --- Commitモード: daily_temperatures.json を読み込み、確定値を使用する ---
     cached_temps = {}
@@ -1132,10 +1299,24 @@ def main():
                     # Commitモード: daily_temperatures.json の確定値を使用
                     temp = cached_temps.get(runner_name)
                     if temp is None or (isinstance(temp, (int, float)) and temp == 0):
-                        print(f'❌ Commit失敗: {runner_name} の気温確定値が daily_temperatures.json にありません（値={temp!r}）')
-                        sys.exit(1)
-                    max_temp_result = {'temperature': temp, 'error': None}
-                    current_temp_for_log = temp
+                        if args.best_effort:
+                            # best-effort: この大学を quarantine 扱いにして state/individual 更新を保留する
+                            quarantined_teams.append({
+                                'team_id': team_state['id'],
+                                'team_name': team_data['name'],
+                                'reason': f'{runner_name} の気温確定値が daily_temperatures.json にありません（値={temp!r}）',
+                            })
+                            print(f'⚠️ [best-effort] {team_data["name"]} を quarantine します: '
+                                  f'{runner_name} の確定気温がありません（値={temp!r}）。state/individual 更新を保留します。')
+                            # 今日の距離は 0 扱い（記録追加・距離加算をしない）
+                            max_temp_result = {'temperature': 0, 'error': '確定気温なし (quarantine)'}
+                            current_temp_for_log = None
+                        else:
+                            print(f'❌ Commit失敗: {runner_name} の気温確定値が daily_temperatures.json にありません（値={temp!r}）')
+                            sys.exit(1)
+                    else:
+                        max_temp_result = {'temperature': temp, 'error': None}
+                        current_temp_for_log = temp
                 else:
                     # Realtime/通常モード: 外部サイトから取得
                     max_temp_result = fetch_max_temperature(station['pref_code'], station['code'])
@@ -1509,6 +1690,12 @@ def main():
                 shutil.copy2(fp_str, backups[fp_str])
 
         try:
+            # quarantine 対象チームは、今回実行前のバックアップ値（チーム単位）を state / individual に保持する
+            all_results, current_state = apply_quarantine(
+                all_results, individual_results, current_state, quarantined_teams,
+                pre_commit_state, pre_commit_individual, team_info_map,
+            )
+
             save_ekiden_state(all_results, args.state_file, race_day)
             update_rank_history(all_results, race_day, args.history_file)
             update_leg_rank_history(all_results, current_state, LEG_RANK_HISTORY_FILE, is_commit_mode=True)
@@ -1534,8 +1721,45 @@ def main():
                 print(result.stdout, end="")
             if result.stderr:
                 print(result.stderr, end="", file=sys.stderr)
-            if result.returncode != 0:
-                print("❌ 状態ファイルの不整合を検出。診断成果物を保存してからバックアップから復元します。")
+
+            validation_issues, validated_teams = parse_validation_result(result.stdout)
+            validation_severity = result.returncode  # 0=問題なし, 2=warning, 1=fatal
+
+            # 想定外の終了コード (0/1/2 以外) は fatal 扱い
+            if validation_severity not in (0, 1, 2):
+                print(f"❌ validate_race_state.py が予期しない終了コード ({validation_severity}) で終了しました。致命的エラーとして扱います。")
+                try:
+                    diag = subprocess.run(
+                        [sys.executable, "scripts/save_validation_diagnostics.py",
+                         "--output", result.stdout],
+                        cwd=Path(__file__).resolve().parent.parent
+                    )
+                    if diag.returncode != 0:
+                        print("⚠️ 診断成果物の保存に失敗しました", file=sys.stderr)
+                except OSError as e:
+                    print(f"⚠️ 診断成果物の保存に失敗しました: {e}", file=sys.stderr)
+                restore_backups(backups)
+                sys.exit(1)
+
+            # commit_status.json 生成 (失敗時は fatal 扱い)
+            # date は YYYY-MM-DD 文字列に統一 (race_day_date)。strict 停止時は failed にする (D4)。
+            try:
+                if validation_severity == 0:
+                    commit_status = 'ok'
+                elif validation_severity == 2:
+                    commit_status = 'degraded'
+                else:
+                    commit_status = 'failed'
+                write_commit_status(commit_status, validation_severity, validation_issues,
+                                    quarantined_teams, race_day_date, validated_teams)
+            except Exception as e:
+                print(f"❌ commit_status.json の生成に失敗しました: {e}", file=sys.stderr)
+                restore_backups(backups)
+                sys.exit(1)
+
+            if validation_severity == 1:
+                # fatal: 従来通り候補を復元して停止
+                print("❌ 状態ファイルの致命的エラー。診断成果物を保存してからバックアップから復元します。")
                 # 復元前に不整合状態の診断成果物を保存（復元動作は従来通り維持）
                 try:
                     diag = subprocess.run(
@@ -1547,21 +1771,47 @@ def main():
                         print("⚠️ 診断成果物の保存に失敗しました", file=sys.stderr)
                 except OSError as e:
                     print(f"⚠️ 診断成果物の保存に失敗しました: {e}", file=sys.stderr)
-                for orig, bak in backups.items():
-                    if Path(bak).exists():
-                        shutil.move(bak, orig)
+                restore_backups(backups)
                 sys.exit(1)
 
-            # 検証合格: バックアップ削除
+            if validation_severity == 2 and not args.best_effort:
+                # warning だが strict 運用: 従来通り復元して停止
+                # (D4) strict 停止時は commit_status を failed に更新してから復元
+                print("❌ 状態ファイルに警告があります (strict 運用のため停止)。診断成果物を保存してからバックアップから復元します。")
+                try:
+                    write_commit_status('failed', validation_severity, validation_issues,
+                                        quarantined_teams, race_day_date, validated_teams)
+                except Exception as e:
+                    print(f"⚠️ commit_status.json の failed 更新に失敗しました: {e}", file=sys.stderr)
+                try:
+                    diag = subprocess.run(
+                        [sys.executable, "scripts/save_validation_diagnostics.py",
+                         "--output", result.stdout],
+                        cwd=Path(__file__).resolve().parent.parent
+                    )
+                    if diag.returncode != 0:
+                        print("⚠️ 診断成果物の保存に失敗しました", file=sys.stderr)
+                except OSError as e:
+                    print(f"⚠️ 診断成果物の保存に失敗しました: {e}", file=sys.stderr)
+                restore_backups(backups)
+                sys.exit(1)
+
+            # 検証合格 (0) または warning 継続 (2 + best-effort): バックアップ削除
             for bak in backups.values():
                 Path(bak).unlink(missing_ok=True)
+            if validation_severity == 2:
+                print("⚠️ 警告付き継続 (degraded)。候補を確定しました。")
+                print("✅ 状態ファイルの整合性確認完了 (warning)")
+                sys.exit(2)
             print("✅ 状態ファイルの整合性確認完了")
 
+        except SystemExit:
+            # Blocker 1: 意図的な sys.exit (2=degraded継続, 1=fatal停止) はバックアップ復元しない。
+            # degraded継続時は候補を確定しているため、残存バックアップを復元してはならない。
+            raise
         except BaseException:
-            # 例外時もバックアップ復元
-            for orig, bak in backups.items():
-                if Path(bak).exists():
-                    shutil.move(bak, orig)
+            # 例外時もバックアップ復元 (SystemExit 以外)
+            restore_backups(backups)
             raise
 
         print(f"\n--- [Commit Mode] 最終結果を保存しました ---")

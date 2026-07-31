@@ -208,7 +208,6 @@ def update_all_records():
     # --- intramural_rankings.json の生成 ---
     # チームIDをキーにしたcurrentLegのマップを作成
     team_current_leg_map = {team['id']: team.get('currentLeg', 1) for team in ekiden_state}
-
     intramural_data = {
         "updateTime": datetime.now().strftime('%Y/%m/%d %H:%M'),
         "teams": []
@@ -271,6 +270,37 @@ def update_all_records():
     with open(INTRAMURAL_RANKINGS_FILE, 'w', encoding='utf-8') as f:
         json.dump(intramural_data, f, indent=2, ensure_ascii=False)
     print(f"✅ 学内ランキングデータを '{INTRAMURAL_RANKINGS_FILE}' に保存しました。")
+
+    # --- fetch_status.json の生成 (取得状況の記録) ---
+    # 非アクティブ選手の欠損は全体停止しない。アクティブ選手の欠損は該当大学だけ quarantine 対象とする。
+    team_name_map = {t.get('id'): t.get('name', '?') for t in ekiden_data.get('teams', [])}
+    active_names = set()
+    for team in ekiden_data.get('teams', []):
+        for r in team.get('runners', []):
+            active_names.add(r['name'])
+    missing = []
+    for (team_id, runner_name), result in fetched_temps_cache.items():
+        if result.get('temperature') is None:
+            missing.append({
+                'team_id': team_id,
+                'team_name': team_name_map.get(team_id, f'id={team_id}'),
+                'runner_name': runner_name,
+                'active': runner_name in active_names,
+                'reason': result.get('error') or 'unknown',
+            })
+    fetch_status = {
+        'schemaVersion': 1,
+        'date': today_str,
+        'fetched': sum(1 for r in fetched_temps_cache.values() if r.get('temperature') is not None),
+        'total': len(fetched_temps_cache),
+        'missing': missing,
+    }
+    with open(DATA_DIR / 'fetch_status.json', 'w', encoding='utf-8') as f:
+        json.dump(fetch_status, f, indent=2, ensure_ascii=False)
+        f.write('\n')
+    active_missing = [m for m in missing if m['active']]
+    print(f"📋 fetch_status.json を保存しました (取得={fetch_status['fetched']}/{fetch_status['total']}, "
+          f"欠損={len(missing)}, アクティブ欠損={len(active_missing)})")
 
 if __name__ == '__main__':
     update_all_records()

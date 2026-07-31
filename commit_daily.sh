@@ -31,21 +31,63 @@ fi
 echo "scripts/update_all_records.py を実行中..."
 "$PYTHON_CMD" scripts/update_all_records.py
 
-# 3. --commitモードでレポートを生成し、ekiden_state.jsonなどを更新 (スクリプトのパスを修正)
-echo "scripts/generate_report.py --commit を実行中..."
-"$PYTHON_CMD" scripts/generate_report.py --commit
+# 3. --commit --best-effort モードでレポートを生成し、ekiden_state.jsonなどを更新
+#    終了コード: 0=正常, 2=警告付き継続(degraded), 1=致命的停止
+DEGRADED=0
+echo "scripts/generate_report.py --commit --best-effort を実行中..."
+set +e
+"$PYTHON_CMD" scripts/generate_report.py --commit --best-effort
+COMMIT_RC=$?
+set -e
+case "$COMMIT_RC" in
+  0)
+    echo "✅ generate_report.py 正常終了"
+    ;;
+  2)
+    DEGRADED=1
+    echo "⚠️ generate_report.py は警告付き継続 (degraded) で終了しました。後続処理を継続します。"
+    ;;
+  1)
+    echo "❌ generate_report.py が致命的エラーで終了しました。処理を停止します。"
+    exit 1
+    ;;
+  *)
+    echo "❌ generate_report.py が予期しない終了コード ($COMMIT_RC) で終了しました。処理を停止します。"
+    exit 1
+    ;;
+esac
 
-# 3.5. 状態ファイルの整合性を検証（不整合時は診断成果物を保存して以降の保存を中止）
+# 3.5. 状態ファイルの整合性を検証（0=問題なし, 2=警告のみ継続, 1=致命的停止）
 echo "scripts/validate_race_state.py を実行中..."
-if ! VALIDATION_OUTPUT=$("$PYTHON_CMD" scripts/validate_race_state.py 2>&1); then
+set +e
+VALIDATION_OUTPUT=$("$PYTHON_CMD" scripts/validate_race_state.py 2>&1)
+VALIDATION_RC=$?
+set -e
+case "$VALIDATION_RC" in
+  0)
     echo "$VALIDATION_OUTPUT"
-    echo "❌ 状態ファイルの不整合を検出しました。診断成果物を保存します..."
+    echo "✅ 状態ファイルの整合性確認完了"
+    ;;
+  2)
+    DEGRADED=1
+    echo "$VALIDATION_OUTPUT"
+    echo "⚠️ 状態ファイルに警告があります (degraded)。スナップショット保存・コミットを継続します。"
+    ;;
+  1)
+    echo "$VALIDATION_OUTPUT"
+    echo "❌ 状態ファイルの致命的エラーを検出しました。診断成果物を保存します..."
     if ! "$PYTHON_CMD" scripts/save_validation_diagnostics.py --output "$VALIDATION_OUTPUT"; then
         echo "⚠️ 診断成果物の保存に失敗しました（検証の失敗自体は継続）"
     fi
     echo "スナップショット保存・アーカイブ・コミットを中止します。"
     exit 1
-fi
+    ;;
+  *)
+    echo "$VALIDATION_OUTPUT"
+    echo "❌ validate_race_state.py が予期しない終了コード ($VALIDATION_RC) で終了しました。処理を停止します。"
+    exit 1
+    ;;
+esac
 
 # 4. 確定データを日付付きスナップショットとして永続保存
 echo "scripts/save_daily_snapshot.py を実行中..."
@@ -88,6 +130,8 @@ STAGE_PATHS=(
   data/runner_locations.json
   data/daily_temperatures.json
   data/intramural_rankings.json
+  data/fetch_status.json
+  data/commit_status.json
   data/daily_snapshots
 )
 for stage_path in "${STAGE_PATHS[@]}"; do
@@ -96,8 +140,13 @@ done
 
 # 7. ステージングされた変更があるか確認し、コミットとプッシュを実行
 if ! git diff --cached --quiet; then
-    echo "最終結果ファイルまたはログファイルに変更を検出しました。GitHubにプッシュします。"
-    git commit -m "Finalize and archive daily data [bot] $(date +'%Y-%m-%d')"
+    if [ "$DEGRADED" = "1" ]; then
+        echo "最終結果ファイルまたはログファイルに変更を検出しました (degraded)。GitHubにプッシュします。"
+        git commit -m "Finalize and archive daily data [degraded] [bot] $(date +'%Y-%m-%d')"
+    else
+        echo "最終結果ファイルまたはログファイルに変更を検出しました。GitHubにプッシュします。"
+        git commit -m "Finalize and archive daily data [bot] $(date +'%Y-%m-%d')"
+    fi
 
     # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash)
     # 退避が必要な変更がある場合のみ実行する（ロケール非依存の判定）

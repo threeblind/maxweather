@@ -20,6 +20,8 @@ DEFAULT_FILES = (
     "daily_temperatures.json",
     "intramural_rankings.json",
     "manager_comments.json",
+    "fetch_status.json",
+    "commit_status.json",
 )
 
 
@@ -114,6 +116,16 @@ def save_daily_snapshot(source_dir, output_dir, date_override=None):
         "raceDay": race_day,
         "files": manifest_files,
     }
+    # commit_status.json がある場合は状態を manifest にも記録する
+    commit_status_path = source_dir / "commit_status.json"
+    if commit_status_path.exists():
+        try:
+            with commit_status_path.open(encoding="utf-8") as f:
+                commit_status = json.load(f)
+            manifest["commitStatus"] = commit_status.get("status")
+            manifest["validationSeverity"] = commit_status.get("validationSeverity")
+        except (json.JSONDecodeError, OSError):
+            print("情報: commit_status.json の読み込みに失敗したため manifest には状態を記録しません")
     atomic_write_json(destination_dir / "manifest.json", manifest)
     return destination_dir, manifest
 
