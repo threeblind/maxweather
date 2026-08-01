@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "updated_day": 9,
+  "updated_day": 10,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 9,
+    "last_updated_day": 10,
     "teams": [
       "四国大学",
       "鹿児島大学"
@@ -21,51 +21,22 @@
       ],
       "summary": "四国大学と鹿児島大学による首位争い",
       "started_day": 9,
-      "last_updated_day": 9,
-      "last_observed_gap_km": 0.6999999999999886,
-      "previous_gap_km": 0.6999999999999886
+      "last_updated_day": 10,
+      "last_observed_gap_km": 0.39999999999997726,
+      "previous_gap_km": 0.39999999999997726
     }
   ],
   "momentum": [],
   "runner_threads": [
     {
-      "runner": "西都",
-      "team": "鹿児島大学",
-      "summary": "本日最速 38.0km の快走",
-      "started_day": 7,
-      "last_updated_day": 7
-    },
-    {
-      "runner": "御荘",
-      "team": "四国大学",
-      "summary": "本日最速 37.9km の快走",
-      "started_day": 8,
-      "last_updated_day": 8
-    },
-    {
-      "runner": "宇目",
-      "team": "熊本学園大学",
-      "summary": "本日最速 38.1km の快走",
-      "started_day": 9,
-      "last_updated_day": 9
+      "runner": "加計",
+      "team": "広島経済大学",
+      "summary": "本日最速 39.2km の快走",
+      "started_day": 10,
+      "last_updated_day": 10
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "選手交代：福岡大学の久留米君から新走者へタスキ",
-      "resolved_day": 7,
-      "reason": "区間交代"
-    },
-    {
-      "summary": "選手交代：鳥取大学の岩国君から新走者へタスキ",
-      "resolved_day": 7,
-      "reason": "区間交代"
-    },
-    {
-      "summary": "勢い落ち着く：鹿児島大学の急浮上（本日3位）",
-      "resolved_day": 8,
-      "reason": "勢い低下"
-    },
     {
       "summary": "勢い落ち着く：四国大学の急浮上（本日1位）",
       "resolved_day": 8,
@@ -75,6 +46,21 @@
       "summary": "首位攻防交代：名古屋大学, 四国大学の争いから四国大学と鹿児島大学の争いへ移行 (前回観測時の差 0.0km)",
       "resolved_day": 9,
       "reason": "首位交代"
+    },
+    {
+      "summary": "選手交代：鹿児島大学の西都君から新走者へタスキ",
+      "resolved_day": 10,
+      "reason": "区間交代"
+    },
+    {
+      "summary": "選手交代：四国大学の御荘君から新走者へタスキ",
+      "resolved_day": 10,
+      "reason": "区間交代"
+    },
+    {
+      "summary": "選手交代：熊本学園大学の宇目君から新走者へタスキ",
+      "resolved_day": 10,
+      "reason": "区間交代"
     }
   ]
 }
