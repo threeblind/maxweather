@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-08-01",
+  "status": "degraded",
+  "generatedAt": "2026/08/01 23:59",
+  "validationSeverity": 2,
+  "validatedTeams": [
+    {
+      "team_id": 15,
+      "team_name": "四国大学"
+    },
+    {
+      "team_id": 17,
+      "team_name": "鹿児島大学"
+    },
+    {
+      "team_id": 1,
+      "team_name": "名古屋大学"
+    },
+    {
+      "team_id": 6,
+      "team_name": "広島経済大学"
+    },
+    {
+      "team_id": 3,
+      "team_name": "関西大学"
+    },
+    {
+      "team_id": 10,
+      "team_name": "三重大学"
+    },
+    {
+      "team_id": 12,
+      "team_name": "熊本学園大学"
+    },
+    {
+      "team_id": 7,
+      "team_name": "福岡大学"
+    },
+    {
+      "team_id": 8,
+      "team_name": "学連選抜"
+    },
+    {
+      "team_id": 4,
+      "team_name": "山梨学院大学"
+    },
+    {
+      "team_id": 9,
+      "team_name": "鳥取大学"
+    },
+    {
+      "team_id": 5,
+      "team_name": "立命館大学"
+    },
+    {
+      "team_id": 2,
+      "team_name": "上武大学"
+    },
+    {
+      "team_id": 11,
+      "team_name": "日本大学"
+    },
+    {
+      "team_id": 13,
+      "team_name": "金沢大学"
+    },
+    {
+      "team_id": 18,
+      "team_name": "琉球大学"
+    },
+    {
+      "team_id": 16,
+      "team_name": "福島大学"
+    },
+    {
+      "team_id": 14,
+      "team_name": "東北大学"
+    },
+    {
+      "team_id": 99,
+      "team_name": "区間記録連合"
+    }
+  ],
+  "quarantinedTeams": [],
+  "errors": [
+    "広島経済大学: state.totalDistance=373.9 < 個人記録合計=408.2 (差分=34.3)",
+    "上武大学: currentLeg=4 だが 個人記録合計=302.7 < 境界=310 (状態が進みすぎ)"
+  ],
+  "publishedFiles": [
+    "data/ekiden_state.json",
+    "data/individual_results.json",
+    "data/rank_history.json",
+    "data/leg_rank_history.json",
+    "data/runner_locations.json",
+    "data/realtime_report.json",
+    "data/daily_temperatures.json",
+    "data/intramural_rankings.json",
+    "data/fetch_status.json",
+    "data/commit_status.json"
+  ]
+}
