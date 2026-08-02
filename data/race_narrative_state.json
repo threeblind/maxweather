@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
-  "updated_day": 10,
+  "updated_day": 11,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 10,
+    "last_updated_day": 11,
     "teams": [
-      "四国大学",
-      "鹿児島大学"
+      "鹿児島大学",
+      "四国大学"
     ]
   },
   "ongoing_battles": [
@@ -21,9 +21,9 @@
       ],
       "summary": "四国大学と鹿児島大学による首位争い",
       "started_day": 9,
-      "last_updated_day": 10,
-      "last_observed_gap_km": 0.39999999999997726,
-      "previous_gap_km": 0.39999999999997726
+      "last_updated_day": 11,
+      "last_observed_gap_km": 0.10000000000002274,
+      "previous_gap_km": 0.10000000000002274
     }
   ],
   "momentum": [],
@@ -34,6 +34,13 @@
       "summary": "本日最速 39.2km の快走",
       "started_day": 10,
       "last_updated_day": 10
+    },
+    {
+      "runner": "切石",
+      "team": "山梨学院大学",
+      "summary": "本日最速 39.7km の快走",
+      "started_day": 11,
+      "last_updated_day": 11
     }
   ],
   "resolved_stories": [
