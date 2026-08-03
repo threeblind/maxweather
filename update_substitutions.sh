@@ -81,7 +81,7 @@ mkdir -p "$(dirname "$LOG_FILE")"
                 data/runner_locations.json \
                 data/realtime_log.jsonl
 
-            COMMIT_MSG="Apply player substitution [bot] $(date +'%Y-%m-%d %H:%M')"
+            COMMIT_MSG="Apply player substitution [bot] $(date "+%Y-%m-%d %H:%M")"
             echo "コミットを実行します: $COMMIT_MSG"
             git commit -m "$COMMIT_MSG"
 

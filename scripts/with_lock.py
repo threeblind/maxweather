@@ -18,13 +18,15 @@ flock(1) コマンドは macOS に存在しないため、このラッパーを�
 --try モード（ロックを取得できた場合のみコマンドを実行）:
     python scripts/with_lock.py <lockfile> --try -- <command...>
     ロックを非ブロッキングで取得できればコマンドを実行（ロック保持中）、
-    取得できなければ exit 1（コマンドは実行しない）。
+    取得できなければ exit 75（コマンドは実行しない）。
 """
 
 import fcntl
 import os
 import subprocess
 import sys
+
+LOCK_BUSY_EXIT = 75
 
 
 def acquire(lockfile, blocking=True):
@@ -52,11 +54,14 @@ def main():
         except OSError:
             return 1
 
-    # --try モード: 取得できればコマンド実行、できなければ exit 1
+    # --try モード: 取得できればコマンド実行、ビジーなら専用終了コード
     if len(sys.argv) >= 4 and sys.argv[2] == '--try' and sys.argv[3] == '--':
         try:
             lock = acquire(lockfile, blocking=False)
-        except OSError:
+        except BlockingIOError:
+            return LOCK_BUSY_EXIT
+        except OSError as exc:
+            print(f'ロックファイルを開けません: {exc}', file=sys.stderr)
             return 1
         return _run_with_lock(lock, sys.argv[4:])
 

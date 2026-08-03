@@ -21,6 +21,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
 import process_substitutions as ps
+import with_lock as wl
 
 
 # ---------------------------------------------------------------
@@ -643,12 +644,12 @@ def test_with_lock_try_mode_fails_when_locked(tmp_path):
     f = open(lockfile, 'a+')
     fcntl.flock(f, fcntl.LOCK_EX)
     try:
-        # ロック中 → --try は exit 1 でコマンドを実行しない
+        # ロック中 → --try は専用終了コードでコマンドを実行しない
         r = subprocess.run(
             [sys.executable, _with_lock_script(), str(lockfile), "--try", "--",
              sys.executable, "-c", "print('SHOULD NOT RUN')"],
             capture_output=True, text=True)
-        assert r.returncode == 1
+        assert r.returncode == wl.LOCK_BUSY_EXIT
         assert "SHOULD NOT RUN" not in r.stdout
     finally:
         fcntl.flock(f, fcntl.LOCK_UN)

@@ -70,7 +70,7 @@ if python3 scripts/with_lock.py "$LOCK_FILE" --try -- bash -c '
         echo "速報ファイルに変更を検出しました。GitHubにプッシュします。"
 
         # --- スナップショットの当日分のみリポジトリに含める（古いものは削除） ---
-        TODAY=$(date +'%Y%m%d')
+        TODAY=$(date +%Y%m%d)
         SNAP_DIR="data/snapshots"
 
         # 当日分の snapshot を add（存在しなければ無視）
@@ -97,7 +97,7 @@ if python3 scripts/with_lock.py "$LOCK_FILE" --try -- bash -c '
             fi
         done
 
-        git commit -m "Update realtime report [bot] $(date +'%Y-%m-%d %H:%M:%S')" || true
+        git commit -m "Update realtime report [bot] $(date "+%Y-%m-%d %H:%M:%S")" || true
 
         # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash) します。
         STASH_RESULT=$(git stash)
@@ -127,9 +127,19 @@ if python3 scripts/with_lock.py "$LOCK_FILE" --try -- bash -c '
 
     echo "処理が正常に完了しました。"
     echo ""
-'; then
-    :
+'
+then
+    status=0
 else
+    status=$?
+fi
+
+if [[ "$status" -eq 0 ]]; then
+    :
+elif [[ "$status" -eq 75 ]]; then
     echo "選手交代処理の実行中（ロック取得不可）のため、この回の速報更新はスキップします。"
     exit 0
+else
+    echo "エラー: リアルタイム速報の生成またはGit処理に失敗しました (終了コード: $status)。" >&2
+    exit "$status"
 fi
