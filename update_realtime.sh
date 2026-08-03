@@ -99,6 +99,11 @@ if python3 scripts/with_lock.py "$LOCK_FILE" --try -- bash -c '
 
         git commit -m "Update realtime report [bot] $(date "+%Y-%m-%d %H:%M:%S")" || true
 
+        # gitignore 対象の交代監査ログ (logs/*.jsonl) が intent-to-add のまま残ると
+        # git stash が "Entry not uptodate. Cannot merge." で失敗し push が止まる。
+        # 事前に intent-to-add エントリを解除する（untracked 化され stash の対象外になる）。
+        git reset -q -- logs/ 2>/dev/null || true
+
         # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash) します。
         STASH_RESULT=$(git stash)
 

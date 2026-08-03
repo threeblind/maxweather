@@ -57,29 +57,37 @@ mkdir -p "$(dirname "$LOG_FILE")"
             fi
         done
 
-        if ! git diff --quiet --exit-code \
-            config/ekiden_data.json \
-            logs/substitution_log.txt \
-            logs/substitution_review.jsonl \
-            logs/substitution_audit.jsonl \
+        # 変更検知・コミット対象は「存在するファイルのみ」に絞る
+        # （logs/substitution_log.txt は成功時のみ生成されるため存在しないことがある）
+        DIFF_TARGETS=(config/ekiden_data.json \
             data/realtime_report.json \
             data/individual_results.json \
             data/rank_history.json \
             data/leg_rank_history.json \
             data/runner_locations.json \
-            data/realtime_log.jsonl; then
+            data/realtime_log.jsonl)
+        for f in logs/substitution_log.txt logs/substitution_review.jsonl logs/substitution_audit.jsonl; do
+            if [[ -f "$f" ]]; then
+                DIFF_TARGETS+=("$f")
+            fi
+        done
+
+        if ! git diff --quiet --exit-code -- "${DIFF_TARGETS[@]}"; then
             echo "交代または速報の変更を検出しました。GitHubにプッシュします。"
 
-            git add config/ekiden_data.json \
-                logs/substitution_log.txt \
-                logs/substitution_review.jsonl \
-                logs/substitution_audit.jsonl \
+            git add config/ekiden_data.json
+            for f in logs/substitution_log.txt logs/substitution_review.jsonl logs/substitution_audit.jsonl \
                 data/realtime_report.json \
                 data/individual_results.json \
                 data/rank_history.json \
                 data/leg_rank_history.json \
                 data/runner_locations.json \
-                data/realtime_log.jsonl
+                data/realtime_log.jsonl; do
+                if [[ -f "$f" ]]; then
+                    # logs/ は .gitignore 対象のため -f で強制 add（intent-to-add 残骸を作らない）
+                    git add -f "$f"
+                fi
+            done
 
             COMMIT_MSG="Apply player substitution [bot] $(date "+%Y-%m-%d %H:%M")"
             echo "コミットを実行します: $COMMIT_MSG"
