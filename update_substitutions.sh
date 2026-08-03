@@ -4,11 +4,17 @@
 set -euo pipefail
 
 # このスクリプトは、5chスレッドを監視し、監督による選手交代の宣言を処理するためのものです。
-# cronジョブとして夜間（18:00-23:59）に定期的に実行されることを想定しています。
+# 単一ロックオーケストレーション:
+#   1. fcntlロックを取得（update_realtime.sh との競合を回避）
+#   2. process_substitutions.py で交代を検証・適用（成功時のみ config 更新）
+#   3. generate_report.py --realtime で速報JSONを再生成（交代を反映）
+#   4. 変更があれば config + ログ + 速報ファイルを明示指定で commit / push
+# 独立した git stash は行わない（コミット対象を明示指定する）。
 
 # --- 設定 ---
-PROJECT_DIR="/Users/t28k2/prj/weather"
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="$PROJECT_DIR/logs/update_substitutions.log"
+LOCK_FILE="$PROJECT_DIR/logs/substitution.lock"
 
 # --- スクリプト本体 ---
 
@@ -24,7 +30,6 @@ mkdir -p "$(dirname "$LOG_FILE")"
     echo "選手交代処理を開始します..."
 
     # 1. Python仮想環境を有効化
-    # venvの存在を確認
     if [ ! -d "venv" ]; then
         echo "エラー: Python仮想環境 'venv' が見つかりません。"
         exit 1
@@ -32,42 +37,64 @@ mkdir -p "$(dirname "$LOG_FILE")"
     source venv/bin/activate
     echo "Python仮想環境を有効化しました。"
 
-    # 2. 選手交代処理スクリプトを実行
-    echo "process_substitutions.py を実行中..."
-    python scripts/process_substitutions.py
+    # 2. 単一ロックでオーケストレーション
+    #    process_substitutions → realtime再生成 → commit/push をロック下で実行
+    echo "単一ロックを取得します ($LOCK_FILE)..."
+    python scripts/with_lock.py "$LOCK_FILE" -- bash -c '
+        set -euo pipefail
+        echo "process_substitutions.py を実行中..."
+        python scripts/process_substitutions.py
 
-    # 3. ekiden_data.json または substitution_log.txt に変更があったか確認し、変更があればPush
-    if ! git diff --quiet --exit-code config/ekiden_data.json logs/substitution_log.txt; then
-        echo "選手交代または新規ログを検出しました。GitHubにプッシュします。"
-        
-        echo "変更されたファイル:"
-        git status --short config/ekiden_data.json logs/substitution_log.txt
+        echo "generate_report.py --realtime を実行中..."
+        python scripts/generate_report.py --realtime
 
-        git add config/ekiden_data.json logs/substitution_log.txt
-        
-        COMMIT_MSG="Apply player substitution [bot] $(date +'%Y-%m-%d %H:%M')"
-        echo "コミットを実行します: $COMMIT_MSG"
-        git commit -m "$COMMIT_MSG"
+        # 変更があれば commit / push（対象を明示指定。git stash は行わない）
+        # 未追跡の新規ログ（初回の review/audit JSONL）も差分検知対象にするため
+        # intent-to-add を行う。
+        for f in logs/substitution_review.jsonl logs/substitution_audit.jsonl; do
+            if [[ -f "$f" ]]; then
+                git add -f -N "$f" || true
+            fi
+        done
 
-        # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash)
-        echo "他の変更を一時退避します (git stash)..."
-        STASH_RESULT=$(git stash)
-        echo "Stash result: $STASH_RESULT"
+        if ! git diff --quiet --exit-code \
+            config/ekiden_data.json \
+            logs/substitution_log.txt \
+            logs/substitution_review.jsonl \
+            logs/substitution_audit.jsonl \
+            data/realtime_report.json \
+            data/individual_results.json \
+            data/rank_history.json \
+            data/leg_rank_history.json \
+            data/runner_locations.json \
+            data/realtime_log.jsonl; then
+            echo "交代または速報の変更を検出しました。GitHubにプッシュします。"
 
-        echo "リモートの変更を取り込んでいます (git pull --rebase)..."
-        git pull --rebase origin main
+            git add config/ekiden_data.json \
+                logs/substitution_log.txt \
+                logs/substitution_review.jsonl \
+                logs/substitution_audit.jsonl \
+                data/realtime_report.json \
+                data/individual_results.json \
+                data/rank_history.json \
+                data/leg_rank_history.json \
+                data/runner_locations.json \
+                data/realtime_log.jsonl
 
-        echo "GitHubにプッシュしています (git push)..."
-        git push origin main
+            COMMIT_MSG="Apply player substitution [bot] $(date +'%Y-%m-%d %H:%M')"
+            echo "コミットを実行します: $COMMIT_MSG"
+            git commit -m "$COMMIT_MSG"
 
-        # 退避していた変更を元に戻す
-        if [[ "$STASH_RESULT" != "No local changes to save" ]]; then
-            echo "一時退避した変更を元に戻します (git stash pop)..."
-            git stash pop
+            echo "リモートの変更を取り込んでいます (git pull --rebase)..."
+            git pull --rebase origin main
+
+            echo "GitHubにプッシュしています (git push)..."
+            git push origin main
+        else
+            echo "新規の有効な交代はありませんでした。コミットをスキップします。"
         fi
-    else
-        echo "新規の選手交代はありませんでした。コミットをスキップします。"
-    fi
+    '
+    echo "単一ロックを解放しました。"
 
     echo "処理が正常に完了しました。"
     echo ""

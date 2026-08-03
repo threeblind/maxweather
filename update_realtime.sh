@@ -12,6 +12,7 @@ set -euo pipefail
 # --- 設定 ---
 # プロジェクトのルートディレクトリをスクリプト位置から解決します。
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+LOCK_FILE="$PROJECT_DIR/logs/substitution.lock"
 
 # --- スクリプト本体 ---
 
@@ -21,7 +22,7 @@ cd "$PROJECT_DIR" || { echo "エラー: プロジェクトディレクトリが�
 echo "--- $(date +'%Y-%m-%d %H:%M:%S') ---"
 echo "リアルタイム速報の更新を開始します..."
 
-# 1. Python実行環境を用意
+# 1. Python実行環境を用意（ロック外。with_lock.py は標準ライブラリのみで venv 不要）
 if [[ -d "venv" ]]; then
     # ローカル環境では既存の仮想環境を優先する
     source venv/bin/activate || { echo "エラー: Python仮想環境(venv)の有効化に失敗しました。"; exit 1; }
@@ -29,91 +30,106 @@ if [[ -d "venv" ]]; then
 else
     PYTHON_CMD="${PYTHON_CMD:-python}"
 fi
+# サブプロセス（bash -c）から参照できるよう環境変数としてエクスポートする
+export PYTHON_CMD
 
-# 2. 速報JSONを生成
-echo "scripts/generate_report.py を実行中..."
-"$PYTHON_CMD" scripts/generate_report.py --realtime
+# 2. 速報生成から commit/push 完了までを、単一ロック保持下で実行する
+#    update_substitutions.sh と同じ logs/substitution.lock を使い相互排他を成立させる。
+#    --try モード: ロックを取得できた場合のみ実行。取得できない（交代処理中）場合は
+#    スキップして次回 cron に委ねる。
+if python3 scripts/with_lock.py "$LOCK_FILE" --try -- bash -c '
+    set -euo pipefail
 
-if [[ "${EKIDEN_DISABLE_GIT_PUSH:-0}" == "1" ]]; then
-    echo "テストモードのため、Git commit / push はスキップします。"
-    echo "処理が正常に完了しました。"
-    echo ""
-    exit 0
-fi
+    # 2. 速報JSONを生成
+    echo "scripts/generate_report.py --realtime を実行中..."
+    "$PYTHON_CMD" scripts/generate_report.py --realtime
 
-# 3. 速報ファイルに変更があるか確認し、変更があればPush
-# 未追跡の新規ファイルも差分検知の対象にするため、存在すれば git add -N (intent-to-add) を行います。
-for f in data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json data/realtime_log.jsonl; do
-    if [[ -f "$f" ]]; then
-        git add -f -N "$f" || true
-    fi
-done
-
-if ! git diff --quiet --exit-code \
-  data/realtime_report.json \
-  data/individual_results.json \
-  data/rank_history.json \
-  data/leg_rank_history.json \
-  data/runner_locations.json \
-  data/realtime_log.jsonl \
-; then
-    echo "速報ファイルに変更を検出しました。GitHubにプッシュします。"
-
-    # --- スナップショットの当日分のみリポジトリに含める（古いものは削除） ---
-    TODAY=$(date +'%Y%m%d')
-    SNAP_DIR="data/snapshots"
-
-    # 当日分の snapshot を add（存在しなければ無視）
-    if compgen -G "$SNAP_DIR/realtime_report_${TODAY}_*.json" > /dev/null; then
-        git add -f "$SNAP_DIR"/realtime_report_${TODAY}_*.json || true
-    fi
-    # snapshot_index.json も add（存在すれば）
-    if [[ -f "$SNAP_DIR/snapshot_index.json" ]]; then
-        git add -f "$SNAP_DIR/snapshot_index.json" || true
+    if [[ "${EKIDEN_DISABLE_GIT_PUSH:-0}" == "1" ]]; then
+        echo "テストモードのため、Git commit / push はスキップします。"
+        echo "処理が正常に完了しました。"
+        echo ""
+        exit 0
     fi
 
-    # リポジトリに既にある過去の snapshot ファイル（当日以外）を削除してコミット対象にする
-    for f in $(git ls-files "$SNAP_DIR"/realtime_report_*.json 2>/dev/null || true); do
-        if [[ "$f" != "$SNAP_DIR/realtime_report_${TODAY}_"* ]]; then
-            echo "古いスナップショットを削除: $f"
-            git rm --ignore-unmatch "$f" || true
-        fi
-    done
-
-    # 主要な速報ファイルを add（存在するファイルのみ）
+    # 3. 速報ファイルに変更があるか確認し、変更があればPush
+    # 未追跡の新規ファイルも差分検知の対象にするため、存在すれば git add -N (intent-to-add) を行います。
     for f in data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json data/realtime_log.jsonl; do
         if [[ -f "$f" ]]; then
-        git add -f "$f"
+            git add -f -N "$f" || true
         fi
     done
 
-    git commit -m "Update realtime report [bot] $(date +'%Y-%m-%d %H:%M:%S')" || true
+    if ! git diff --quiet --exit-code \
+      data/realtime_report.json \
+      data/individual_results.json \
+      data/rank_history.json \
+      data/leg_rank_history.json \
+      data/runner_locations.json \
+      data/realtime_log.jsonl \
+    ; then
+        echo "速報ファイルに変更を検出しました。GitHubにプッシュします。"
 
-    # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash) します。
-    STASH_RESULT=$(git stash)
+        # --- スナップショットの当日分のみリポジトリに含める（古いものは削除） ---
+        TODAY=$(date +'%Y%m%d')
+        SNAP_DIR="data/snapshots"
 
-    # リモートの変更を取り込んでからプッシュする (non-fast-forwardエラー対策)
-    echo "リモートの変更を取り込んでいます (git pull --rebase)..."
-    if ! git pull --rebase origin main; then
-        echo "エラー: git pull --rebase に失敗しました。コンフリクトを解決する必要があるかもしれません。"
-        # pullに失敗した場合、stashを戻してから終了する
+        # 当日分の snapshot を add（存在しなければ無視）
+        if compgen -G "$SNAP_DIR/realtime_report_${TODAY}_*.json" > /dev/null; then
+            git add -f "$SNAP_DIR"/realtime_report_${TODAY}_*.json || true
+        fi
+        # snapshot_index.json も add（存在すれば）
+        if [[ -f "$SNAP_DIR/snapshot_index.json" ]]; then
+            git add -f "$SNAP_DIR/snapshot_index.json" || true
+        fi
+
+        # リポジトリに既にある過去の snapshot ファイル（当日以外）を削除してコミット対象にする
+        for f in $(git ls-files "$SNAP_DIR"/realtime_report_*.json 2>/dev/null || true); do
+            if [[ "$f" != "$SNAP_DIR/realtime_report_${TODAY}_"* ]]; then
+                echo "古いスナップショットを削除: $f"
+                git rm --ignore-unmatch "$f" || true
+            fi
+        done
+
+        # 主要な速報ファイルを add（存在するファイルのみ）
+        for f in data/realtime_report.json data/individual_results.json data/rank_history.json data/leg_rank_history.json data/runner_locations.json data/realtime_log.jsonl; do
+            if [[ -f "$f" ]]; then
+            git add -f "$f"
+            fi
+        done
+
+        git commit -m "Update realtime report [bot] $(date +'%Y-%m-%d %H:%M:%S')" || true
+
+        # 他の未コミットの変更があった場合に備えて、一時的に退避 (stash) します。
+        STASH_RESULT=$(git stash)
+
+        # リモートの変更を取り込んでからプッシュする (non-fast-forwardエラー対策)
+        echo "リモートの変更を取り込んでいます (git pull --rebase)..."
+        if ! git pull --rebase origin main; then
+            echo "エラー: git pull --rebase に失敗しました。コンフリクトを解決する必要があるかもしれません。"
+            # pullに失敗した場合、stashを戻してから終了する
+            if [[ "$STASH_RESULT" != "No local changes to save" ]]; then
+                git stash pop
+            fi
+            exit 1
+        fi
+
+        echo "GitHubにプッシュしています..."
+        git push origin main
+
+        # 退避していた変更を元に戻します。
         if [[ "$STASH_RESULT" != "No local changes to save" ]]; then
+            echo "一時退避した変更を元に戻します..."
             git stash pop
         fi
-        exit 1
+    else
+        echo "速報ファイルに変更はありませんでした。コミットをスキップします。"
     fi
 
-    echo "GitHubにプッシュしています..."
-    git push origin main
-
-    # 退避していた変更を元に戻します。
-    if [[ "$STASH_RESULT" != "No local changes to save" ]]; then
-        echo "一時退避した変更を元に戻します..."
-        git stash pop
-    fi
+    echo "処理が正常に完了しました。"
+    echo ""
+'; then
+    :
 else
-    echo "速報ファイルに変更はありませんでした。コミットをスキップします。"
+    echo "選手交代処理の実行中（ロック取得不可）のため、この回の速報更新はスキップします。"
+    exit 0
 fi
-
-echo "処理が正常に完了しました。"
-echo ""
