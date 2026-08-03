@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "updated_day": 11,
+  "updated_day": 12,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 11,
+    "last_updated_day": 12,
     "teams": [
       "鹿児島大学",
       "四国大学"
@@ -21,39 +21,22 @@
       ],
       "summary": "四国大学と鹿児島大学による首位争い",
       "started_day": 9,
-      "last_updated_day": 11,
-      "last_observed_gap_km": 0.10000000000002274,
-      "previous_gap_km": 0.10000000000002274
+      "last_updated_day": 12,
+      "last_observed_gap_km": 1.3999999999999773,
+      "previous_gap_km": 1.3999999999999773
     }
   ],
   "momentum": [],
   "runner_threads": [
     {
-      "runner": "加計",
-      "team": "広島経済大学",
-      "summary": "本日最速 39.2km の快走",
-      "started_day": 10,
-      "last_updated_day": 10
-    },
-    {
-      "runner": "切石",
-      "team": "山梨学院大学",
-      "summary": "本日最速 39.7km の快走",
-      "started_day": 11,
-      "last_updated_day": 11
+      "runner": "熊本",
+      "team": "熊本学園大学",
+      "summary": "本日最速 40.3km の快走",
+      "started_day": 12,
+      "last_updated_day": 12
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "勢い落ち着く：四国大学の急浮上（本日1位）",
-      "resolved_day": 8,
-      "reason": "勢い低下"
-    },
-    {
-      "summary": "首位攻防交代：名古屋大学, 四国大学の争いから四国大学と鹿児島大学の争いへ移行 (前回観測時の差 0.0km)",
-      "resolved_day": 9,
-      "reason": "首位交代"
-    },
     {
       "summary": "選手交代：鹿児島大学の西都君から新走者へタスキ",
       "resolved_day": 10,
@@ -67,6 +50,16 @@
     {
       "summary": "選手交代：熊本学園大学の宇目君から新走者へタスキ",
       "resolved_day": 10,
+      "reason": "区間交代"
+    },
+    {
+      "summary": "選手交代：広島経済大学の加計君から新走者へタスキ",
+      "resolved_day": 12,
+      "reason": "区間交代"
+    },
+    {
+      "summary": "選手交代：山梨学院大学の切石君から新走者へタスキ",
+      "resolved_day": 12,
       "reason": "区間交代"
     }
   ]
