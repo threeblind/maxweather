@@ -341,6 +341,10 @@ def _generate_leg_finish_comment(current_results, previous_report_data):
     leg_finishers_by_leg = {}
 
     for team in current_results:
+        # 区間記録連合（シャドーチーム）は区間走破コメントの対象外。
+        # 通常チームIDに依存せず is_shadow_confederation フラグで判定する。
+        if team.get('is_shadow_confederation'):
+            continue
         team_id = team['id']
         if team_id in previous_teams_map:
             previous_team = previous_teams_map[team_id]
@@ -359,6 +363,20 @@ def _generate_leg_finish_comment(current_results, previous_report_data):
         comments = [f"{'、'.join(teams)}が{leg}区を走りきりました！" for leg, teams in sorted(leg_finishers_by_leg.items())]
         return "【区間走破】" + " ".join(comments)
     return None
+
+def _comment_contains_shadow_team(comment):
+    """コメント文字列にシャドーチーム（区間記録連合）の表示名が含まれるか判定する。
+
+    古いコメントの1時間維持（retention）で、過去の区間記録連合混入コメントを
+    次回更新で保持しないためのガード。判定は is_shadow_confederation フラグを持つ
+    チームの表示名を all_teams_data から取得し、ハードコードしない。
+    """
+    if not comment:
+        return False
+    for team in all_teams_data:
+        if team.get('is_shadow_confederation') and team.get('name') and team['name'] in comment:
+            return True
+    return False
 
 def _generate_heat_wave_comment(current_results, previous_report_data):
     """猛暑・酷暑に関するコメントを生成"""
@@ -1717,9 +1735,12 @@ def main():
         send_hourly_ranking_notification(all_results)
         
         # 3. 古いコメントの維持
+        # シャドーチーム（区間記録連合）名を含む古いコメントは、過去の混入コメントを
+        # 次回更新で保持し続けないよう維持対象から除外する。
         if not comment_to_save and previous_report_data:
             old_comment, old_timestamp, old_full_text = previous_report_data.get('breakingNewsComment', ""), previous_report_data.get('breakingNewsTimestamp', ""), previous_report_data.get('breakingNewsFullText', "")
-            if old_timestamp and (now_jst() - datetime.fromisoformat(old_timestamp)) < timedelta(hours=1):
+            if old_timestamp and (now_jst() - datetime.fromisoformat(old_timestamp)) < timedelta(hours=1) \
+                    and not _comment_contains_shadow_team(old_comment):
                 comment_to_save, timestamp_to_save, full_text_to_save = old_comment, old_timestamp, old_full_text
 
         save_realtime_report(all_results, race_day, comment_to_save, timestamp_to_save, full_text_to_save)
