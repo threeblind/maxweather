@@ -2564,8 +2564,22 @@ async function displayManagerComments() {
         }
         const comments = await response.json();
 
-        if (comments.length === 0) {
-            loungeContainer.style.display = 'none'; // コメントがなければコンテナを非表示
+        // 取得側（fetch_manager_comments.py）は直近48時間を保持するが、画面表示は
+        // JST 基準で「当日」または「前日」のコメントだけに限定する。
+        // （AI実況summary・snapshot・cronの挙動は変更しない）
+        const allowedDates = new Set(Object.values(getJstDateKeys()));
+        const visibleComments = comments.filter((comment) => {
+            const key = getCommentJstDateKey(comment.timestamp);
+            // invalid/null/missing timestamp は除外し、表示処理は停止させない
+            return key !== null && allowedDates.has(key);
+        });
+
+        if (visibleComments.length === 0) {
+            loungeContainer.style.display = 'block';
+            statusEl.textContent = '現在、表示できる監督コメントはありません。';
+            statusEl.className = 'result loading';
+            statusEl.style.display = 'block';
+            loungeContent.style.display = 'none';
         } else {
             loungeContainer.style.display = 'block'; // コメントがあれば表示
             statusEl.style.display = 'none';
@@ -2573,8 +2587,9 @@ async function displayManagerComments() {
 
             loungeContent.innerHTML = ''; // 以前のコメントをクリア
 
-            // 時系列（古い順）で表示するため、取得した配列（新しい順）を逆順にする
-            comments.reverse().forEach(comment => {
+            // 時系列（古い順）で表示するため、フィルタ後の配列（新しい順）を逆順にする。
+            // visibleComments は filter で新規作成済みなので、元の取得配列は破壊しない。
+            visibleComments.reverse().forEach(comment => {
                 const postDiv = document.createElement('div');
 
                 // Normalize names for comparison: remove leading '■', trim whitespace,
@@ -2596,8 +2611,8 @@ async function displayManagerComments() {
 
                 postDiv.className = isAnnouncer ? 'lounge-post announcer' : 'lounge-post manager';
 
-                const postDate = new Date(comment.timestamp);
-                const timeStr = postDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                // 表示時刻もJST固定（naiveはJST解釈・awareはAsia/Tokyo表示。ブラウザTZ非依存）
+                const timeStr = getCommentJstTimeLabel(comment.timestamp) || '';
 
                 // 表示には投稿された名前(posted_name)を使用する
                 postDiv.innerHTML = `
