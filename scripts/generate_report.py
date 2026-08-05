@@ -1,6 +1,8 @@
 import json
 import os
 import copy
+import bisect
+import math
 from pathlib import Path
 from datetime import datetime, timedelta, time
 import requests
@@ -46,6 +48,7 @@ SHADOW_TEAM_FILE = CONFIG_DIR / 'shadow_team.json'
 AMEDAS_STATIONS_FILE = CONFIG_DIR / 'amedas_stations.json'
 OUTLINE_FILE = CONFIG_DIR / 'outline.json'
 COURSE_PATH_FILE = CONFIG_DIR / 'course_path.json'
+RELAY_POINTS_FILE = CONFIG_DIR / 'relay_points.json'
 STORY_SETTINGS_FILE = HISTORY_DATA_DIR / 'ekiden_story_settings.json'
 PAST_RESULTS_FILE = HISTORY_DATA_DIR / 'past_results.json'
 LEG_AWARD_HISTORY_FILE = HISTORY_DATA_DIR / 'leg_award_history.json'
@@ -871,6 +874,294 @@ def update_rank_history(results, race_day, rank_history_file_path):
         json.dump(history, f, indent=2, ensure_ascii=False)
 
 
+# --- マップ距離補正（KMLコース距離 → 設定距離の区間別キャリブレーション） ---
+# 速報データ（累積距離・区間判定・順位・記録計算）は変更せず、マップ座標生成のみを補正する。
+# 設定距離の正本は ekiden_data['leg_boundaries']。relay_points.json の target_distance_km は補助。
+ANCHOR_SEARCH_WINDOW_KM = 20.0    # 中継所アンカーの最近傍course_path頂点を探すKML距離の探索幅
+MAX_ANCHOR_DEVIATION_KM = 2.0     # アンカーとcourse_path最近傍点の乖離上限（実データは約30m）
+BOUNDARY_SNAP_TOLERANCE_KM = 1e-3  # 設定境界とみなす距離許容（1m）
+
+
+def _load_relay_points():
+    """relay_points.json を読み込む。失敗時は None を返す。"""
+    try:
+        with open(RELAY_POINTS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+def _warn_calibration_fallback():
+    """マップ距離補正の無効化警告を1回だけ出力する（チームごとに繰り返さない）。"""
+    print("警告: マップ距離補正を無効化し、従来のcourse_path距離変換を使用します。")
+
+
+def _valid_latlon(lat, lon):
+    """緯度経度を検証し float 化する。欠落・非数値・非有限・範囲外は None を返す。"""
+    try:
+        lat_f, lon_f = float(lat), float(lon)
+    except (TypeError, ValueError):
+        return None
+    if not (math.isfinite(lat_f) and math.isfinite(lon_f)):
+        return None
+    if not (-90.0 <= lat_f <= 90.0 and -180.0 <= lon_f <= 180.0):
+        return None
+    return (lat_f, lon_f)
+
+
+def _point_latlon(point):
+    """course_path の1点から検証済み (lat, lon) タプルを返す。dictでない・不正なら None。"""
+    if not isinstance(point, dict):
+        return None
+    return _valid_latlon(point.get('lat'), point.get('lon'))
+
+
+def _safe_course_point(course_points, default_point):
+    """異常course_pathでも有効な座標を返す。default_point が有効ならそれ、なければ先頭の有効点、全滅なら (0.0, 0.0)。"""
+    latlon = _point_latlon(default_point)
+    if latlon is not None:
+        return latlon
+    for p in course_points:
+        latlon = _point_latlon(p)
+        if latlon is not None:
+            return latlon
+    return (0.0, 0.0)
+
+
+def _legacy_runner_position(target_distance_km, course_points, final_goal_km):
+    """従来方式（course_path直走査・geodesic）の距離→座標変換（calibration無効時のフォールバック）。
+
+    - 通常course_pathでは従来と同一の座標を返す。
+    - 非有限target（NaN/±Inf）はスタート相当（0km）へ統一し、+Infをゴールへ流さない。
+    - 異常course_path（欠落・非数値・非有限・範囲外の点）は該当セグメントをスキップし、
+      例外を出さず有効な座標（先頭の有効点・最終点）で安全に扱う。
+    - final_goal_km が None の場合はゴールスナップしない（save_snapshot 従来動作）。
+    """
+    try:
+        target = float(target_distance_km)
+    except (TypeError, ValueError):
+        target = 0.0
+    if not math.isfinite(target):
+        target = 0.0
+    if not course_points:
+        return (0.0, 0.0)
+
+    if target <= 0:
+        return _safe_course_point(course_points, course_points[0])
+    if final_goal_km is not None and target >= final_goal_km:
+        return _safe_course_point(course_points, course_points[-1])
+
+    cumulative_distance_km = 0.0
+    team_lat, team_lon = _safe_course_point(course_points, course_points[0])
+    location_found = False
+    for i in range(1, len(course_points)):
+        p1 = _point_latlon(course_points[i - 1])
+        p2 = _point_latlon(course_points[i])
+        if p1 is None or p2 is None:
+            continue  # 異常点（欠落・非数値・非有限・範囲外）はスキップ
+        segment_distance_km = geodesic(p1, p2).kilometers
+        if segment_distance_km > 0 and cumulative_distance_km <= target < cumulative_distance_km + segment_distance_km:
+            distance_into_segment = target - cumulative_distance_km
+            fraction = distance_into_segment / segment_distance_km
+            team_lat = p1[0] + fraction * (p2[0] - p1[0])
+            team_lon = p1[1] + fraction * (p2[1] - p1[1])
+            location_found = True
+            break
+        cumulative_distance_km += segment_distance_km
+    if not location_found and target >= cumulative_distance_km:
+        team_lat, team_lon = _safe_course_point(course_points, course_points[-1])
+    return (team_lat, team_lon)
+
+
+def _build_map_distance_calibration(course_path, relay_points, leg_boundaries):
+    """KMLコース距離を設定距離（leg_boundaries）へ区間別に補正するアンカーを構築する。
+
+    戻り値: 以下のキーを持つ dict。データ異常時は None（呼び出し側は従来方式へフォールバック）。
+      configured_distances: [0.0] + leg_boundaries（スタート+第1〜第N中継所+ゴールに対応）
+      actual_distances:     各アンカーのKML累積距離
+      anchor_coordinates:   各アンカーの正確な座標 (lat, lon) タプル
+      course_cumulative_distances: course_path 頂点のKML累積距離
+      anchor_indices:       各アンカーに対応する course_path 頂点インデックス
+
+    アンカー対応: 0km→スタート、leg_boundaries[i-1]→第i中継所、最終境界→ゴール。
+    通常は configured_distances と anchor_coordinates がともに len(leg_boundaries)+1 要素になる。
+    """
+    if not isinstance(course_path, list) or len(course_path) < 2:
+        return None
+    if not isinstance(relay_points, list) or len(relay_points) == 0:
+        return None
+    # course_path の各点を検証して float 化する（欠落・非数値・非有限・範囲外は無効化）。
+    # 数値文字列はここで float 化し、以後の累積距離・座標補間をすべて数値として扱う。
+    normalized_course_path = []
+    for p in course_path:
+        if not isinstance(p, dict):
+            return None
+        latlon = _valid_latlon(p.get('lat'), p.get('lon'))
+        if latlon is None:
+            return None
+        normalized_course_path.append(latlon)
+    try:
+        boundaries = [float(b) for b in leg_boundaries]
+    except (TypeError, ValueError):
+        return None
+    # NaN/Inf などの非有限境界値は無効（NaN は比較で通過してしまうため明示検証）
+    if not all(math.isfinite(b) for b in boundaries):
+        return None
+    # アンカー数一致: 設定境界数 = 中継所数 + 1（最終境界はゴールに対応）
+    if len(boundaries) != len(relay_points) + 1:
+        return None
+    if boundaries[0] <= 0 or any(boundaries[i] >= boundaries[i + 1] for i in range(len(boundaries) - 1)):
+        return None
+
+    configured_distances = [0.0] + boundaries
+
+    # relay_points の要素が dict でない場合は無効（AttributeError を出さない）
+    if not all(isinstance(r, dict) for r in relay_points):
+        return None
+    # relay_points を leg 昇順に整列し、leg が 1..N で欠落・重複がないことを確認
+    relays = sorted(relay_points, key=lambda r: r.get('leg', 0))
+    if [r.get('leg') for r in relays] != list(range(1, len(relays) + 1)):
+        return None
+
+    # アンカー座標: スタート + 第1〜第N中継所 + ゴール。
+    # 座標は検証+float化（欠落・非数値・非有限・範囲外は無効化し例外を出さない）。
+    anchor_coordinates = [normalized_course_path[0]]
+    relay_coords = []
+    for r in relays:
+        latlon = _valid_latlon(r.get('latitude'), r.get('longitude'))
+        if latlon is None:
+            return None
+        relay_coords.append(latlon)
+        anchor_coordinates.append(latlon)
+    anchor_coordinates.append(normalized_course_path[-1])
+
+    # course_path 頂点のKML累積距離を一度だけ計算（チームごとに再計算しない）
+    course_cumulative_distances = [0.0]
+    for i in range(1, len(normalized_course_path)):
+        seg = geodesic(normalized_course_path[i - 1], normalized_course_path[i]).kilometers
+        course_cumulative_distances.append(course_cumulative_distances[-1] + seg)
+    if course_cumulative_distances[-1] <= 0:
+        return None
+
+    # 各中継所アンカーを course_path の最近傍頂点へ対応付ける（スタート・ゴールは先頭・末尾）。
+    # 探索中心は設定距離の正本 leg_boundaries[i] を使う（relay_points の target_distance_km は
+    # 正本ではないため探索には使わない。欠落・古い値でも探索がずれない）。
+    anchor_indices = [0]
+    for i, r in enumerate(relays):
+        approx_km = boundaries[i]
+        idx = _find_nearest_course_vertex(
+            relay_coords[i][0], relay_coords[i][1], approx_km,
+            normalized_course_path, course_cumulative_distances)
+        if idx is None:
+            return None
+        anchor_indices.append(idx)
+    anchor_indices.append(len(normalized_course_path) - 1)
+
+    # アンカー探索インデックスが単調増加でなければ無効
+    if any(anchor_indices[i] >= anchor_indices[i + 1] for i in range(len(anchor_indices) - 1)):
+        return None
+
+    actual_distances = [course_cumulative_distances[i] for i in anchor_indices]
+    if any(actual_distances[i] >= actual_distances[i + 1] for i in range(len(actual_distances) - 1)):
+        return None
+
+    return {
+        "configured_distances": configured_distances,
+        "actual_distances": actual_distances,
+        "anchor_coordinates": anchor_coordinates,
+        "course_cumulative_distances": course_cumulative_distances,
+        "anchor_indices": anchor_indices,
+        "normalized_course_path": normalized_course_path,
+    }
+
+
+def _find_nearest_course_vertex(lat, lon, approx_km, course_path, course_cumulative_distances):
+    """中継所座標に最近傍の course_path 頂点インデックスを返す。見つからなければ None。"""
+    lo = bisect.bisect_left(course_cumulative_distances, max(0.0, approx_km - ANCHOR_SEARCH_WINDOW_KM))
+    hi = bisect.bisect_right(course_cumulative_distances, approx_km + ANCHOR_SEARCH_WINDOW_KM)
+    best_idx, best_dist = None, float('inf')
+    for i in range(lo, min(hi, len(course_path))):
+        d = geodesic((lat, lon), course_path[i]).kilometers
+        if d < best_dist:
+            best_dist, best_idx = d, i
+    if best_idx is None or best_dist > MAX_ANCHOR_DEVIATION_KM:
+        return None
+    return best_idx
+
+
+def _interpolate_on_course(actual_target_km, course_points, course_cumulative_distances):
+    """KML累積距離上の位置を course の2点間で距離比例の線形補間により座標(lat, lon)で返す。
+
+    course_points は float 化済みの (lat, lon) タプル配列（calibration の normalized_course_path）。
+    """
+    cum = course_cumulative_distances
+    if actual_target_km <= cum[0]:
+        return course_points[0]
+    if actual_target_km >= cum[-1]:
+        return course_points[-1]
+
+    for i in range(1, len(course_points)):
+        seg_len = cum[i] - cum[i - 1]
+        if seg_len <= 0:
+            continue  # ゼロ長セグメントはスキップ
+        if cum[i - 1] <= actual_target_km <= cum[i]:
+            fraction = (actual_target_km - cum[i - 1]) / seg_len
+            p1 = course_points[i - 1]
+            p2 = course_points[i]
+            return (p1[0] + fraction * (p2[0] - p1[0]),
+                    p1[1] + fraction * (p2[1] - p1[1]))
+    return course_points[-1]
+
+
+def _get_calibrated_runner_position(target_distance_km, course_path, calibration):
+    """設定距離(km)をキャリブレーションでKML上の位置へ変換し、座標(lat, lon)を返す。
+
+    - target <= 0 はスタート座標
+    - target >= 最終leg_boundary はゴール座標
+    - 設定境界と(ほぼ)一致する場合は正確なアンカー座標（中継所の実座標）を返す
+    - 区間内は設定距離の比率でKML実距離を補間する（KML距離を速報距離として扱わない）
+    - NaN/±Inf などの非有限targetはスタート座標(0km相当)へ統一し、意図せずゴールへ飛ばさない
+
+    course_path 引数はAPI互換のため保持するが、座標補間には calibration の
+    normalized_course_path（構築時にfloat化済み）を使用する。
+    """
+    try:
+        target = float(target_distance_km)
+    except (TypeError, ValueError):
+        target = 0.0
+    if not math.isfinite(target):
+        return calibration["anchor_coordinates"][0]
+
+    configured = calibration["configured_distances"]
+    actual = calibration["actual_distances"]
+    anchors = calibration["anchor_coordinates"]
+    course_cum = calibration["course_cumulative_distances"]
+    norm_course = calibration["normalized_course_path"]
+
+    if target <= 0:
+        return anchors[0]
+    if target >= configured[-1]:
+        return anchors[-1]
+
+    # 設定境界と厳密一致・ほぼ一致する場合は正確なアンカー座標を返す
+    for i, boundary in enumerate(configured):
+        if abs(target - boundary) <= BOUNDARY_SNAP_TOLERANCE_KM:
+            return anchors[i]
+
+    actual_target = None
+    for i in range(len(configured) - 1):
+        if configured[i] < target < configured[i + 1]:
+            span = configured[i + 1] - configured[i]
+            ratio = (target - configured[i]) / span if span > 0 else 0.0
+            actual_target = actual[i] + ratio * (actual[i + 1] - actual[i])
+            break
+    if actual_target is None:
+        # 上記の範囲判定で必ず到達するはずだが、防御的に target をそのまま使う
+        actual_target = target
+
+    return _interpolate_on_course(actual_target, norm_course, course_cum)
+
+
 def calculate_and_save_runner_locations(teams_data):
     """各チームの現在位置（緯度経度）を計算して保存する"""
     try:
@@ -884,6 +1175,13 @@ def calculate_and_save_runner_locations(teams_data):
         print(f"エラー: {COURSE_PATH_FILE} にコースデータがありません。")
         return
 
+    # マップ距離補正（KMLコース距離→設定距離）のアンカーを一度だけ構築する。
+    # 異常時は None となり、従来の単純course_path距離変換へフォールバックする。
+    relay_points = _load_relay_points()
+    calibration = _build_map_distance_calibration(all_points, relay_points, ekiden_data.get('leg_boundaries') or [])
+    if calibration is None:
+        _warn_calibration_fallback()
+
     runner_locations = []
     print("各チームの現在位置を計算中...")
     team_info_map = {t['id']: t for t in all_teams_data}
@@ -891,43 +1189,14 @@ def calculate_and_save_runner_locations(teams_data):
     for team in teams_data:
         target_distance_km = team.get('totalDistance', 0)
 
-        # 最終ゴール距離以上ならコース最終点にスナップ
-        final_goal_km = (ekiden_data.get('leg_boundaries') or [])[-1] if ekiden_data.get('leg_boundaries') else None
-        if final_goal_km is not None and target_distance_km >= final_goal_km:
-            team_lat, team_lon = all_points[-1]['lat'], all_points[-1]['lon']
-            team_info = team_info_map.get(team.get('id'))
-            short_name = team_info.get('short_name', team.get('name')) if team_info else team.get('name')
-            runner_locations.append({
-                "rank": team.get('overallRank'), "team_name": team.get('name'),
-                "team_short_name": short_name,
-                "runner_name": team.get('runner'), "total_distance_km": team.get('totalDistance'),
-                "latitude": team_lat, "longitude": team_lon,
-                "current_leg": team.get('newCurrentLeg', team.get('currentLegNumber', 1)),
-                "is_shadow_confederation": team.get("is_shadow_confederation", False)
-            })
-            continue
+        if calibration is not None:
+            team_lat, team_lon = _get_calibrated_runner_position(target_distance_km, all_points, calibration)
+        else:
+            # --- 従来方式（フォールバック） ---
+            # 最終ゴール距離以上ならコース最終点にスナップ（異常入力でも例外を出さない）
+            final_goal_km = (ekiden_data.get('leg_boundaries') or [])[-1] if ekiden_data.get('leg_boundaries') else None
+            team_lat, team_lon = _legacy_runner_position(target_distance_km, all_points, final_goal_km)
 
-        cumulative_distance_km = 0.0
-        team_lat, team_lon = all_points[0]['lat'], all_points[0]['lon']
-        location_found = False
-
-        for i in range(1, len(all_points)):
-            p1 = (all_points[i-1]['lat'], all_points[i-1]['lon'])
-            p2 = (all_points[i]['lat'], all_points[i]['lon'])
-            segment_distance_km = geodesic(p1, p2).kilometers
-
-            if segment_distance_km > 0 and cumulative_distance_km <= target_distance_km < cumulative_distance_km + segment_distance_km:
-                distance_into_segment = target_distance_km - cumulative_distance_km
-                fraction = distance_into_segment / segment_distance_km
-                team_lat = p1[0] + fraction * (p2[0] - p1[0])
-                team_lon = p1[1] + fraction * (p2[1] - p1[1])
-                location_found = True
-                break
-            cumulative_distance_km += segment_distance_km
-        
-        if not location_found and target_distance_km >= cumulative_distance_km:
-            team_lat, team_lon = all_points[-1]['lat'], all_points[-1]['lon']
-        
         team_info = team_info_map.get(team.get('id'))
         short_name = team_info.get('short_name', team.get('name')) if team_info else team.get('name')
 
@@ -1019,26 +1288,25 @@ def save_snapshot(results, race_day, breaking_news_comment, breaking_news_timest
     try:
         with open(COURSE_PATH_FILE, 'r', encoding='utf-8') as f:
             all_points = json.load(f)
-            
+
+        # calculate_and_save_runner_locations() と同じ共通キャリブレーション/座標ヘルパーを使う。
+        # 異常時は None となり従来の単純course_path距離変換へフォールバックする。
+        relay_points = _load_relay_points()
+        calibration = _build_map_distance_calibration(all_points, relay_points, ekiden_data.get('leg_boundaries') or [])
+        if calibration is None:
+            _warn_calibration_fallback()
+
         for team in results:
             target_distance_km = team.get('totalDistance', 0)
-            cumulative_distance_km = 0.0
-            team_lat, team_lon = all_points[0]['lat'], all_points[0]['lon']
             current_leg = team.get('currentLegNumber', 1)
-            
-            for i in range(1, len(all_points)):
-                p1 = (all_points[i-1]['lat'], all_points[i-1]['lon'])
-                p2 = (all_points[i]['lat'], all_points[i]['lon'])
-                segment_distance_km = geodesic(p1, p2).kilometers
-                
-                if cumulative_distance_km <= target_distance_km < cumulative_distance_km + segment_distance_km:
-                    distance_into_segment = target_distance_km - cumulative_distance_km
-                    fraction = distance_into_segment / segment_distance_km if segment_distance_km > 0 else 0
-                    team_lat = p1[0] + fraction * (p2[0] - p1[0])
-                    team_lon = p1[1] + fraction * (p2[1] - p1[1])
-                    break
-                cumulative_distance_km += segment_distance_km
-            
+
+            if calibration is not None:
+                team_lat, team_lon = _get_calibrated_runner_position(target_distance_km, all_points, calibration)
+            else:
+                # --- 従来方式（フォールバック） ---
+                # スナップショットは従来どおりゴールスナップしない（異常入力でも例外を出さない）
+                team_lat, team_lon = _legacy_runner_position(target_distance_km, all_points, None)
+
             runner_locations.append({
                 "team_id": team["id"],
                 "team_name": team.get("name"),
