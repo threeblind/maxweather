@@ -1758,21 +1758,39 @@ class DailySummaryGenerator:
             t10 = next((t for t in active_teams_sorted if t.get('overallRank') == 10), None)
             day_idx = metrics.get('race_day', 1) - 1
 
+            lower_today_values = [t.get('todayDistance', 0.0) for t in lower_teams if t.get('todayDistance', 0.0) > 0]
+            lower_today_average = (
+                sum(lower_today_values) / len(lower_today_values)
+                if lower_today_values else 0.0
+            )
+            # 下位グループ内で明確に上位の走りを拾うための補助閾値。
+            # 全体上位20%の閾値だけでは、下位校が構造的に候補から消える。
+            lower_distance_threshold = lower_today_average + 1.0
+
             notable_lower_teams = []
+            lower_scores = {}
             for t in lower_teams:
                 is_notable = False
                 reasons_notable = []
+                candidate_score = 0
 
                 prev = t.get('previousRank')
                 curr = t.get('overallRank')
-                if prev and curr and prev - curr >= 3:
+                rank_change = (prev - curr) if (prev and curr) else 0
+                if rank_change != 0:
                     is_notable = True
-                    reasons_notable.append(f"順位上昇（前日比+{prev - curr}）")
+                    if rank_change > 0:
+                        reasons_notable.append(f"順位上昇（前日比+{rank_change}）")
+                        candidate_score += 3
+                    else:
+                        reasons_notable.append(f"順位変動（前日比{rank_change}）")
+                        candidate_score += 2
 
                 today_dist = t.get('todayDistance', 0.0)
-                if today_dist >= dist_threshold and today_dist > 0:
+                if today_dist >= lower_distance_threshold and today_dist > 0:
                     is_notable = True
-                    reasons_notable.append(f"本日走行距離（{today_dist:.1f}km）")
+                    reasons_notable.append(f"下位グループ内で本日距離上位（{today_dist:.1f}km）")
+                    candidate_score += 2
 
                 if t10 and day_idx > 0:
                     gap_curr = t.get('totalDistance', 0.0) - t10.get('totalDistance', 0.0)
@@ -1784,11 +1802,21 @@ class DailySummaryGenerator:
                             if gap_curr > gap_prev:
                                 is_notable = True
                                 reasons_notable.append(f"シード差縮小（本日{abs(gap_curr):.1f}km差、{gap_curr - gap_prev:.1f}km縮小）")
+                                candidate_score += 3
 
                 if is_notable:
                     notable_lower_teams.append((t, reasons_notable))
+                    lower_scores[t['name']] = candidate_score
 
             if notable_lower_teams:
+                # 下位校を全列挙せず、当日の意味が大きい最大2校だけを専用候補にする。
+                notable_lower_teams.sort(
+                    key=lambda item: (
+                        -lower_scores.get(item[0].get('name'), 0),
+                        item[0].get('overallRank') or 999,
+                    )
+                )
+                notable_lower_teams = notable_lower_teams[:2]
                 facts = {}
                 for t, _ in notable_lower_teams:
                     prev = t.get('previousRank')
@@ -2158,9 +2186,10 @@ class DailySummaryGenerator:
             "# 出力フォーマットと文体\n"
             "- 全体の文字数は約2,000文字（1,800〜2,200字、記事全体）。小見出し数に応じて可変。\n"
             "- 1行目はタイトル（『# 』を使用）。\n"
-            "- 2行目以降は、レース全体を象徴するメイン見出し（『### 』）を1つ、その下に各トピックの小見出し（『#### 』）を2〜4つ書くこと（箇条書きは多用しない）。\n"
-            "- 小見出しの数は2〜4件で可変とする（大きな争点が少ない日は2件、複数の独立した争点がある日は3〜4件）。件数を満たすための水増しは禁止する。\n"
+            "- 2行目以降は、レース全体を象徴するメイン見出し（『### 』）を1つ、その下に各トピックの小見出し（『#### 』）を通常2〜4つ書くこと（箇条書きは多用しない）。下位チームの注目候補がある場合のみ、専用セクションを1つ追加して最大5つまで可とする。\n"
+            "- 小見出しの数は通常2〜4件で可変とする（大きな争点が少ない日は2件、複数の独立した争点がある日は3〜4件）。下位専用セクションを追加する場合は、他のトピックより短い150〜300字程度でよい。件数を満たすための水増しは禁止する。\n"
             "- テーマ候補ゾーンの中から、どのゾーンを採用・統合して小見出しを作るかは、レース全体の構造を見て判断すること。\n"
+            "- 『下位チームの動き』または同等の下位専用候補が提示されている場合は、最後の総括とは別に、総括の直前に専用の小見出しを1つ設け、候補のうち1〜2校だけを短く扱うこと。候補が1校だけの場合はその1校のみを扱ってよい。候補が提示されていない場合は、下位チームのセクションを無理に作らないこと。\n"
             "- 構成判断および記述ルール：\n"
             "  - 順位帯を機械的に網羅しないこと。\n"
             "  - 隣接順位のチームは「争い」として統合し、同一の上位集団を2〜3つの小見出しに分割しないこと（近接した上位校を別々の小見出しに分けない）。\n"
