@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 import unicodedata
 from openai import OpenAI
+from time_utils import JST, now_jst, parse_jst_datetime
 
 # --- ディレクトリ定義 ---
 CONFIG_DIR = Path('config')
@@ -127,6 +128,8 @@ class DailySummaryGenerator:
         self.all_data = {}
         self.client = None
         self.narrative_state = {}
+        # historical 再生成時の監督コメント48時間窓の基準時刻（JST naive）。未設定なら now_jst()
+        self.manager_comments_reference_time = None
 
         load_dotenv()
         self.provider = os.getenv("AI_PROVIDER", "openai").strip().lower()
@@ -443,22 +446,147 @@ class DailySummaryGenerator:
 
         return "\n".join(rows)
 
-    def prepare_manager_comments(self, num_comments=3):
+    # --- 監督コメント（AI実況・daily-summary-check 連携） ---
+    MANAGER_COMMENT_RETENTION_HOURS = 48
+    MANAGER_COMMENT_MAX_TOTAL = 12  # 最新側6件 + 古い側6件
+
+    def _parse_manager_comment_timestamp(self, comment):
+        """コメントの timestamp を JST 基準の naive datetime で返す。不正なら None。
+
+        タイムゾーンなしの timestamp 文字列は JST として解釈し、
+        タイムゾーン付き（+00:00 等）は JST へ変換する（parse_jst_datetime 共通方針。
+        GitHub Actions は UTC 環境のため datetime.now() を JST として使わない）。
+        """
+        ts = comment.get('timestamp') if isinstance(comment, dict) else None
+        if not ts:
+            return None
+        return parse_jst_datetime(ts)
+
+    def _get_summary_target_date(self):
+        """summary が扱う対象日を返す。
+
+        正本は realtime_report の updateTime（JST）に対応する日。
+        取得時刻の19時や実行環境UTCの日付を対象日の正本にはしない。
+        """
+        realtime_data = self.all_data.get('realtime_report', {})
+        update_time = realtime_data.get('updateTime', '')
+        dt = parse_jst_datetime(update_time)
+        if dt is not None:
+            return dt.date()
+        return now_jst().replace(tzinfo=None).date()
+
+    def _normalize_comment_reference_time(self):
+        """監督コメントの48時間窓の基準時刻（JST naive）を返す。
+
+        - manager_comments_reference_time が無い場合: now_jst() を JST へ正規化
+        - 文字列の場合: parse_jst_datetime(value)
+        - aware datetime の場合: astimezone(JST) 後に tzinfo を除去
+        - naive datetime の場合: JST としてそのまま扱う
+        - 正規化できない場合は now_jst() へフォールバック
+        """
+        ref = getattr(self, 'manager_comments_reference_time', None)
+        if ref is None:
+            return now_jst().replace(tzinfo=None)
+        if isinstance(ref, str):
+            dt = parse_jst_datetime(ref)
+            return dt if dt is not None else now_jst().replace(tzinfo=None)
+        if isinstance(ref, datetime):
+            if ref.tzinfo is not None:
+                return ref.astimezone(JST).replace(tzinfo=None)
+            return ref.replace(tzinfo=None)  # naive は JST として扱う
+        return now_jst().replace(tzinfo=None)
+
+    def prepare_manager_comments(self, max_comments=12):
+        """AI実況へ渡す監督コメント候補一覧（投稿時刻付き・分類前）を返す。
+
+        - 直近48時間以内のコメントを対象とし、48時間より古い・基準時刻（現在/歴史参照時刻）
+          より未来のコメントは渡さない
+        - 「今日/昨日」の断定分類は行わない（19時を意味論上の固定境界にしない）
+        - コメントが多い場合も最新側から最大6件 + それより古い側から最大6件 を残し、
+          前日コメントが存在するのに消えることがないようにする（時系列の両側）
+        - 戻り値は必ず max_comments 件以下（max_comments=0 なら空）
+        - 各コメントに投稿日時・監督名・出典・source/post_id のメタデータを付ける
+
+        historical 再生成（run_historical_summary.py）時は self.manager_comments_reference_time
+        （対象日 updateTime の JST naive datetime）を基準に48時間窓を計算する。
+        """
+        try:
+            max_comments = max(0, int(max_comments))
+        except (TypeError, ValueError):
+            max_comments = 12
+        if max_comments == 0:
+            return []
+
         manager_comments_data = self.all_data.get('manager_comments', [])
-        if not manager_comments_data: return []
-        now, recent_comments = datetime.now(), []
+        if not manager_comments_data:
+            return []
+
+        ref_naive = self._normalize_comment_reference_time()
+        cutoff = ref_naive - timedelta(hours=self.MANAGER_COMMENT_RETENTION_HOURS)
+
+        cleaned = []
         for comment in manager_comments_data:
-            if len(recent_comments) >= num_comments: break
+            if not isinstance(comment, dict):
+                continue
+            dt = self._parse_manager_comment_timestamp(comment)
+            if dt is None or dt < cutoff or dt > ref_naive:
+                # 不正timestamp・48時間より古い・基準時刻より未来のコメントはスキップ
+                # （live の未来コメント・historical の updateTime 後コメントをAIへ渡さない）
+                continue
             try:
-                if datetime.fromisoformat(comment['timestamp']) < now - timedelta(days=1, hours=5): continue
-                soup = BeautifulSoup(comment['content_html'], 'html.parser')
-                for a in soup.find_all('a', class_='reply_link'): a.decompose()
+                soup = BeautifulSoup(comment.get('content_html', ''), 'html.parser')
+                for a in soup.find_all('a', class_='reply_link'):
+                    a.decompose()
                 clean_text = soup.get_text(separator=' ', strip=True)
-                if len(clean_text) > 100: clean_text = clean_text[:100] + "..."
-                if "ありがとうございました" in clean_text or "お世話になりました" in clean_text: continue
-                recent_comments.append(f"- {comment['official_name']}: 「{clean_text}」")
-            except (ValueError, TypeError): continue
-        return recent_comments
+                if len(clean_text) > 100:
+                    clean_text = clean_text[:100] + "..."
+                if "ありがとうございました" in clean_text or "お世話になりました" in clean_text:
+                    continue
+            except Exception:
+                continue  # パース失敗はスキップ（生成を停止しない）
+            cleaned.append((dt, comment, clean_text))
+
+        # timestamp 降順ソート
+        cleaned.sort(key=lambda x: x[0], reverse=True)
+
+        # 最新側から最大 half 件 + それより古い側から最大 half 件（時系列の両側を残す）。
+        # 戻り値は必ず max_comments 件以下に抑える（max_comments=1 なら最新1件のみ）。
+        half = max(1, max_comments // 2)
+        newest = cleaned[:half]
+        rest = cleaned[half:]
+        oldest = rest[-half:] if rest else []
+        selected = (newest + oldest)[:max_comments]
+
+        lines = []
+        for dt, comment, clean_text in selected:
+            source_url = comment.get('source_url', '')
+            post_id = comment.get('post_id', '')
+            key_suffix = f"#{post_id}" if post_id else ""
+            lines.append(
+                f"- comment_key: {source_url}{key_suffix}\n"
+                f"  投稿日時: {dt.strftime('%Y/%m/%d %H:%M')} JST\n"
+                f"  監督: {comment.get('official_name') or comment.get('posted_name', '不明')}\n"
+                f"  出典: {comment.get('source_kind', '不明')}\n"
+                f"  内容: 「{clean_text}」"
+            )
+        return lines
+
+    def _build_manager_comment_guidance(self):
+        """監督コメントの扱い方（AI実況向け指示）を返す。"""
+        target_date = self._get_summary_target_date()
+        target_str = target_date.strftime('%Y/%m/%d') if target_date else '不明'
+        return (
+            "\n# 監督コメントの扱い方（判断材料と指示）\n"
+            f"- 本記事の対象日: {target_str}（この日の走行をまとめる記事）\n"
+            "- 朝の投稿は前日の走りを振り返る内容である可能性が高い。\n"
+            "- 夜の投稿は当日の走行中・走行後のコメントである可能性が高い。\n"
+            "- ただし19時を固定的な正解にせず、本文中の区間・日目・選手名・大学名、投稿時刻、現在のレース状況を総合して判断する。\n"
+            "- 本文に明示された区間・日目・選手を最優先する。\n"
+            "- 判断できない場合、「昨日」「今日」と断定せず、コメント内容だけを引用・要約するか、使用を見送る。\n"
+            "- 当日のコメントを「昨日の監督コメント」と表現しない。前日のコメントを当日の出来事として扱わない。\n"
+            "- 監督コメントにない評価・意図・選手対応を創作しない。\n"
+            "- コメントを使用した場合、可能な範囲で該当する大学・選手を正しく結び付ける。\n"
+        )
 
     def format_relay_info(self):
         realtime_data = self.all_data.get('realtime_report', {})
@@ -2006,8 +2134,9 @@ class DailySummaryGenerator:
 
         manager_comments = self.prepare_manager_comments()
         if manager_comments:
-            prompt_parts.append("\n# 昨晩の監督コメント")
+            prompt_parts.append("\n# 監督コメント（投稿時刻順、分類前の判断材料）")
             prompt_parts.extend(manager_comments)
+            prompt_parts.append(self._build_manager_comment_guidance())
 
         team_story_notes = self._get_light_team_story_notes(selected_zones)
         if team_story_notes:

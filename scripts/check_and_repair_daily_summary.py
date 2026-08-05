@@ -42,6 +42,20 @@ def resolve_results_path(target_date):
         return snap
     return None
 
+
+def resolve_manager_comments_path(target_date):
+    """第2層AI秘書が参照する監督コメントの正本パスを返す。
+
+    第一優先: data/daily_snapshots/<target_date>/manager_comments.json
+    第二優先: data/manager_comments.json（snapshotがない場合のみ）
+    どちらも無ければ None。
+    """
+    snap = SNAPSHOT_DIR / target_date / 'manager_comments.json'
+    if snap.exists():
+        return snap
+    fallback = DATA_DIR / 'manager_comments.json'
+    return fallback if fallback.exists() else None
+
 # コミット対象ファイル（これら以外の変更は FAIL）
 COMMIT_TARGETS = [
     'data/daily_summary.json',
@@ -228,6 +242,61 @@ def check_daily_summary(result: CheckResult, summary_data):
         result.step('distance_range', 'WARN', f'範囲外: {suspicious[:5]}')
     else:
         result.step('distance_range', 'PASS', '距離値妥当')
+
+
+def check_manager_comment_references(result: CheckResult, summary_data, target_date):
+    """監督コメントの決定論的チェック（第2層AI秘書の確認を補助する範囲に限定）。
+
+    - 対象snapshotのmanager_commentsが読み込めるか（第一優先、無ければ data/ へフォールバック）
+    - 各コメントに source_url / post_id があるか（comment_key 対応の確認）
+    - 記事中の「◯◯大学/学園/選抜 監督」表記が既知の監督（コメントの official_name）と
+      一致するか（明らかな未定義引用の検出。WARNのみ・推測補完しない）
+
+    コメントの前日/当日などの意味分類は行わない（AI秘書の判断は skill_view: weather-ekiden
+    の第2層に委ねる。19時を境界に機械分類しない）。
+    """
+    path = resolve_manager_comments_path(target_date)
+    if path is None:
+        result.step('manager_comments_source', 'WARN', '監督コメントファイルなし（snapshot/data とも不在）')
+        return
+    err, comments = load_json(path, 'manager_comments')
+    if err or not isinstance(comments, list):
+        result.step('manager_comments_source', 'FAIL', f'読み込み失敗: {err or "形式不正"}')
+        return
+    try:
+        display = path.relative_to(PROJECT_DIR)
+    except ValueError:
+        display = path
+    result.step('manager_comments_source', 'PASS',
+                f'参照元: {display}（{len(comments)}件）')
+
+    # source_url / post_id の存在（comment_key 対応の確認）
+    missing = [i for i, c in enumerate(comments)
+               if not isinstance(c, dict) or not (c.get('source_url') and c.get('post_id'))]
+    if missing:
+        result.step('manager_comments_keys', 'WARN', f'source_url/post_id 欠落: {len(missing)}件')
+    else:
+        result.step('manager_comments_keys', 'PASS', 'source_url/post_id 全て存在')
+
+    # 記事中の明らかな未定義監督引用の検出（決定論的範囲のみ・WARN）
+    article = summary_data.get('article', '')
+    known_univs = set()
+    for c in comments:
+        if not isinstance(c, dict):
+            continue
+        name = c.get('official_name') or c.get('posted_name') or ''
+        m = re.match(r'■(.+?監督)', name)
+        if m:
+            univ = m.group(1)[:-2].strip()  # 「◯◯監督」から「監督」を除いた大学名
+            if univ:
+                known_univs.add(univ)
+    mentions = set(re.findall(r'([^\s「」、。()（）]{2,20}?(?:大学|学園|選抜))監督', article))
+    unknown = sorted(n for n in mentions if not any(n == k or n in k or k in n for k in known_univs))
+    if unknown:
+        result.step('manager_comments_attribution', 'WARN',
+                    f'既知監督名と一致しない「◯◯監督」表記: {unknown[:5]}')
+    else:
+        result.step('manager_comments_attribution', 'PASS', '監督引用は既知の監督と一致')
 
 
 # リレー記述のパターン: {チーム}...{走者A}から{走者B}へタスキ
@@ -765,6 +834,7 @@ def main(argv=None):
             check_daily_summary(result, summary_data)
             check_article_consistency(result, summary_data)
             check_runner_relay_consistency(result, summary_data)
+            check_manager_comment_references(result, summary_data, result.target_date)
 
             # --- 4. git 状態 ---
             print('\n--- 4. git 状態確認 ---')

@@ -3,6 +3,7 @@ import tempfile
 from pathlib import Path
 
 import generate_daily_summary as summary
+from time_utils import parse_jst_datetime
 
 
 def main():
@@ -40,6 +41,15 @@ def main():
                 setattr(summary, constant_name, snapshot_file)
 
         generator = summary.DailySummaryGenerator()
+
+        # historical 再生成: 監督コメントの48時間窓は現在時刻ではなく、
+        # 対象日の realtime_report.updateTime（JST）を正本にする。
+        # これにより wall-clock 基準で対象日コメントが全消失するのを防ぐ。
+        update_time = generator.all_data.get("realtime_report", {}).get("updateTime", "")
+        ref_time = parse_jst_datetime(update_time)
+        if ref_time is not None:
+            generator.manager_comments_reference_time = ref_time
+            print(f"監督コメント参照時刻: {ref_time.strftime('%Y/%m/%d %H:%M')} JST")
 
         original_validate = generator.validate_generated_article
 

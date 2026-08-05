@@ -26,8 +26,12 @@ from fetch_manager_comments import (
     extract_tripcode_from_text,
     dedup_comments,
     format_output_comment,
+    merge_existing_comments,
+    _comment_timestamp_jst,
+    fetch_and_process_comments,
     NIGHT_START_HOUR,
     NIGHT_END_HOUR,
+    RETENTION_HOURS,
 )
 
 # ============================================================
@@ -428,6 +432,235 @@ def test_get_comment_sources_returns_list():
     for src in sources:
         assert 'url' in src
         assert 'kind' in src
+
+
+# ============================================================
+# テスト: 48時間保持・統合マージ（2026-08-05 追加）
+# ============================================================
+
+def _mk_comment(ts_str, post_id, url='https://5ch.test/1', text='<p>本文</p>'):
+    return {
+        'timestamp': ts_str,
+        'posted_name': '■テスト大学監督',
+        'official_name': '■テスト大学監督',
+        'tripcode': '◆test',
+        'content_html': text,
+        'source_url': url,
+        'source_kind': '5ch',
+        'post_id': post_id,
+    }
+
+
+def test_merge_existing_keeps_recent_and_prunes_old(monkeypatch):
+    """48時間より古いコメントは除去され、直近48時間のコメントは保持される。"""
+    import fetch_manager_comments as fmc
+    from time_utils import JST
+    monkeypatch.setattr(fmc, 'now_jst', lambda: datetime(2026, 8, 5, 20, 0, tzinfo=JST))
+    old = _mk_comment('2026-08-02T23:00:00', '1')   # 69時間前 → 除去
+    recent = _mk_comment('2026-08-05T19:30:00', '2')  # 30分前 → 保持
+    result = fmc.merge_existing_comments([old], [recent])
+    assert len(result) == 1
+    assert result[0]['post_id'] == '2'
+
+
+def test_merge_existing_dedup_same_post_id_new_wins(monkeypatch):
+    """同一 (source_url, post_id) は1件になり、新規取得が優先される。"""
+    import fetch_manager_comments as fmc
+    from time_utils import JST
+    monkeypatch.setattr(fmc, 'now_jst', lambda: datetime(2026, 8, 5, 20, 0, tzinfo=JST))
+    existing = _mk_comment('2026-08-04T20:00:00', '100', text='<p>旧内容</p>')
+    new = _mk_comment('2026-08-04T20:00:00', '100', text='<p>新内容</p>')
+    result = fmc.merge_existing_comments([existing], [new])
+    assert len(result) == 1
+    assert result[0]['content_html'] == '<p>新内容</p>'
+
+
+def test_merge_existing_keeps_yesterday_and_today(monkeypatch):
+    """当日の夜間コメントと前日の朝コメント（前日振り返り）が両方残る。"""
+    import fetch_manager_comments as fmc
+    from time_utils import JST
+    monkeypatch.setattr(fmc, 'now_jst', lambda: datetime(2026, 8, 5, 20, 0, tzinfo=JST))
+    yesterday_morning = _mk_comment('2026-08-04T06:30:00', '10')  # 前日の朝（振り返り）
+    today_evening = _mk_comment('2026-08-05T19:30:00', '11')      # 当日の夕方（走行後）
+    result = fmc.merge_existing_comments([], [yesterday_morning, today_evening])
+    assert len(result) == 2
+    ids = {c['post_id'] for c in result}
+    assert ids == {'10', '11'}
+
+
+def test_merge_existing_sorts_desc(monkeypatch):
+    """timestamp（JST換算）降順でソートされる。"""
+    import fetch_manager_comments as fmc
+    from time_utils import JST
+    monkeypatch.setattr(fmc, 'now_jst', lambda: datetime(2026, 8, 5, 21, 0, tzinfo=JST))
+    a = _mk_comment('2026-08-05T20:00:00', '2')
+    b = _mk_comment('2026-08-05T19:00:00', '1')
+    result = fmc.merge_existing_comments([], [b, a])
+    assert [c['post_id'] for c in result] == ['2', '1']
+
+
+def test_comment_timestamp_jst_parses_naive_as_jst():
+    """タイムゾーンなしの timestamp は JST として解釈される。"""
+    dt = _comment_timestamp_jst(_mk_comment('2026-08-05T19:30:00', '1'))
+    assert dt is not None
+    assert dt.hour == 19
+    assert _comment_timestamp_jst(_mk_comment('不正', '1')) is None
+    assert _comment_timestamp_jst({}) is None
+
+
+def test_comment_timestamp_jst_converts_aware_offsets():
+    """タイムゾーン付き timestamp は JST へ変換される（+00:00 / +05:00）。"""
+    # +00:00 の 12:00 は JST 21:00
+    dt = _comment_timestamp_jst(_mk_comment('2026-08-03T12:00:00+00:00', '1'))
+    assert dt == datetime(2026, 8, 3, 21, 0)
+    # +05:00 の 12:00 は JST 16:00
+    dt2 = _comment_timestamp_jst(_mk_comment('2026-08-03T12:00:00+05:00', '2'))
+    assert dt2 == datetime(2026, 8, 3, 16, 0)
+
+
+def test_merge_keeps_aware_timestamp_within_48h(monkeypatch):
+    """+00:00 付き timestamp も JST 換算で48時間窓を判定する（P1-1再現）。"""
+    import fetch_manager_comments as fmc
+    from time_utils import JST
+    monkeypatch.setattr(fmc, 'now_jst', lambda: datetime(2026, 8, 5, 20, 0, tzinfo=JST))
+    # 2026-08-03T12:00:00+00:00 = 2026-08-03 21:00 JST = 47時間前 → 保持対象
+    c = _mk_comment('2026-08-03T12:00:00+00:00', '1')
+    result = fmc.merge_existing_comments([], [c])
+    assert len(result) == 1
+
+
+def test_get_comment_window_rolling_48h(monkeypatch):
+    """取得対象窓は直近48時間（前日朝のコメントも必ず含む・end=現在時刻）。"""
+    import fetch_manager_comments as fmc
+    from time_utils import JST
+    monkeypatch.setattr(fmc, 'now_jst', lambda: datetime(2026, 8, 5, 20, 0, tzinfo=JST))
+    start, end = fmc.get_comment_window()
+    assert start == datetime(2026, 8, 3, 20, 0)
+    assert end == datetime(2026, 8, 5, 20, 0)  # end=now（未来は含まない）
+    # 前日朝・当日の投稿が窓内
+    assert start <= datetime(2026, 8, 4, 6, 30) < end
+    assert start <= datetime(2026, 8, 5, 19, 30) < end
+
+
+def test_fetch_includes_previous_morning_with_empty_existing(tmp_path, monkeypatch):
+    """既存JSONが空でも、前日朝コメントと当日夜コメントの両方が取得・保存される（P1-2再現）。"""
+    import fetch_manager_comments as fmc
+    from time_utils import JST
+    monkeypatch.setattr(fmc, 'now_jst', lambda: datetime(2026, 8, 5, 20, 0, tzinfo=JST))
+    output = tmp_path / 'manager_comments.json'  # 既存JSONなし
+    monkeypatch.setattr(fmc, 'OUTPUT_FILE', output)
+    monkeypatch.setattr(fmc, 'get_manager_tripcodes', lambda: {'◆test': 'テスト監督'})
+    monkeypatch.setattr(fmc, 'get_comment_sources', lambda: [{'url': 'https://x.test/1', 'kind': '5ch'}])
+
+    def fake_fetch(url, kind):
+        return [
+            {'source_url': 'https://x.test/1', 'source_kind': '5ch', 'post_id': '1',
+             'timestamp': datetime(2026, 8, 4, 6, 30), 'tripcode': '◆test',
+             'content_html': '<p>前日朝の振り返り</p>', 'posted_name': 'テスト監督'},
+            {'source_url': 'https://x.test/1', 'source_kind': '5ch', 'post_id': '2',
+             'timestamp': datetime(2026, 8, 5, 19, 30), 'tripcode': '◆test',
+             'content_html': '<p>当日のコメント</p>', 'posted_name': 'テスト監督'},
+        ], None
+
+    monkeypatch.setattr(fmc, 'fetch_source', fake_fetch)
+    fmc.fetch_and_process_comments()
+    data = json.loads(output.read_text(encoding='utf-8'))
+    assert len(data) == 2
+    ids = {c['post_id'] for c in data}
+    assert ids == {'1', '2'}  # 前日朝と当日夜の両方
+
+
+def test_merge_skips_broken_existing_records(monkeypatch):
+    """必須フィールド欠落の壊れた既存コメントは除外され、正常コメントの保存が継続する（P2-2）。"""
+    import fetch_manager_comments as fmc
+    from time_utils import JST
+    monkeypatch.setattr(fmc, 'now_jst', lambda: datetime(2026, 8, 5, 20, 0, tzinfo=JST))
+    broken = {'source_url': 'https://x.test/1', 'post_id': '1', 'timestamp': '2026-08-05T19:00:00'}
+    good = _mk_comment('2026-08-05T20:00:00', '2')
+    result = fmc.merge_existing_comments([broken], [good])
+    assert len(result) == 1
+    assert result[0]['post_id'] == '2'
+
+
+def test_merge_skips_wrong_type_records(monkeypatch):
+    """型不正レコード（非文字列content_html・parse不能timestamp）は除外される（P2-4）。"""
+    import fetch_manager_comments as fmc
+    from time_utils import JST
+    monkeypatch.setattr(fmc, 'now_jst', lambda: datetime(2026, 8, 5, 20, 0, tzinfo=JST))
+    wrong_type = {
+        'source_url': 'https://x.test/1', 'post_id': '1', 'timestamp': '2026-08-05T19:00:00',
+        'tripcode': '◆test', 'content_html': ['<p>リスト型</p>'],  # 非文字列
+    }
+    unparseable_ts = dict(wrong_type, post_id='2', content_html='<p>本文</p>',
+                          timestamp='不正な日時')  # parse不能
+    good = _mk_comment('2026-08-05T20:00:00', '3')
+    result = fmc.merge_existing_comments([wrong_type, unparseable_ts], [good])
+    assert len(result) == 1
+    assert result[0]['post_id'] == '3'
+
+
+def test_merge_sorts_by_jst_datetime_not_string(monkeypatch):
+    """timestamp ソートは文字列比較でなく JST 換算日時で行われる（P1-4再現）。"""
+    import fetch_manager_comments as fmc
+    from time_utils import JST
+    monkeypatch.setattr(fmc, 'now_jst', lambda: datetime(2026, 8, 5, 21, 0, tzinfo=JST))
+    # A: +00:00 の 10:00 = JST 19:00（新しい）
+    # B: naive 18:00 = JST 18:00（古い）
+    a = _mk_comment('2026-08-05T10:00:00+00:00', 'A')
+    b = _mk_comment('2026-08-05T18:00:00', 'B')
+    result = fmc.merge_existing_comments([], [b, a])
+    assert [c['post_id'] for c in result] == ['A', 'B']  # 文字列比較なら B が先頭になる
+
+
+# ============================================================
+# テスト: JST基準の夜間窓（UTC環境でもずれない）
+# ============================================================
+
+def test_night_window_uses_jst(monkeypatch):
+    """now_jst() 基準で夜間窓が決まる（UTC環境を模擬してもJSTの日付がずれない）。"""
+    import fetch_manager_comments as fmc
+    from time_utils import JST
+    # JST 20:00 → 当日18:00〜翌07:00
+    monkeypatch.setattr(fmc, 'now_jst', lambda: datetime(2026, 8, 5, 20, 0, tzinfo=JST))
+    start, end = fmc.get_night_window()
+    assert start == datetime(2026, 8, 5, 18, 0)
+    assert end == datetime(2026, 8, 6, 7, 0)
+    # 19時前後の投稿が不当に窓外へ落ちないこと
+    assert start <= datetime(2026, 8, 5, 19, 0) < end
+    assert start <= datetime(2026, 8, 5, 18, 30) < end
+
+
+def test_night_window_early_morning_uses_previous_day(monkeypatch):
+    """JST 06:00 → 前日18:00〜当日07:00（前日夜の投稿も対象）"""
+    import fetch_manager_comments as fmc
+    from time_utils import JST
+    monkeypatch.setattr(fmc, 'now_jst', lambda: datetime(2026, 8, 5, 6, 0, tzinfo=JST))
+    start, end = fmc.get_night_window()
+    assert start == datetime(2026, 8, 4, 18, 0)
+    assert end == datetime(2026, 8, 5, 7, 0)
+    assert start <= datetime(2026, 8, 4, 19, 0) < end
+
+
+# ============================================================
+# テスト: 全ソース失敗時の既存JSON維持
+# ============================================================
+
+def test_all_source_failure_keeps_existing_file(tmp_path, monkeypatch):
+    """全ソース取得失敗時は既存JSONを壊さず維持する。"""
+    import fetch_manager_comments as fmc
+    output = tmp_path / 'manager_comments.json'
+    output.write_text(json.dumps([_mk_comment('2026-08-04T20:00:00', '1')]), encoding='utf-8')
+    monkeypatch.setattr(fmc, 'OUTPUT_FILE', output)
+    monkeypatch.setattr(fmc, 'get_manager_tripcodes', lambda: {'◆test': 'テスト監督'})
+    monkeypatch.setattr(fmc, 'get_comment_sources', lambda: [{'url': 'https://x.test/1', 'kind': '5ch'}])
+    monkeypatch.setattr(fmc, 'fetch_source', lambda url, kind: ([], '取得失敗'))
+
+    fmc.fetch_and_process_comments()
+
+    # 既存ファイルがそのまま残っている
+    data = json.loads(output.read_text(encoding='utf-8'))
+    assert len(data) == 1
+    assert data[0]['post_id'] == '1'
 
 
 # ============================================================

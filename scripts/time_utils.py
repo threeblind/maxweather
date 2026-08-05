@@ -34,3 +34,23 @@ def format_jst_iso(dt: datetime | None = None) -> str:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=JST)
     return dt.astimezone(JST).isoformat()
+
+
+def parse_jst_datetime(value) -> datetime | None:
+    """日時文字列を JST 基準の naive datetime に変換する。
+
+    - タイムゾーン付き（aware）の場合は astimezone(JST) で JST に変換して tzinfo を外す
+      （例: 2026-08-03T12:00:00+00:00 → 2026-08-03 21:00 JST）
+    - タイムゾーンなし（naive）は JST として扱う
+    - スラッシュ区切り（2026/08/05 20:55）も ISO 区切りへ正規化して解釈する
+    - 不正な値は None を返す
+    """
+    if value is None:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value).replace('/', '-'))
+    except (TypeError, ValueError):
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(JST)
+    return dt.replace(tzinfo=None)

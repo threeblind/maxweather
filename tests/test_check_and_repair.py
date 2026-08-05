@@ -423,6 +423,103 @@ def test_response_file_rejected_source_not_deleted():
 
 
 # ============================================================
+# テスト: 監督コメント参照チェック（2026-08-05 追加）
+# ============================================================
+
+def _patch_comment_paths(monkeypatch, tmp_path, snapshot_exists, data_exists):
+    """SNAPSHOT_DIR / DATA_DIR を tmp_path 配下へ差し替える。"""
+    import check_and_repair_daily_summary as crs
+    snap_dir = tmp_path / 'daily_snapshots' / '2026-08-05'
+    data_dir = tmp_path / 'data'
+    snap_dir.mkdir(parents=True, exist_ok=True)
+    data_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(crs, 'SNAPSHOT_DIR', tmp_path / 'daily_snapshots')
+    monkeypatch.setattr(crs, 'DATA_DIR', data_dir)
+    snap_path = snap_dir / 'manager_comments.json'
+    data_path = data_dir / 'manager_comments.json'
+    if snapshot_exists:
+        snap_path.write_text(json.dumps([{
+            'timestamp': '2026-08-05T20:00:00', 'official_name': '■名古屋大学監督(ロマン派)',
+            'content_html': '<p>snapshot版</p>', 'source_url': 'https://s.test/1', 'post_id': '1',
+        }]), encoding='utf-8')
+    if data_exists:
+        data_path.write_text(json.dumps([{
+            'timestamp': '2026-08-05T20:00:00', 'official_name': '■名古屋大学監督(ロマン派)',
+            'content_html': '<p>data版</p>', 'source_url': 'https://d.test/1', 'post_id': '1',
+        }]), encoding='utf-8')
+    return snap_path, data_path
+
+
+def test_resolve_manager_comments_snapshot_priority(tmp_path, monkeypatch):
+    """snapshot の manager_comments.json が第一優先で参照される。"""
+    import check_and_repair_daily_summary as crs
+    snap_path, data_path = _patch_comment_paths(monkeypatch, tmp_path, True, True)
+    path = crs.resolve_manager_comments_path('2026-08-05')
+    assert path == snap_path
+    assert path != data_path
+
+
+def test_resolve_manager_comments_fallback_to_data(tmp_path, monkeypatch):
+    """snapshot がない場合は data/manager_comments.json へフォールバックする。"""
+    import check_and_repair_daily_summary as crs
+    snap_path, data_path = _patch_comment_paths(monkeypatch, tmp_path, False, True)
+    path = crs.resolve_manager_comments_path('2026-08-05')
+    assert path == data_path
+
+
+def test_resolve_manager_comments_none_when_missing(tmp_path, monkeypatch):
+    """snapshot・data とも無ければ None。"""
+    import check_and_repair_daily_summary as crs
+    _patch_comment_paths(monkeypatch, tmp_path, False, False)
+    assert crs.resolve_manager_comments_path('2026-08-05') is None
+
+
+def test_check_manager_comment_references_passes(tmp_path, monkeypatch):
+    """既知監督の引用・完全なキーで PASS になる。"""
+    import check_and_repair_daily_summary as crs
+    _patch_comment_paths(monkeypatch, tmp_path, True, False)
+    result = crs.CheckResult()
+    result.target_date = '2026-08-05'
+    summary = {'article': '名古屋大学監督は前日の走りを振り返った。'}
+    crs.check_manager_comment_references(result, summary, '2026-08-05')
+    statuses = {s['name']: s['status'] for s in result.steps}
+    assert statuses['manager_comments_source'] == 'PASS'
+    assert statuses['manager_comments_keys'] == 'PASS'
+    assert statuses['manager_comments_attribution'] == 'PASS'
+
+
+def test_check_manager_comment_references_warns_on_missing_keys(tmp_path, monkeypatch):
+    """source_url / post_id 欠落コメントは WARN になる（FAIL にはしない）。"""
+    import check_and_repair_daily_summary as crs
+    _patch_comment_paths(monkeypatch, tmp_path, True, False)
+    # post_id 欠落のコメントを snapshot に追加
+    snap_path = tmp_path / 'daily_snapshots' / '2026-08-05' / 'manager_comments.json'
+    data = json.loads(snap_path.read_text(encoding='utf-8'))
+    data.append({'timestamp': '2026-08-05T21:00:00', 'official_name': '■テスト大学監督',
+                 'content_html': '<p>キー欠落</p>', 'source_url': 'https://s.test/2'})
+    snap_path.write_text(json.dumps(data), encoding='utf-8')
+
+    result = crs.CheckResult()
+    result.target_date = '2026-08-05'
+    crs.check_manager_comment_references(result, {'article': '本文'}, '2026-08-05')
+    statuses = {s['name']: s['status'] for s in result.steps}
+    assert statuses['manager_comments_keys'] == 'WARN'
+
+
+def test_check_manager_comment_references_does_not_modify_article(tmp_path, monkeypatch):
+    """不確実なコメント帰属を推測補完しない（記事は変更されない）。"""
+    import check_and_repair_daily_summary as crs
+    _patch_comment_paths(monkeypatch, tmp_path, True, False)
+    article = '名古屋大学監督が意気込みを語った。'
+    result = crs.CheckResult()
+    result.target_date = '2026-08-05'
+    summary = {'article': article}
+    crs.check_manager_comment_references(result, summary, '2026-08-05')
+    # 記事が書き換えられていない
+    assert summary['article'] == article
+
+
+# ============================================================
 # テストランナー
 # ============================================================
 

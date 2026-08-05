@@ -15,6 +15,7 @@ import requests
 from bs4 import BeautifulSoup, Tag
 from datetime import datetime, time, timedelta
 from pathlib import Path
+from time_utils import JST, now_jst, parse_jst_datetime
 
 # --- ディレクトリ定義 ---
 CONFIG_DIR = Path('config')
@@ -35,8 +36,15 @@ HEADERS = {
 
 # --- 時間帯定数 ---
 # 夜間窓: 18:00 〜 翌 07:00 (JST)
+# 19時は運用上の取得開始時刻の目安であり、コメント対象日の判定には使わない。
 NIGHT_START_HOUR = 18
 NIGHT_END_HOUR = 7
+
+# --- 保持期間 ---
+# 当日・前日のコメントをsummaryへ渡すため、直近48時間のコメントを保持する。
+# 48時間より古いコメントは保存から除外し、AI入力へ流さない。
+# 未来の投稿時刻は実在コメントとして扱わない（保持上限は現在時刻）。
+RETENTION_HOURS = 48
 
 
 # ============================================================
@@ -118,10 +126,12 @@ def get_comment_sources():
 
 def get_night_window():
     """
-    実行時刻に基づいて夜間コメントの取得時間枠を返す (start, end)。
+    実行時刻（JST基準）に基づいて夜間コメントの取得時間枠を返す (start, end)。
     統一枠: 18:00〜翌07:00 (JST)
+    GitHub Actions は UTC 環境のため datetime.now() は使わず now_jst() を使用する。
+    注: これは後方互換用。実際の取得対象は get_comment_window()（直近48時間）を使う。
     """
-    now = datetime.now()
+    now = now_jst().replace(tzinfo=None)  # JST 基準（タイムゾーンなし=JST として扱う）
     today = now.date()
 
     if now.hour >= NIGHT_START_HOUR:
@@ -141,6 +151,19 @@ def get_night_window():
         print(f"[テストモード] 日中のため、前夜 {NIGHT_START_HOUR}:00〜今朝 {NIGHT_END_HOUR}:00 のコメントを取得します。")
 
     return start, end
+
+
+def get_comment_window():
+    """取得対象の時間窓（rolling window）を返す (start, end)。
+
+    現在時刻から直近 RETENTION_HOURS (48時間) を取得対象とし、前日朝のコメントも
+    必ず含める。19時を意味論上の境界にしない。保持期間（保存時の48時間保持）と
+    取得対象窓を分離し、投稿timestampのJST比較でフィルタする。
+    end は現在時刻（未来の投稿時刻は実在コメントとして扱わない）。
+    """
+    now = now_jst().replace(tzinfo=None)  # JST 基準
+    start = now - timedelta(hours=RETENTION_HOURS)
+    return start, now
 
 
 # ============================================================
@@ -412,6 +435,77 @@ def normalize_manager_comments(entries):
     return [e for e in entries if isinstance(e, dict)]
 
 
+def _comment_timestamp_jst(comment):
+    """コメントの timestamp を JST 基準の naive datetime で返す。
+
+    タイムゾーンなしの timestamp 文字列は JST として解釈し、
+    タイムゾーン付き（+00:00 等）は JST へ変換する（parse_jst_datetime 共通方針）。
+    不正な値は None を返す（呼び出し側でスキップする）。
+    """
+    ts = comment.get('timestamp') if isinstance(comment, dict) else None
+    if not ts:
+        return None
+    return parse_jst_datetime(ts)
+
+
+def _valid_comment_record(c):
+    """dedup で参照する必須キーの型・内容を検証する。
+
+    dedup_comments は timestamp / tripcode / content_html / source_url / post_id を
+    直接参照し、ハッシュ計算（content_html）や日時変換（timestamp）を行うため、
+    型が不正だと例外になる。各キーが非空文字列で、timestamp が JST として
+    parse 可能であることを確認し、異常レコードは除外して処理全体を止めない。
+    """
+    if not isinstance(c, dict):
+        return False
+    for key in ('source_url', 'post_id', 'timestamp', 'tripcode', 'content_html'):
+        val = c.get(key)
+        if not isinstance(val, str) or not val.strip():
+            return False
+    return _comment_timestamp_jst(c) is not None
+
+
+def merge_existing_comments(existing, new_comments):
+    """既存JSONと新規取得コメントを統合して保持する。
+
+    - 同一 (source_url, post_id) は1件にする（新規取得が優先）
+    - 異種ソースの転載は既存 dedup ルール（dedup_comments）を維持する
+    - 直近 RETENTION_HOURS (48時間) より古いコメントは除去し、
+      未来時刻の投稿（> now）も除去する
+    - 必須フィールド欠落・型不正の壊れた既存レコードは警告して除外し、
+      正常コメントの保存を継続する
+    - timestamp は JST 換算の日時で降順ソートする（文字列比較はしない）
+    """
+    valid_existing = [c for c in existing if _valid_comment_record(c)]
+    invalid_existing = [c for c in existing if not _valid_comment_record(c)]
+    if invalid_existing:
+        print(f"警告: 必須フィールド欠落・型不正の既存コメント {len(invalid_existing)}件を除外しました。")
+    valid_new = [c for c in new_comments if _valid_comment_record(c)]
+
+    merged = {}
+    for c in valid_existing:
+        key = (c.get('source_url'), c.get('post_id'))
+        merged[key] = c
+    for c in valid_new:
+        key = (c.get('source_url'), c.get('post_id'))
+        merged[key] = c  # 新規優先
+
+    merged_list = dedup_comments(list(merged.values()))
+
+    now_naive = now_jst().replace(tzinfo=None)
+    cutoff = now_naive - timedelta(hours=RETENTION_HOURS)
+    retained = []
+    for c in merged_list:
+        dt = _comment_timestamp_jst(c)
+        if dt is None or dt < cutoff or dt > now_naive:
+            continue  # 不正timestamp・48時間より古い・未来時刻のコメントは除去
+        retained.append(c)
+    # JST 換算の日時で降順ソート（+00:00 等の offset 付きも正しい順序になる）。
+    # 不正値（None）は datetime.min 扱いで末尾へ。
+    retained.sort(key=lambda c: _comment_timestamp_jst(c) or datetime.min, reverse=True)
+    return retained
+
+
 def fetch_source(url, kind):
     """
     指定されたソースから HTML を取得し、投稿を抽出する。
@@ -459,9 +553,9 @@ def fetch_and_process_comments():
         print("監督のコテハンが見つかりませんでした。処理を中断します。")
         return
 
-    # --- 時間枠 ---
-    start_time, end_time = get_night_window()
-    print(f"対象時間枠: {start_time} 〜 {end_time}")
+    # --- 時間枠（直近48時間の rolling window。19時を意味論上の境界にしない） ---
+    start_time, end_time = get_comment_window()
+    print(f"対象時間枠: {start_time} 〜 {end_time} (JST、直近{RETENTION_HOURS}時間)")
 
     # --- 取得元リスト ---
     sources = get_comment_sources()
@@ -512,13 +606,25 @@ def fetch_and_process_comments():
     # --- 重複除去 ---
     manager_comments = dedup_comments(manager_comments)
 
-    # --- ソート: timestamp 降順 ---
-    manager_comments.sort(key=lambda x: x['timestamp'], reverse=True)
+    # --- 既存JSONとの統合（48時間保持・同一post_id重複除去） ---
+    # 全ソース失敗時は既存ファイルを壊さず維持（上記 early return 済み）。
+    # 一部ソース失敗時は取得済み+既存の有効なコメントを統合する。
+    existing = []
+    if OUTPUT_FILE.exists():
+        try:
+            with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
+                existing = normalize_manager_comments(json.load(f))
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"警告: 既存 {OUTPUT_FILE} の読み込みに失敗しました: {e}")
+            existing = []
+    manager_comments = merge_existing_comments(existing, manager_comments)
 
-    # --- 保存 ---
+    # --- 保存（原子的に: 取得失敗時も既存ファイルを壊さない） ---
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+    tmp_path = OUTPUT_FILE.with_suffix('.json.tmp')
+    with open(tmp_path, 'w', encoding='utf-8') as f:
         json.dump(manager_comments, f, indent=2, ensure_ascii=False)
+    os.replace(tmp_path, OUTPUT_FILE)
 
     print(f"処理完了: {len(manager_comments)}件の監督コメントを {OUTPUT_FILE} に保存しました。")
     if errors:
