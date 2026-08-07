@@ -1,15 +1,14 @@
 {
   "schema_version": 1,
-  "updated_day": 15,
+  "updated_day": 16,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 15,
+    "last_updated_day": 16,
     "teams": [
-      "鹿児島大学",
-      "広島経済大学",
-      "熊本学園大学"
+      "熊本学園大学",
+      "広島経済大学"
     ]
   },
   "ongoing_battles": [
@@ -17,49 +16,27 @@
       "id": "lead_battle",
       "kind": "lead",
       "teams": [
-        "鹿児島大学",
+        "熊本学園大学",
         "広島経済大学"
       ],
-      "summary": "鹿児島大学と広島経済大学による首位争い",
-      "started_day": 13,
-      "last_updated_day": 15,
-      "last_observed_gap_km": 2.1000000000000227,
-      "previous_gap_km": 2.1000000000000227
+      "summary": "熊本学園大学と広島経済大学による首位争い",
+      "started_day": 16,
+      "last_updated_day": 16,
+      "last_observed_gap_km": 1.1000000000000227,
+      "previous_gap_km": 1.1000000000000227
     }
   ],
   "momentum": [],
   "runner_threads": [
     {
-      "runner": "福知山",
-      "team": "立命館大学",
-      "summary": "本日最速 37.5km の快走",
-      "started_day": 13,
-      "last_updated_day": 13
-    },
-    {
-      "runner": "鳥取",
-      "team": "鳥取大学",
+      "runner": "豊岡",
+      "team": "関西大学",
       "summary": "本日最速 38.9km の快走",
-      "started_day": 15,
-      "last_updated_day": 15
+      "started_day": 16,
+      "last_updated_day": 16
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "選手交代：熊本学園大学の宇目君から新走者へタスキ",
-      "resolved_day": 10,
-      "reason": "区間交代"
-    },
-    {
-      "summary": "選手交代：広島経済大学の加計君から新走者へタスキ",
-      "resolved_day": 12,
-      "reason": "区間交代"
-    },
-    {
-      "summary": "選手交代：山梨学院大学の切石君から新走者へタスキ",
-      "resolved_day": 12,
-      "reason": "区間交代"
-    },
     {
       "summary": "首位攻防交代：四国大学, 鹿児島大学の争いから鹿児島大学と広島経済大学の争いへ移行 (前回観測時の差 1.4km)",
       "resolved_day": 13,
@@ -68,6 +45,21 @@
     {
       "summary": "選手交代：熊本学園大学の熊本君から新走者へタスキ",
       "resolved_day": 15,
+      "reason": "区間交代"
+    },
+    {
+      "summary": "首位攻防交代：鹿児島大学, 広島経済大学の争いから熊本学園大学と広島経済大学の争いへ移行 (前回観測時の差 2.1km)",
+      "resolved_day": 16,
+      "reason": "首位交代"
+    },
+    {
+      "summary": "選手交代：立命館大学の福知山君から新走者へタスキ",
+      "resolved_day": 16,
+      "reason": "区間交代"
+    },
+    {
+      "summary": "選手交代：鳥取大学の鳥取君から新走者へタスキ",
+      "resolved_day": 16,
       "reason": "区間交代"
     }
   ]
