@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "updated_day": 16,
+  "updated_day": 17,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 16,
+    "last_updated_day": 17,
     "teams": [
       "熊本学園大学",
       "広島経済大学"
@@ -21,9 +21,9 @@
       ],
       "summary": "熊本学園大学と広島経済大学による首位争い",
       "started_day": 16,
-      "last_updated_day": 16,
-      "last_observed_gap_km": 1.1000000000000227,
-      "previous_gap_km": 1.1000000000000227
+      "last_updated_day": 17,
+      "last_observed_gap_km": 1.3999999999999773,
+      "previous_gap_km": 1.3999999999999773
     }
   ],
   "momentum": [],
@@ -34,6 +34,13 @@
       "summary": "本日最速 38.9km の快走",
       "started_day": 16,
       "last_updated_day": 16
+    },
+    {
+      "runner": "熊谷",
+      "team": "上武大学",
+      "summary": "本日最速 37.4km の快走",
+      "started_day": 17,
+      "last_updated_day": 17
     }
   ],
   "resolved_stories": [
