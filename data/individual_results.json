@@ -4841,33 +4841,10 @@
     }
   },
   "福島": {
-    "totalDistance": 24.8,
+    "totalDistance": 0,
     "teamId": 16,
-    "records": [
-      {
-        "day": 18,
-        "leg": 6,
-        "distance": 24.8,
-        "legAverageDistance": 24.8,
-        "legRank": 17,
-        "legAverageStatus": "provisional",
-        "legRankStatus": "provisional",
-        "dailyRank": 16,
-        "dailyRankStatus": "provisional"
-      }
-    ],
-    "legSummaries": {
-      "6": {
-        "totalDistance": 24.8,
-        "days": 1,
-        "averageDistance": 24.8,
-        "rank": 17,
-        "status": "provisional",
-        "finalRank": null,
-        "finalDay": null,
-        "lastUpdatedDay": 18
-      }
-    }
+    "records": [],
+    "legSummaries": {}
   },
   "若松": {
     "totalDistance": 24.4,
