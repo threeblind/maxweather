@@ -6204,5 +6204,34 @@
         "lastUpdatedDay": 19
       }
     }
+  },
+  "大館": {
+    "totalDistance": 25.0,
+    "teamId": 14,
+    "records": [
+      {
+        "day": 19,
+        "leg": 6,
+        "distance": 25.0,
+        "legAverageDistance": 25.0,
+        "legRank": 18,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional",
+        "dailyRank": 6,
+        "dailyRankStatus": "provisional"
+      }
+    ],
+    "legSummaries": {
+      "6": {
+        "totalDistance": 25.0,
+        "days": 1,
+        "averageDistance": 25.0,
+        "rank": 18,
+        "status": "provisional",
+        "finalRank": null,
+        "finalDay": null,
+        "lastUpdatedDay": 19
+      }
+    }
   }
 }
