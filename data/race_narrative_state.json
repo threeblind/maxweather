@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "updated_day": 18,
+  "updated_day": 19,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 18,
+    "last_updated_day": 19,
     "teams": [
       "熊本学園大学",
       "広島経済大学"
@@ -21,30 +21,13 @@
       ],
       "summary": "熊本学園大学と広島経済大学による首位争い",
       "started_day": 16,
-      "last_updated_day": 18,
-      "last_observed_gap_km": 3.199999999999932,
-      "previous_gap_km": 3.199999999999932
+      "last_updated_day": 19,
+      "last_observed_gap_km": 3.2999999999999545,
+      "previous_gap_km": 3.2999999999999545
     }
   ],
-  "momentum": [
-    {
-      "team": "四国大学",
-      "summary": "7位から4位へ急浮上",
-      "started_day": 18,
-      "last_updated_day": 18,
-      "previous_rank": 7,
-      "current_rank": 4,
-      "diff": 3
-    }
-  ],
+  "momentum": [],
   "runner_threads": [
-    {
-      "runner": "豊岡",
-      "team": "関西大学",
-      "summary": "本日最速 38.9km の快走",
-      "started_day": 16,
-      "last_updated_day": 16
-    },
     {
       "runner": "熊谷",
       "team": "上武大学",
@@ -53,29 +36,14 @@
       "last_updated_day": 17
     },
     {
-      "runner": "三角",
-      "team": "熊本学園大学",
-      "summary": "本日最速 36.3km の快走",
-      "started_day": 18,
-      "last_updated_day": 18
+      "runner": "美濃加茂",
+      "team": "名古屋大学",
+      "summary": "本日最速 36.4km の快走",
+      "started_day": 19,
+      "last_updated_day": 19
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "首位攻防交代：四国大学, 鹿児島大学の争いから鹿児島大学と広島経済大学の争いへ移行 (前回観測時の差 1.4km)",
-      "resolved_day": 13,
-      "reason": "首位交代"
-    },
-    {
-      "summary": "選手交代：熊本学園大学の熊本君から新走者へタスキ",
-      "resolved_day": 15,
-      "reason": "区間交代"
-    },
-    {
-      "summary": "首位攻防交代：鹿児島大学, 広島経済大学の争いから熊本学園大学と広島経済大学の争いへ移行 (前回観測時の差 2.1km)",
-      "resolved_day": 16,
-      "reason": "首位交代"
-    },
     {
       "summary": "選手交代：立命館大学の福知山君から新走者へタスキ",
       "resolved_day": 16,
@@ -84,6 +52,21 @@
     {
       "summary": "選手交代：鳥取大学の鳥取君から新走者へタスキ",
       "resolved_day": 16,
+      "reason": "区間交代"
+    },
+    {
+      "summary": "勢い落ち着く：四国大学の急浮上（本日7位）",
+      "resolved_day": 19,
+      "reason": "勢い低下"
+    },
+    {
+      "summary": "選手交代：関西大学の豊岡君から新走者へタスキ",
+      "resolved_day": 19,
+      "reason": "区間交代"
+    },
+    {
+      "summary": "選手交代：熊本学園大学の三角君から新走者へタスキ",
+      "resolved_day": 19,
       "reason": "区間交代"
     }
   ]
