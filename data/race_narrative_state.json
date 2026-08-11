@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "updated_day": 19,
+  "updated_day": 20,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 19,
+    "last_updated_day": 20,
     "teams": [
       "熊本学園大学",
       "広島経済大学"
@@ -21,34 +21,39 @@
       ],
       "summary": "熊本学園大学と広島経済大学による首位争い",
       "started_day": 16,
-      "last_updated_day": 19,
-      "last_observed_gap_km": 3.2999999999999545,
-      "previous_gap_km": 3.2999999999999545
+      "last_updated_day": 20,
+      "last_observed_gap_km": 1.5,
+      "previous_gap_km": 1.5
     }
   ],
-  "momentum": [],
-  "runner_threads": [
+  "momentum": [
     {
-      "runner": "熊谷",
-      "team": "上武大学",
-      "summary": "本日最速 37.4km の快走",
-      "started_day": 17,
-      "last_updated_day": 17
-    },
+      "team": "四国大学",
+      "summary": "7位から4位へ急浮上",
+      "started_day": 20,
+      "last_updated_day": 20,
+      "previous_rank": 7,
+      "current_rank": 4,
+      "diff": 3
+    }
+  ],
+  "runner_threads": [
     {
       "runner": "美濃加茂",
       "team": "名古屋大学",
       "summary": "本日最速 36.4km の快走",
       "started_day": 19,
       "last_updated_day": 19
+    },
+    {
+      "runner": "高知",
+      "team": "四国大学",
+      "summary": "本日最速 37.2km の快走",
+      "started_day": 20,
+      "last_updated_day": 20
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "選手交代：立命館大学の福知山君から新走者へタスキ",
-      "resolved_day": 16,
-      "reason": "区間交代"
-    },
     {
       "summary": "選手交代：鳥取大学の鳥取君から新走者へタスキ",
       "resolved_day": 16,
