@@ -1,23 +1,23 @@
 [
   {
     "rank": 1,
-    "team_name": "熊本学園大学",
-    "team_short_name": "熊学",
-    "runner_name": "甲佐",
-    "total_distance_km": 764.0,
-    "latitude": 34.48563301399879,
-    "longitude": 133.35522347933156,
-    "current_leg": 8,
-    "is_shadow_confederation": false
-  },
-  {
-    "rank": 2,
     "team_name": "広島経済大学",
     "team_short_name": "広経",
     "runner_name": "三次",
     "total_distance_km": 762.0,
     "latitude": 34.48782176093123,
     "longitude": 133.37657315332433,
+    "current_leg": 8,
+    "is_shadow_confederation": false
+  },
+  {
+    "rank": 2,
+    "team_name": "四国大学",
+    "team_short_name": "四国",
+    "runner_name": "高知",
+    "total_distance_km": 757.7,
+    "latitude": 34.49786868056538,
+    "longitude": 133.4210125835714,
     "current_leg": 8,
     "is_shadow_confederation": false
   },
@@ -33,24 +33,24 @@
     "is_shadow_confederation": false
   },
   {
-    "rank": 3,
-    "team_name": "四国大学",
-    "team_short_name": "四国",
-    "runner_name": "高知",
-    "total_distance_km": 757.4,
-    "latitude": 34.49894534012907,
-    "longitude": 133.42388356685439,
+    "rank": 4,
+    "team_name": "福岡大学",
+    "team_short_name": "福岡",
+    "runner_name": "白石（佐賀）",
+    "total_distance_km": 755.1,
+    "latitude": 34.49858453641122,
+    "longitude": 133.44569829079632,
     "current_leg": 8,
     "is_shadow_confederation": false
   },
   {
     "rank": 5,
-    "team_name": "福岡大学",
-    "team_short_name": "福岡",
-    "runner_name": "白石（佐賀）",
-    "total_distance_km": 753.9,
-    "latitude": 34.50425988911801,
-    "longitude": 133.4565683420902,
+    "team_name": "鹿児島大学",
+    "team_short_name": "鹿大",
+    "runner_name": "川内",
+    "total_distance_km": 753.6,
+    "latitude": 34.505664269184734,
+    "longitude": 133.45937780617356,
     "current_leg": 8,
     "is_shadow_confederation": false
   },
@@ -67,17 +67,6 @@
   },
   {
     "rank": 7,
-    "team_name": "鹿児島大学",
-    "team_short_name": "鹿大",
-    "runner_name": "川内",
-    "total_distance_km": 753.1,
-    "latitude": 34.50800490262926,
-    "longitude": 133.46406024631247,
-    "current_leg": 8,
-    "is_shadow_confederation": false
-  },
-  {
-    "rank": 8,
     "team_name": "三重大学",
     "team_short_name": "三重",
     "runner_name": "五條",
@@ -88,18 +77,18 @@
     "is_shadow_confederation": false
   },
   {
-    "rank": 9,
+    "rank": 8,
     "team_name": "学連選抜",
     "team_short_name": "学連",
     "runner_name": "宇和",
-    "total_distance_km": 747.9,
-    "latitude": 34.49942624740215,
-    "longitude": 133.51395901969303,
+    "total_distance_km": 748.3,
+    "latitude": 34.50035232848932,
+    "longitude": 133.50976159374216,
     "current_leg": 8,
     "is_shadow_confederation": false
   },
   {
-    "rank": 10,
+    "rank": 9,
     "team_name": "鳥取大学",
     "team_short_name": "鳥取",
     "runner_name": "山口（山口）",
@@ -110,7 +99,7 @@
     "is_shadow_confederation": false
   },
   {
-    "rank": 11,
+    "rank": 10,
     "team_name": "立命館大学",
     "team_short_name": "立命",
     "runner_name": "大津",
@@ -121,13 +110,24 @@
     "is_shadow_confederation": false
   },
   {
-    "rank": 12,
+    "rank": 11,
     "team_name": "山梨学院大学",
     "team_short_name": "山学",
     "runner_name": "天竜",
-    "total_distance_km": 739.4,
-    "latitude": 34.52980269224526,
-    "longitude": 133.59554952472016,
+    "total_distance_km": 740.2,
+    "latitude": 34.52659435162541,
+    "longitude": 133.58770070416364,
+    "current_leg": 8,
+    "is_shadow_confederation": false
+  },
+  {
+    "rank": 12,
+    "team_name": "熊本学園大学",
+    "team_short_name": "熊学",
+    "runner_name": "甲佐",
+    "total_distance_km": 739.5,
+    "latitude": 34.52939789470746,
+    "longitude": 133.59457064747141,
     "current_leg": 8,
     "is_shadow_confederation": false
   },
@@ -169,9 +169,9 @@
     "team_name": "琉球大学",
     "team_short_name": "琉球",
     "runner_name": "西表島",
-    "total_distance_km": 682.7,
-    "latitude": 34.73021301827243,
-    "longitude": 134.12636068961638,
+    "total_distance_km": 682.8,
+    "latitude": 34.72997754839415,
+    "longitude": 134.1253073828313,
     "current_leg": 7,
     "is_shadow_confederation": false
   },
