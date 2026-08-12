@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "updated_day": 20,
+  "updated_day": 21,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 20,
+    "last_updated_day": 21,
     "teams": [
       "熊本学園大学",
       "広島経済大学"
@@ -21,22 +21,12 @@
       ],
       "summary": "熊本学園大学と広島経済大学による首位争い",
       "started_day": 16,
-      "last_updated_day": 20,
-      "last_observed_gap_km": 1.5,
-      "previous_gap_km": 1.5
+      "last_updated_day": 21,
+      "last_observed_gap_km": 4.899999999999977,
+      "previous_gap_km": 4.899999999999977
     }
   ],
-  "momentum": [
-    {
-      "team": "四国大学",
-      "summary": "7位から4位へ急浮上",
-      "started_day": 20,
-      "last_updated_day": 20,
-      "previous_rank": 7,
-      "current_rank": 4,
-      "diff": 3
-    }
-  ],
+  "momentum": [],
   "runner_threads": [
     {
       "runner": "美濃加茂",
@@ -51,6 +41,13 @@
       "summary": "本日最速 37.2km の快走",
       "started_day": 20,
       "last_updated_day": 20
+    },
+    {
+      "runner": "甲佐",
+      "team": "熊本学園大学",
+      "summary": "本日最速 34.5km の快走",
+      "started_day": 21,
+      "last_updated_day": 21
     }
   ],
   "resolved_stories": [
@@ -73,6 +70,11 @@
       "summary": "選手交代：熊本学園大学の三角君から新走者へタスキ",
       "resolved_day": 19,
       "reason": "区間交代"
+    },
+    {
+      "summary": "勢い落ち着く：四国大学の急浮上（本日3位）",
+      "resolved_day": 21,
+      "reason": "勢い低下"
     }
   ]
 }
