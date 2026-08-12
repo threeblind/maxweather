@@ -11,6 +11,7 @@
 | `docs/README.md` | サイト全体の機能紹介とデモリンク | 2025-09-30 | Cさん | 要 (全体変更時) |
 | `docs/Gemini.md` | システムアーキテクチャ詳細と運用サイクル | 2025-09-28 | Gさん | 済 (2025-09-28) |
 | `docs/roster_change_and_record_policy.md` | エントリー変更・個人記録削除の運用方針 | 2026-08-07 | Codex | 済 (2026-08-07) |
+| `docs/player_substitution_operations.md` | 選手交代の運用マニュアル（受領→反映→検証→報告） | 2026-08-13 | corder | 未 |
 | `docs/Codex-notes.md` | 協業ルール・コミュニケーション方針 | 2025-09-25 | Cさん | 済 (2025-09-25) |
 | `docs/requirements.md` | 要件定義・仕様書 (本日更新) | 2025-10-09 | Cさん | 未 (A/Cで確認予定) |
 | `docs/project_structure.md` | リポジトリ/データ構造リファレンス | 2025-10-09 | Cさん | 未 (A/Cで確認予定) |
