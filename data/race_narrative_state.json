@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
-  "updated_day": 22,
+  "updated_day": 23,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 22,
+    "last_updated_day": 23,
     "teams": [
       "熊本学園大学",
-      "広島経済大学"
+      "福岡大学"
     ]
   },
   "ongoing_battles": [
@@ -17,13 +17,13 @@
       "kind": "lead",
       "teams": [
         "熊本学園大学",
-        "広島経済大学"
+        "福岡大学"
       ],
-      "summary": "熊本学園大学と広島経済大学による首位争い",
-      "started_day": 16,
-      "last_updated_day": 22,
-      "last_observed_gap_km": 10.0,
-      "previous_gap_km": 10.0
+      "summary": "熊本学園大学と福岡大学による首位争い",
+      "started_day": 23,
+      "last_updated_day": 23,
+      "last_observed_gap_km": 14.0,
+      "previous_gap_km": 14.0
     }
   ],
   "momentum": [],
@@ -37,11 +37,6 @@
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "選手交代：関西大学の豊岡君から新走者へタスキ",
-      "resolved_day": 19,
-      "reason": "区間交代"
-    },
     {
       "summary": "選手交代：熊本学園大学の三角君から新走者へタスキ",
       "resolved_day": 19,
@@ -61,6 +56,11 @@
       "summary": "選手交代：四国大学の高知君から新走者へタスキ",
       "resolved_day": 22,
       "reason": "区間交代"
+    },
+    {
+      "summary": "首位攻防交代：熊本学園大学, 広島経済大学の争いから熊本学園大学と福岡大学の争いへ移行 (前回観測時の差 10.0km)",
+      "resolved_day": 23,
+      "reason": "首位交代"
     }
   ]
 }
