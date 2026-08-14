@@ -4490,33 +4490,10 @@
     }
   },
   "人吉": {
-    "totalDistance": 25.9,
+    "totalDistance": 0,
     "teamId": 12,
-    "records": [
-      {
-        "day": 24,
-        "leg": 9,
-        "distance": 25.9,
-        "legAverageDistance": 25.9,
-        "legRank": 1,
-        "legAverageStatus": "provisional",
-        "legRankStatus": "provisional",
-        "dailyRank": 1,
-        "dailyRankStatus": "provisional"
-      }
-    ],
-    "legSummaries": {
-      "9": {
-        "totalDistance": 25.9,
-        "days": 1,
-        "averageDistance": 25.9,
-        "rank": 1,
-        "status": "provisional",
-        "finalRank": null,
-        "finalDay": null,
-        "lastUpdatedDay": 24
-      }
-    }
+    "records": [],
+    "legSummaries": {}
   },
   "三角": {
     "totalDistance": 147.7,
