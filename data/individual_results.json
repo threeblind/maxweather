@@ -5807,33 +5807,10 @@
     }
   },
   "徳島": {
-    "totalDistance": 27.9,
+    "totalDistance": 0,
     "teamId": 15,
-    "records": [
-      {
-        "day": 25,
-        "leg": 9,
-        "distance": 27.9,
-        "legAverageDistance": 27.9,
-        "legRank": 11,
-        "legAverageStatus": "provisional",
-        "legRankStatus": "provisional",
-        "dailyRank": 11,
-        "dailyRankStatus": "provisional"
-      }
-    ],
-    "legSummaries": {
-      "9": {
-        "totalDistance": 27.9,
-        "days": 1,
-        "averageDistance": 27.9,
-        "rank": 11,
-        "status": "provisional",
-        "finalRank": null,
-        "finalDay": null,
-        "lastUpdatedDay": 25
-      }
-    }
+    "records": [],
+    "legSummaries": {}
   },
   "高知": {
     "totalDistance": 103.8,
