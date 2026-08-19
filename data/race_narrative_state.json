@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "updated_day": 27,
+  "updated_day": 28,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 27,
+    "last_updated_day": 28,
     "teams": [
       "熊本学園大学",
       "福岡大学"
@@ -21,20 +21,13 @@
       ],
       "summary": "熊本学園大学と福岡大学による首位争い",
       "started_day": 23,
-      "last_updated_day": 27,
-      "last_observed_gap_km": 16.100000000000023,
-      "previous_gap_km": 16.100000000000023
+      "last_updated_day": 28,
+      "last_observed_gap_km": 16.200000000000045,
+      "previous_gap_km": 16.200000000000045
     }
   ],
   "momentum": [],
   "runner_threads": [
-    {
-      "runner": "大牟田",
-      "team": "福岡大学",
-      "summary": "本日最速 35.2km の快走",
-      "started_day": 25,
-      "last_updated_day": 25
-    },
     {
       "runner": "日田",
       "team": "熊本学園大学",
@@ -44,11 +37,6 @@
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "選手交代：名古屋大学の美濃加茂君から新走者へタスキ",
-      "resolved_day": 22,
-      "reason": "区間交代"
-    },
     {
       "summary": "選手交代：四国大学の高知君から新走者へタスキ",
       "resolved_day": 22,
@@ -67,6 +55,11 @@
     {
       "summary": "選手交代：熊本学園大学の豊後高田君から新走者へタスキ",
       "resolved_day": 27,
+      "reason": "区間交代"
+    },
+    {
+      "summary": "選手交代：福岡大学の大牟田君から新走者へタスキ",
+      "resolved_day": 28,
       "reason": "区間交代"
     }
   ]
