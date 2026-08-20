@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "updated_day": 28,
+  "updated_day": 29,
   "main_story": {
     "type": "首位状況",
     "summary": "首位状況",
     "started_day": 2,
-    "last_updated_day": 28,
+    "last_updated_day": 29,
     "teams": [
       "熊本学園大学",
       "福岡大学"
@@ -21,9 +21,9 @@
       ],
       "summary": "熊本学園大学と福岡大学による首位争い",
       "started_day": 23,
-      "last_updated_day": 28,
-      "last_observed_gap_km": 16.200000000000045,
-      "previous_gap_km": 16.200000000000045
+      "last_updated_day": 29,
+      "last_observed_gap_km": 17.0,
+      "previous_gap_km": 17.0
     }
   ],
   "momentum": [],
@@ -31,17 +31,12 @@
     {
       "runner": "日田",
       "team": "熊本学園大学",
-      "summary": "本日最速 36.5km の快走",
-      "started_day": 27,
-      "last_updated_day": 27
+      "summary": "本日最速 37.7km の快走",
+      "started_day": 29,
+      "last_updated_day": 29
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "選手交代：四国大学の高知君から新走者へタスキ",
-      "resolved_day": 22,
-      "reason": "区間交代"
-    },
     {
       "summary": "首位攻防交代：熊本学園大学, 広島経済大学の争いから熊本学園大学と福岡大学の争いへ移行 (前回観測時の差 10.0km)",
       "resolved_day": 23,
@@ -61,6 +56,11 @@
       "summary": "選手交代：福岡大学の大牟田君から新走者へタスキ",
       "resolved_day": 28,
       "reason": "区間交代"
+    },
+    {
+      "summary": "フィニッシュ：熊本学園大学がゴールし、日田君の走行が終了",
+      "resolved_day": 29,
+      "reason": "ゴール"
     }
   ]
 }
