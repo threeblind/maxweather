@@ -9151,5 +9151,34 @@
         "lastUpdatedDay": 30
       }
     }
+  },
+  "北上": {
+    "totalDistance": 23.9,
+    "teamId": 14,
+    "records": [
+      {
+        "day": 30,
+        "leg": 9,
+        "distance": 23.9,
+        "legAverageDistance": 23.9,
+        "legRank": 18,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional",
+        "dailyRank": 3,
+        "dailyRankStatus": "provisional"
+      }
+    ],
+    "legSummaries": {
+      "9": {
+        "totalDistance": 23.9,
+        "days": 1,
+        "averageDistance": 23.9,
+        "rank": 18,
+        "status": "provisional",
+        "finalRank": null,
+        "finalDay": null,
+        "lastUpdatedDay": 30
+      }
+    }
   }
 }
