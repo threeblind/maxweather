@@ -1,52 +1,30 @@
 {
   "schema_version": 1,
-  "updated_day": 29,
+  "updated_day": 30,
   "main_story": {
-    "type": "首位状況",
-    "summary": "首位状況",
-    "started_day": 2,
-    "last_updated_day": 29,
+    "type": "上位状況",
+    "summary": "上位状況",
+    "started_day": 30,
+    "last_updated_day": 30,
     "teams": [
-      "熊本学園大学",
-      "福岡大学"
+      "福岡大学",
+      "広島経済大学",
+      "名古屋大学",
+      "関西大学"
     ]
   },
-  "ongoing_battles": [
-    {
-      "id": "lead_battle",
-      "kind": "lead",
-      "teams": [
-        "熊本学園大学",
-        "福岡大学"
-      ],
-      "summary": "熊本学園大学と福岡大学による首位争い",
-      "started_day": 23,
-      "last_updated_day": 29,
-      "last_observed_gap_km": 17.0,
-      "previous_gap_km": 17.0
-    }
-  ],
+  "ongoing_battles": [],
   "momentum": [],
   "runner_threads": [
     {
-      "runner": "日田",
-      "team": "熊本学園大学",
-      "summary": "本日最速 37.7km の快走",
-      "started_day": 29,
-      "last_updated_day": 29
+      "runner": "高松",
+      "team": "広島経済大学",
+      "summary": "本日最速 37.3km の快走",
+      "started_day": 30,
+      "last_updated_day": 30
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "首位攻防交代：熊本学園大学, 広島経済大学の争いから熊本学園大学と福岡大学の争いへ移行 (前回観測時の差 10.0km)",
-      "resolved_day": 23,
-      "reason": "首位交代"
-    },
-    {
-      "summary": "選手交代：熊本学園大学の甲佐君から新走者へタスキ",
-      "resolved_day": 24,
-      "reason": "区間交代"
-    },
     {
       "summary": "選手交代：熊本学園大学の豊後高田君から新走者へタスキ",
       "resolved_day": 27,
@@ -60,6 +38,16 @@
     {
       "summary": "フィニッシュ：熊本学園大学がゴールし、日田君の走行が終了",
       "resolved_day": 29,
+      "reason": "ゴール"
+    },
+    {
+      "summary": "首位攻防決着：熊本学園大学と福岡大学の争いはゴールに到達したため決着 (最終観測差: -20.0km)",
+      "resolved_day": 30,
+      "reason": "ゴール"
+    },
+    {
+      "summary": "フィニッシュ：熊本学園大学がゴールし、日田君の走行が終了",
+      "resolved_day": 30,
       "reason": "ゴール"
     }
   ]
