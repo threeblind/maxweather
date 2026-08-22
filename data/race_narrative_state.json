@@ -1,40 +1,27 @@
 {
   "schema_version": 1,
-  "updated_day": 30,
+  "updated_day": 31,
   "main_story": {
-    "type": "上位状況",
-    "summary": "上位状況",
-    "started_day": 30,
-    "last_updated_day": 30,
+    "type": "中位状況",
+    "summary": "中位状況",
+    "started_day": 31,
+    "last_updated_day": 31,
     "teams": [
-      "福岡大学",
-      "広島経済大学",
-      "名古屋大学",
-      "関西大学"
+      "三重大学"
     ]
   },
   "ongoing_battles": [],
   "momentum": [],
   "runner_threads": [
     {
-      "runner": "高松",
-      "team": "広島経済大学",
-      "summary": "本日最速 37.3km の快走",
-      "started_day": 30,
-      "last_updated_day": 30
+      "runner": "京都",
+      "team": "立命館大学",
+      "summary": "本日最速 37.4km の快走",
+      "started_day": 31,
+      "last_updated_day": 31
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "選手交代：熊本学園大学の豊後高田君から新走者へタスキ",
-      "resolved_day": 27,
-      "reason": "区間交代"
-    },
-    {
-      "summary": "選手交代：福岡大学の大牟田君から新走者へタスキ",
-      "resolved_day": 28,
-      "reason": "区間交代"
-    },
     {
       "summary": "フィニッシュ：熊本学園大学がゴールし、日田君の走行が終了",
       "resolved_day": 29,
@@ -48,6 +35,16 @@
     {
       "summary": "フィニッシュ：熊本学園大学がゴールし、日田君の走行が終了",
       "resolved_day": 30,
+      "reason": "ゴール"
+    },
+    {
+      "summary": "首位攻防決着：熊本学園大学と福岡大学の争いはゴールに到達したため決着 (最終観測差: -20.0km)",
+      "resolved_day": 31,
+      "reason": "ゴール"
+    },
+    {
+      "summary": "フィニッシュ：広島経済大学がゴールし、高松君の走行が終了",
+      "resolved_day": 31,
       "reason": "ゴール"
     }
   ]
