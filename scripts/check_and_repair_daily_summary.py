@@ -556,7 +556,8 @@ def _resolve_race_day(target_date: str):
         start = datetime.strptime(start_str, '%Y-%m-%d')
         target = datetime.strptime(target_date, '%Y-%m-%d')
         day = (target - start).days + 1
-        return day if 1 <= day <= 30 else None
+        # 大会は最下位チームがゴールするまで続くため、上限を広く取る（第16回は31日目以降も継続）
+        return day if 1 <= day <= 90 else None
     except (ValueError, TypeError):
         return None
 
