@@ -1,37 +1,27 @@
 {
   "schema_version": 1,
-  "updated_day": 31,
+  "updated_day": 32,
   "main_story": {
-    "type": "中位状況",
-    "summary": "中位状況",
-    "started_day": 31,
-    "last_updated_day": 31,
+    "type": "シード圏外状況",
+    "summary": "シード圏外状況",
+    "started_day": 32,
+    "last_updated_day": 32,
     "teams": [
-      "三重大学"
+      "金沢大学"
     ]
   },
   "ongoing_battles": [],
   "momentum": [],
   "runner_threads": [
     {
-      "runner": "京都",
-      "team": "立命館大学",
-      "summary": "本日最速 37.4km の快走",
-      "started_day": 31,
-      "last_updated_day": 31
+      "runner": "富山",
+      "team": "金沢大学",
+      "summary": "本日最速 33.8km の快走",
+      "started_day": 32,
+      "last_updated_day": 32
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "フィニッシュ：熊本学園大学がゴールし、日田君の走行が終了",
-      "resolved_day": 29,
-      "reason": "ゴール"
-    },
-    {
-      "summary": "首位攻防決着：熊本学園大学と福岡大学の争いはゴールに到達したため決着 (最終観測差: -20.0km)",
-      "resolved_day": 30,
-      "reason": "ゴール"
-    },
     {
       "summary": "フィニッシュ：熊本学園大学がゴールし、日田君の走行が終了",
       "resolved_day": 30,
@@ -45,6 +35,16 @@
     {
       "summary": "フィニッシュ：広島経済大学がゴールし、高松君の走行が終了",
       "resolved_day": 31,
+      "reason": "ゴール"
+    },
+    {
+      "summary": "首位攻防決着：熊本学園大学と福岡大学の争いはゴールに到達したため決着 (最終観測差: -20.0km)",
+      "resolved_day": 32,
+      "reason": "ゴール"
+    },
+    {
+      "summary": "フィニッシュ：立命館大学がゴールし、京都君の走行が終了",
+      "resolved_day": 32,
       "reason": "ゴール"
     }
   ]
