@@ -974,7 +974,7 @@
         "totalDistance": 132.3,
         "days": 4,
         "averageDistance": 33.075,
-        "rank": 15,
+        "rank": 14,
         "status": "final",
         "finalRank": 14,
         "finalDay": 33,
@@ -1743,7 +1743,7 @@
         "totalDistance": 99.6,
         "days": 3,
         "averageDistance": 33.2,
-        "rank": 14,
+        "rank": 13,
         "status": "final",
         "finalRank": 12,
         "finalDay": 31,
@@ -3535,7 +3535,7 @@
         "totalDistance": 133.7,
         "days": 4,
         "averageDistance": 33.425,
-        "rank": 11,
+        "rank": 10,
         "status": "final",
         "finalRank": 10,
         "finalDay": 31,
@@ -5048,7 +5048,7 @@
         "totalDistance": 129.1,
         "days": 4,
         "averageDistance": 32.275,
-        "rank": 16,
+        "rank": 15,
         "status": "final",
         "finalRank": 15,
         "finalDay": 33,
@@ -7120,7 +7120,7 @@
         "totalDistance": 133.5,
         "days": 4,
         "averageDistance": 33.375,
-        "rank": 13,
+        "rank": 12,
         "status": "final",
         "finalRank": 13,
         "finalDay": 34,
@@ -7570,7 +7570,7 @@
         "totalDistance": 100.2,
         "days": 3,
         "averageDistance": 33.4,
-        "rank": 12,
+        "rank": 11,
         "status": "final",
         "finalRank": 11,
         "finalDay": 30,
@@ -8109,7 +8109,7 @@
         "totalDistance": 96.5,
         "days": 3,
         "averageDistance": 32.167,
-        "rank": 17,
+        "rank": 16,
         "status": "final",
         "finalRank": 16,
         "finalDay": 33,
@@ -9337,7 +9337,7 @@
         "totalDistance": 138.0,
         "days": 4,
         "averageDistance": 34.5,
-        "rank": 10,
+        "rank": 9,
         "status": "final",
         "finalRank": 9,
         "finalDay": 31,
@@ -9448,7 +9448,7 @@
     }
   },
   "白石（宮城）": {
-    "totalDistance": 69.2,
+    "totalDistance": 96.5,
     "teamId": 14,
     "records": [
       {
@@ -9472,18 +9472,29 @@
         "legRankStatus": "provisional",
         "dailyRank": 2,
         "dailyRankStatus": "provisional"
+      },
+      {
+        "day": 35,
+        "leg": 10,
+        "distance": 27.3,
+        "legAverageDistance": 32.167,
+        "legRank": 16,
+        "legAverageStatus": "provisional",
+        "legRankStatus": "provisional",
+        "dailyRank": 1,
+        "dailyRankStatus": "provisional"
       }
     ],
     "legSummaries": {
       "10": {
-        "totalDistance": 69.2,
-        "days": 2,
-        "averageDistance": 34.6,
-        "rank": 9,
+        "totalDistance": 96.5,
+        "days": 3,
+        "averageDistance": 32.167,
+        "rank": 16,
         "status": "provisional",
         "finalRank": null,
         "finalDay": null,
-        "lastUpdatedDay": 34
+        "lastUpdatedDay": 35
       }
     }
   }
