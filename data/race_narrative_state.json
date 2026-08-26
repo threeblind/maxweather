@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_day": 34,
+  "updated_day": 35,
   "main_story": {
     "type": "シード圏外状況",
     "summary": "シード圏外状況",
@@ -14,24 +14,14 @@
   "momentum": [],
   "runner_threads": [
     {
-      "runner": "梁川",
-      "team": "福島大学",
-      "summary": "本日最速 37.8km の快走",
-      "started_day": 34,
-      "last_updated_day": 34
+      "runner": "白石（宮城）",
+      "team": "東北大学",
+      "summary": "本日最速 32.5km の快走",
+      "started_day": 35,
+      "last_updated_day": 35
     }
   ],
   "resolved_stories": [
-    {
-      "summary": "フィニッシュ：立命館大学がゴールし、京都君の走行が終了",
-      "resolved_day": 32,
-      "reason": "ゴール"
-    },
-    {
-      "summary": "首位攻防決着：熊本学園大学と福岡大学の争いはゴールに到達したため決着 (最終観測差: -20.0km)",
-      "resolved_day": 33,
-      "reason": "ゴール"
-    },
     {
       "summary": "フィニッシュ：金沢大学がゴールし、富山君の走行が終了",
       "resolved_day": 33,
@@ -45,6 +35,16 @@
     {
       "summary": "フィニッシュ：上武大学がゴールし、鳩山君の走行が終了",
       "resolved_day": 34,
+      "reason": "ゴール"
+    },
+    {
+      "summary": "首位攻防決着：熊本学園大学と福岡大学の争いはゴールに到達したため決着 (最終観測差: -20.0km)",
+      "resolved_day": 35,
+      "reason": "ゴール"
+    },
+    {
+      "summary": "フィニッシュ：福島大学がゴールし、梁川君の走行が終了",
+      "resolved_day": 35,
       "reason": "ゴール"
     }
   ]
