@@ -9448,7 +9448,7 @@
     }
   },
   "白石（宮城）": {
-    "totalDistance": 100.9,
+    "totalDistance": 101.7,
     "teamId": 14,
     "records": [
       {
@@ -9476,24 +9476,24 @@
       {
         "day": 35,
         "leg": 10,
-        "distance": 31.7,
-        "legAverageDistance": 33.633,
+        "distance": 32.5,
+        "legAverageDistance": 33.9,
         "legRank": 10,
-        "legAverageStatus": "provisional",
-        "legRankStatus": "provisional",
+        "legAverageStatus": "final",
+        "legRankStatus": "final",
         "dailyRank": 1,
-        "dailyRankStatus": "provisional"
+        "dailyRankStatus": "final"
       }
     ],
     "legSummaries": {
       "10": {
-        "totalDistance": 100.9,
+        "totalDistance": 101.7,
         "days": 3,
-        "averageDistance": 33.633,
+        "averageDistance": 33.9,
         "rank": 10,
-        "status": "provisional",
-        "finalRank": null,
-        "finalDay": null,
+        "status": "final",
+        "finalRank": 10,
+        "finalDay": 35,
         "lastUpdatedDay": 35
       }
     }
