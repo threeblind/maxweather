@@ -1132,14 +1132,14 @@ const displayLegRankingFor = (legNumber, realtimeData, individualData, teamsInfo
         if (realtimeTeam) {
             // todayLeg: 本日実際に走っている区間番号（currentLeg は翌日以降の区間番号）
             const todayLeg = realtimeTeam.todayLeg ?? realtimeTeam.currentLeg;
-            if (todayLeg === legNumber) {
+            if (summary.status === 'final') {
+                if (summary.finalDay === currentRaceDay) {
+                    status = 'finished_today';
+                } else {
+                    status = 'past';
+                }
+            } else if (todayLeg === legNumber) {
                 status = 'running';
-            } else if (
-                todayLeg > legNumber &&
-                summary.status === 'final' &&
-                summary.finalDay === currentRaceDay
-            ) {
-                status = 'finished_today';
             }
         }
 
@@ -1855,9 +1855,14 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
     const currentRaceDay = realtimeData.raceDay;
     const finalGoalDistance = ekidenData.leg_boundaries[ekidenData.leg_boundaries.length - 1];
 
+    const isTeamGoalFinished = (team) => Boolean(
+        (team.finishDay && team.finishDay <= currentRaceDay) ||
+        (finalGoalDistance && team.totalDistance >= finalGoalDistance)
+    );
+
     // トップ差の基準となるチームを決定する
-    // 1. まだ走行中のチーム（前日までにゴールしていない）のうち、最上位のチームを探す
-    const activeTopTeam = realtimeData.teams.find(t => !(t.finishDay && t.finishDay < currentRaceDay));
+    // 1. まだ走行中のチーム（ゴールしていないチーム）のうち、最上位のチームを探す
+    const activeTopTeam = realtimeData.teams.find(t => !isTeamGoalFinished(t));
 
     // 2. 基準となる距離と順位を設定
     //    走行中のチームがいればそのチームを基準に、全員がゴール済みなら総合1位を基準にする
@@ -1875,10 +1880,11 @@ const updateEkidenRankingTable = (realtimeData, ekidenData) => {
         row.dataset.teamId = team.id; // 注目チーム機能で使用
         if (isFavoriteTeam(team.id)) row.classList.add('is-favorite');
 
-        const isFinishedPreviously = team.finishDay && team.finishDay < currentRaceDay;
+        const isFinished = isTeamGoalFinished(team);
+        const isFinishedPreviously = Boolean(team.finishDay && team.finishDay < currentRaceDay);
         let finishIcon = '';
 
-        if (isFinishedPreviously) { // 昨日までにゴール（順位確定）
+        if (isFinished) { // ゴール済み（当日ゴールを含む）
             if (team.overallRank === 1) finishIcon = '🏆 ';
             else if (team.overallRank === 2) finishIcon = '🥈 ';
             else if (team.overallRank === 3) finishIcon = '🥉 ';
@@ -3458,6 +3464,10 @@ function displayTeamDetails(teamId) {
 
     // todayLeg: 本日実際に走っている区間番号（currentLeg は翌日以降の区間番号）
     const currentLeg = realtimeTeamData ? (realtimeTeamData.todayLeg ?? realtimeTeamData.currentLeg) : 1;
+    const isTeamFinished = realtimeTeamData ? Boolean(
+        (realtimeTeamData.finishDay != null) ||
+        (ekidenDataCache?.leg_boundaries && realtimeTeamData.totalDistance >= ekidenDataCache.leg_boundaries[ekidenDataCache.leg_boundaries.length - 1])
+    ) : false;
 
     // 区間エントリー選手のHTMLを生成
     const kukanEntriesHtml = teamConfig.runners.map((runnerObj, index) => {
@@ -3485,8 +3495,10 @@ function displayTeamDetails(teamId) {
         if (realtimeTeamData) {
             let statusText = '';
             let statusClass = '';
+            const runnerSummary = allIndividualData[runnerName]?.legSummaries?.[String(runnerLeg)];
+            const isLegFinal = runnerSummary?.status === 'final';
 
-            if (runnerLeg < currentLeg) {
+            if (runnerLeg < currentLeg || isTeamFinished || isLegFinal) {
                 statusText = '走行済';
                 statusClass = 'status-finished';
 
